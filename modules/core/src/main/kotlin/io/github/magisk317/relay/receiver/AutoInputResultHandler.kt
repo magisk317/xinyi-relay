@@ -3,7 +3,7 @@ package io.github.magisk317.relay.receiver
 import io.github.magisk317.relay.android.otel.MagiskOtelBootstrap
 import android.content.Context
 import android.content.Intent
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.analytics.AnalyticsTracker
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst

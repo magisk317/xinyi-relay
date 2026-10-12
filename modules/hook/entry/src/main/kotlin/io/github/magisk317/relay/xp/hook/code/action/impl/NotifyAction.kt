@@ -15,7 +15,7 @@ import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.smscode.runtime.verification.CodeNotificationDeliveryHelper
 import io.github.magisk317.smscode.runtime.verification.NotifyActionHelper
 import io.github.magisk317.smscode.runtime.verification.PhoneOwnedNotificationDispatcher
-import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 
 /**
  * 显示验证码通知

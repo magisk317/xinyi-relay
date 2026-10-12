@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.domain.recovery
 
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.xposed.logging.MagiskOtel
 import java.io.IOException
 import java.util.concurrent.TimeUnit

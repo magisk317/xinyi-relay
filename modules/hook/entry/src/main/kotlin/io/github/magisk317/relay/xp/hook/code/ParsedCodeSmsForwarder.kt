@@ -8,7 +8,7 @@ import io.github.magisk317.relay.xpbridge.PreparedSmsHookDispatch
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
 import io.github.magisk317.relay.xpbridge.XpMessageTypes
-import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.xposed.logging.MagiskOtel
 import kotlinx.coroutines.runBlocking
 

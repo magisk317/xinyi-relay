@@ -9,7 +9,7 @@ import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xp.hook.code.action.impl.SmsParseAction
 import io.github.magisk317.smscode.runtime.verification.CodeWorker as SharedCodeWorker
 import io.github.magisk317.smscode.runtime.verification.SmsParseActionRunner
-import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 
 class CodeWorker(
     private val mPluginContext: Context,

@@ -6,7 +6,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.service.notification.NotificationListenerService
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.app.InfrastructureInitializer
 import io.github.magisk317.relay.service.AppNotificationListenerService
 import kotlinx.coroutines.CoroutineScope

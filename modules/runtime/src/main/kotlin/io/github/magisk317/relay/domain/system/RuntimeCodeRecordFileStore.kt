@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.domain.system
 
 import android.content.Context
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.smscode.db.entity.SmsMsg
 import io.github.magisk317.smscode.runtime.common.record.CodeRecordFileStore
 import java.io.File

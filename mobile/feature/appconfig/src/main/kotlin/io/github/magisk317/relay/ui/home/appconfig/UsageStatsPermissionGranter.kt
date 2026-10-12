@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.ui.home.appconfig
 
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.domain.recovery.RootShell
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CancellationException

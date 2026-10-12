@@ -4,7 +4,7 @@ import android.content.Context
 import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xpbridge.XpSmsCodeParser
 import io.github.magisk317.relay.xpbridge.XpStringEscaper
-import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.smscode.xposed.hook.telephony.SmsInboxObserver as SharedSmsInboxObserver
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService

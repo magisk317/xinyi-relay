@@ -11,7 +11,7 @@ import io.github.magisk317.relay.xp.hook.code.action.CallableAction
 import io.github.magisk317.relay.xp.hook.code.helper.InputHelper
 import io.github.magisk317.smscode.runtime.verification.AutoInputActionHelper
 import io.github.magisk317.smscode.runtime.verification.AutoInputBlockedPackageHelper
-import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import kotlinx.coroutines.runBlocking
 
 /**

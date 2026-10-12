@@ -16,7 +16,7 @@ import io.github.magisk317.relay.engine.model.CallTypeLabelFormatter
 import io.github.magisk317.smscode.runtime.contract.sim.SimSlotLabelFormatter
 import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.engine.model.MsgInfo
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.SimRemarkSettingsSnapshot
 import java.net.NetworkInterface

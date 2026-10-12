@@ -3,7 +3,7 @@ package io.github.magisk317.relay.testing
 import android.content.Context
 import android.content.Intent
 import io.github.magisk317.relay.xpbridge.SmsMsg
-import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.mockk.every
 import io.mockk.mockk
 

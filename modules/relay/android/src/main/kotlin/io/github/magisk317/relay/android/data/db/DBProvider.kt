@@ -11,7 +11,7 @@ import android.net.Uri
 import android.os.Binder
 import android.os.Bundle
 import androidx.room.withTransaction
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.db.dao.SmsMsgDao
 import io.github.magisk317.smscode.db.entity.AppInfo
 import io.github.magisk317.smscode.db.entity.SmsCodeRule

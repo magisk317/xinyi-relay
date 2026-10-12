@@ -23,7 +23,7 @@ import io.github.magisk317.smscode.xposed.hook.telephony.InboundSmsBlocker
 import io.github.magisk317.relay.xp.hook.PhoneHookTargetPackages
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeSession
-import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
 import io.github.magisk317.xposed.HookHelpers
@@ -74,7 +74,7 @@ class SmsHandlerHook : BaseHook() {
     private var suppressionLogged = false
 
     override fun onLoadPackage(param: LoadParam) {
-        XLog.withRoute(LogRoute.SMS_HOOK) {
+        XLog.withRoute(LogRoute.SMS_HOOK.id) {
             onLoadPackageRouted(param)
         }
     }
@@ -205,7 +205,7 @@ class SmsHandlerHook : BaseHook() {
         methodName: String,
         param: MethodHookParam,
     ) {
-        XLog.withRoute(LogRoute.SMS_HOOK) {
+        XLog.withRoute(LogRoute.SMS_HOOK.id) {
             try {
                 maybeBlockFromDispatchChain(
                     methodName = methodName,
@@ -257,7 +257,7 @@ class SmsHandlerHook : BaseHook() {
 
     private inner class ConstructorHook : MethodHook() {
         override fun afterHookedMethod(param: MethodHookParam) {
-            XLog.withRoute(LogRoute.SMS_HOOK) {
+            XLog.withRoute(LogRoute.SMS_HOOK.id) {
                 try {
                     afterConstructorHandler(param)
                     // The runtime exists from here on, so drain anything parked earlier.
@@ -299,7 +299,7 @@ class SmsHandlerHook : BaseHook() {
     ) : MethodHook() {
         @Throws(Throwable::class)
         override fun beforeHookedMethod(param: MethodHookParam) {
-            XLog.withRoute(LogRoute.SMS_HOOK) {
+            XLog.withRoute(LogRoute.SMS_HOOK.id) {
                 try {
                     beforeDispatchIntentHandler(param, mReceiverIndex)
                 } catch (e: Throwable) {
@@ -466,7 +466,7 @@ class SmsHandlerHook : BaseHook() {
 
     private fun scheduleBlacklistDelete(pluginContext: Context, phoneContext: Context, smsMsg: SmsMsg) {
         smsOperationExecutor.execute {
-            XLog.withRoute(LogRoute.SMS_HOOK) {
+            XLog.withRoute(LogRoute.SMS_HOOK.id) {
                 runCatching {
                     OperateSmsAction(
                         pluginContext,

@@ -4,7 +4,7 @@ import io.github.magisk317.xposed.logging.MagiskOtel
 import android.content.Context
 import android.net.Uri
 import androidx.core.content.FileProvider
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.backup.webdav.WebDavClient
 import io.github.magisk317.relay.backup.webdav.WebDavConfig
 import io.github.magisk317.relay.data.backup.BackupManager

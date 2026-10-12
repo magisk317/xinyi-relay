@@ -3,7 +3,7 @@ package io.github.magisk317.relay.xp.hook
 import android.content.Context
 import io.github.magisk317.smscode.runtime.verification.VerificationRuntimeContext
 import io.github.magisk317.smscode.xposed.helper.SmsHookContextRecovery
-import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.prefs.PrefsReader
 
 internal data class SmsHookRuntimeContext(

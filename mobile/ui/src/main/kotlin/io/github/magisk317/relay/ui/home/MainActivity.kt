@@ -62,7 +62,7 @@ import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.smscode.runtime.common.update.GithubUpdateChecker
 import io.github.magisk317.smscode.runtime.common.utils.FrameworkCompatibilityMonitor
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.common.utils.relayPackageActions
 import io.github.magisk317.smscode.runtime.common.utils.BrowserUtils
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository

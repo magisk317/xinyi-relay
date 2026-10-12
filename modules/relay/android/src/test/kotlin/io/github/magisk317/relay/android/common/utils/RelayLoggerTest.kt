@@ -114,7 +114,7 @@ class RelayLoggerTest {
         XLog.setLogLevel(2)
         ContractXLog.install(LogSink { captured = it })
 
-        XLog.i(LogRoute.ROOT_DB, "root db event")
+        XLog.log(android.util.Log.INFO, LogRoute.ROOT_DB.id, false, true, "root db event")
 
         assertEquals(4, captured?.priority)
         assertEquals("root db event", captured?.message)

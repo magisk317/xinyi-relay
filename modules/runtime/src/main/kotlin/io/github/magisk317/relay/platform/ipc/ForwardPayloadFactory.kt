@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.platform.ipc
 
 import android.content.Intent
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.smscode.db.entity.SmsMsg
 import java.util.UUID
 import kotlin.math.abs

@@ -8,7 +8,7 @@ import io.github.magisk317.xposed.MethodHook
 import io.github.magisk317.xposed.MethodHookParam
 import io.github.magisk317.xposed.logging.MagiskOtel
 import io.github.magisk317.smscode.xposed.prefs.CorePrefs
-import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.xposed.runNonFatalCatching
 import io.github.magisk317.xposed.runNonFatalOrNull
 import java.lang.reflect.Method

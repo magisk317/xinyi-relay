@@ -32,7 +32,7 @@ import io.github.magisk317.xposed.MethodHook
 import io.github.magisk317.xposed.MethodHookParam
 import io.github.magisk317.xposed.logging.MagiskOtel
 import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
-import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import kotlinx.coroutines.runBlocking
 import java.lang.reflect.Method
 import java.util.concurrent.Executors
@@ -75,7 +75,7 @@ class SmsForwardHook : BaseHook() {
     private var suppressionLogged = false
 
     override fun onLoadPackage(param: LoadParam) {
-        XLog.withRoute(LogRoute.FORWARD) {
+        XLog.withRoute(LogRoute.FORWARD.id) {
             onLoadPackageRouted(param)
         }
     }
@@ -126,7 +126,7 @@ class SmsForwardHook : BaseHook() {
 
     private inner class ConstructorHook : MethodHook() {
         override fun afterHookedMethod(param: MethodHookParam) {
-            XLog.withRoute(LogRoute.FORWARD) {
+            XLog.withRoute(LogRoute.FORWARD.id) {
                 runCatching { afterConstructorHandler(param) }
                     .onFailure { XLog.e("SmsForwardHook constructor hook failed", it) }
             }
@@ -155,7 +155,7 @@ class SmsForwardHook : BaseHook() {
     private inner class DispatchIntentHook : MethodHook() {
         override fun beforeHookedMethod(param: MethodHookParam) {
             XLog.w("SmsForwardHook: dispatchIntent hook ENTERED")
-            XLog.withRoute(LogRoute.FORWARD) {
+            XLog.withRoute(LogRoute.FORWARD.id) {
                 runCatching { beforeDispatchIntentHandler(param) }
                     .onFailure { XLog.e("SmsForwardHook dispatchIntent hook failed", it) }
             }
@@ -554,7 +554,7 @@ class SmsForwardHook : BaseHook() {
 
     private fun scheduleBlacklistDelete(pluginContext: Context, phoneContext: Context, smsMsg: SmsMsg) {
         smsOperationExecutor.execute {
-            XLog.withRoute(LogRoute.FORWARD) {
+            XLog.withRoute(LogRoute.FORWARD.id) {
                 runCatching {
                     OperateSmsAction(
                         pluginContext,

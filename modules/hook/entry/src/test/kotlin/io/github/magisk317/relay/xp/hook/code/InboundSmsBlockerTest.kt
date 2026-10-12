@@ -2,7 +2,7 @@ package io.github.magisk317.relay.xp.hook.code
 
 import io.github.magisk317.smscode.xposed.hook.telephony.InboundSmsBlocker
 import io.github.magisk317.smscode.xposed.hook.telephony.InboundSmsMethodInvoker
-import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

@@ -4,7 +4,7 @@ import android.app.Application
 import androidx.annotation.StringRes
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.app.sender.SenderTestService
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.model.MsgInfo

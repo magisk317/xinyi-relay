@@ -15,7 +15,7 @@ import android.os.Looper
 import android.os.SystemClock
 import android.view.accessibility.AccessibilityEvent
 import androidx.core.content.ContextCompat
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.relay.receiver.AutoInputActions

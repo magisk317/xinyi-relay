@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.ui.home.settings
 
 import io.github.magisk317.xposed.permission.PermissionBridge
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.uikit.common.showLatestSnackbar
 
 import kotlinx.coroutines.Dispatchers

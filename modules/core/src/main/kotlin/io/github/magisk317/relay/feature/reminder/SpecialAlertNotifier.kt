@@ -13,7 +13,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import io.github.magisk317.relay.contract.constant.NotificationConst
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache

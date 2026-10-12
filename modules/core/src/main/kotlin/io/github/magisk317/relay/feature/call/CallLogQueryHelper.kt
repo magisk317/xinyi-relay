@@ -5,7 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.provider.CallLog
 import androidx.core.content.ContextCompat
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import kotlin.math.abs
 
 internal object CallLogQueryHelper {

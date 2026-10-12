@@ -6,7 +6,7 @@ import io.mockk.mockk
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
 import io.github.magisk317.smscode.runtime.verification.SmsCodePostParseCoordinator
-import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import java.util.concurrent.ScheduledExecutorService
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals

@@ -11,7 +11,7 @@ import androidx.lifecycle.viewModelScope
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.smscode.runtime.common.utils.JsonUtils
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.smscode.db.entity.SmsMsg
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toRecordData
 import io.github.magisk317.relay.engine.model.ReadRecordData

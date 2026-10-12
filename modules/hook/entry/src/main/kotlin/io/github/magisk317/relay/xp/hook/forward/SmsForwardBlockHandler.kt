@@ -6,7 +6,7 @@ import io.github.magisk317.relay.xp.hook.code.SmsBlacklistHitRecorder
 import io.github.magisk317.relay.xp.hook.code.SmsBlockEvaluator
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.smscode.runtime.verification.SmsIntentHookSupport
-import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.xposed.logging.MagiskOtel
 
 internal class SmsForwardBlockHandler(

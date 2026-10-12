@@ -8,7 +8,7 @@ import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
 import io.github.magisk317.smscode.verification.BlacklistMatchResult
 import io.github.magisk317.smscode.runtime.verification.SmsDispatchIntentHandler as SharedSmsDispatchIntentHandler
 import io.github.magisk317.smscode.runtime.verification.SmsHandlerDispatchDecision
-import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse

@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.data.repository
 
 import android.content.Context
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.data.db.dao.AppInfoDao

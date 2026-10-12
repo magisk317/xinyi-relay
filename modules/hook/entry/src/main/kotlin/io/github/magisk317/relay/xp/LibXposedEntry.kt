@@ -33,7 +33,7 @@ import io.github.magisk317.smscode.xposed.hook.system.SystemInputInjectorHook
 import io.github.magisk317.xposed.HookEnv
 import io.github.magisk317.smscode.xposed.runtime.CoreRuntime
 import io.github.magisk317.smscode.xposed.runtime.CoreRuntimeAccess
-import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.xposed.BaseHook
 import io.github.magisk317.xposed.BaseLibXposedEntry
 import io.github.magisk317.xposed.logging.MagiskOtel

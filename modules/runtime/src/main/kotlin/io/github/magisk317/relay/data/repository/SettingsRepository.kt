@@ -6,7 +6,7 @@ import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.settings.*
 import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.otel.MagiskOtelBootstrap
 import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource

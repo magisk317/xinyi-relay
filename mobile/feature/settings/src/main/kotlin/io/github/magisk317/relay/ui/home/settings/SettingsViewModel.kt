@@ -14,7 +14,7 @@ import io.github.magisk317.relay.contract.constant.PrefRestoreTypeRegistry
 import io.github.magisk317.relay.contract.constant.PrefValueType
 import io.github.magisk317.smscode.runtime.common.utils.StorageUtils
 import io.github.magisk317.smscode.runtime.common.utils.BrowserUtils
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat

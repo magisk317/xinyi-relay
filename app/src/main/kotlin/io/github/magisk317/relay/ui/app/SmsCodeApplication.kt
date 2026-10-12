@@ -102,7 +102,7 @@ class SmsCodeApplication : Application() {
                     }
 
                 override fun log(message: String, vararg args: Any?) {
-                    io.github.magisk317.relay.android.common.utils.XLog.i(message, *args)
+                    io.github.magisk317.xposed.logging.XLog.i(message, *args)
                 }
             },
         )

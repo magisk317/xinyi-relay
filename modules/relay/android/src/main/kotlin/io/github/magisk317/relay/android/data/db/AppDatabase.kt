@@ -27,7 +27,7 @@ import io.github.magisk317.smscode.db.entity.NotifyRouteRule
 import io.github.magisk317.smscode.db.entity.SmsCodeRule
 import io.github.magisk317.smscode.db.entity.SmsMsg
 import io.github.magisk317.relay.android.data.db.entity.SenderDispatchLog
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.db.entity.ScheduledTaskEntity
 import io.github.magisk317.relay.android.data.db.entity.SmsBlacklistHit
 

@@ -5,7 +5,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import io.github.magisk317.relay.BuildConfig
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.feature.mode.XposedRuntimeState
 import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsStore
 import io.github.magisk317.relay.android.otel.MagiskOtelBootstrap

@@ -10,7 +10,7 @@ import io.github.magisk317.relay.xpbridge.XpNotificationBridge
 import io.github.magisk317.relay.xp.hook.code.helper.InputHelper
 import io.github.magisk317.smscode.runtime.verification.ConflictNotificationHelper
 import io.github.magisk317.smscode.verification.RecentEventIdTracker
-import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 
 object SmsCodeConflictNoticeHelper {
     private const val MAX_TRACKED_EVENT_IDS = 64

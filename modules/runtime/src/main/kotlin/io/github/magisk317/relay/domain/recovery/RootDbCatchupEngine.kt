@@ -5,7 +5,7 @@ import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.sms.SmsCodeUtils
 import io.github.magisk317.relay.android.common.utils.CallSessionTracker
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.dao.SmsMsgDao
 import io.github.magisk317.smscode.db.entity.SmsMsg

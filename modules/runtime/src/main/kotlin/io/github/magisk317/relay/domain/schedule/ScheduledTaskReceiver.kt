@@ -3,7 +3,7 @@ package io.github.magisk317.relay.domain.schedule
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

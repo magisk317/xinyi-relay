@@ -4,7 +4,7 @@ import android.app.Notification
 import android.content.Context
 import android.content.pm.PackageManager
 import android.service.notification.StatusBarNotification
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.sms.SmsCodeUtils
 import io.github.magisk317.smscode.rule.model.SmsCodeParseSource
 import io.github.magisk317.smscode.rule.model.SmsCodeParseSourceKind
