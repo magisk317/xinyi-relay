@@ -82,12 +82,14 @@ variables:
   XINYI_BACKEND_ARCHES: "amd64 arm64"
   XINYI_GITLAB_LINUX_AMD64_RUNNER_TAG: "magisk-amd64-linux"
   XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG: "magisk-arm64-linux"
-  # External runner switch for the android:test:* jobs. Defaults to the
-  # shared amd64 tag (nested expansion). To reroute the tests (e.g. to the
-  # arm64 runner) without code changes, define the SAME variable as a
-  # project CI/CD variable -- project-level values override YAML values;
-  # delete the project variable to switch back.
-  XINYI_ANDROID_TEST_RUNNER_TAG: $XINYI_GITLAB_LINUX_AMD64_RUNNER_TAG
+  # All Android jobs (test/build/bundle/publish) read this tag, which both the
+  # arm64 and the Debian ct101 amd64 group runners carry. GitLab picks
+  # whichever is free (or the only one left standing), so the release chain
+  # runs on different machines, pipelines overlap, and neither runner is a
+  # single point of failure for producing a build.
+  XINYI_ANDROID_TEST_RUNNER_TAG: "ci-android"
+  XINYI_BUILD_RUNNER_TAG: "ci-android"
+  XINYI_BUNDLE_RUNNER_TAG: "ci-android"
 
 .xinyi_ci_rules:
   rules:
@@ -501,7 +503,7 @@ android:build:
     - .magisk_android_build
     - .xinyi_signed_android_rules
   tags:
-    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
+    - $XINYI_BUILD_RUNNER_TAG
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
@@ -591,7 +593,7 @@ android:detekt:
     - .xinyi_android_rules
   stage: quality
   tags:
-    - $XINYI_GITLAB_LINUX_AMD64_RUNNER_TAG
+    - $XINYI_BUILD_RUNNER_TAG
   # Publish first: wait for the Play beta publish (optional, so this
   # stage still runs when the publish job is absent) instead of
   # consuming the release runner in parallel.
@@ -840,7 +842,7 @@ android:ci:play-beta-bundle:
   resource_group: xinyi-android-release-play
   stage: release-build
   tags:
-    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
+    - $XINYI_BUNDLE_RUNNER_TAG
   # The release build is self-contained (keystore and google-services.json
   # come from CI variables, assets from the repository), so the publish chain
   # must not wait for the build/package stages: Play publishing keeps
@@ -879,7 +881,7 @@ android:ci:play-beta:
   resource_group: xinyi-android-release-play
   stage: release-publish
   tags:
-    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
+    - $XINYI_BUILD_RUNNER_TAG
   rules:
     - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_AUTHOR =~ /Renovate317@users.noreply/ && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
       when: on_success
