@@ -223,6 +223,7 @@ include(
     ":magisk-xposed-kit:logging",
     ":magisk-xposed-kit:diagnostics",
     ":magisk-xposed-kit:permission",
+    ":magisk-xposed-kit:entitlement",
     ":features:matrix_e2ee",
     ":features:matrix_e2ee_plugin",
 )
@@ -239,6 +240,7 @@ project(":smscode-core").projectDir = file("smscode/core")
 project(":magisk-xposed-kit:logging").projectDir = file("magisk-xposed-kit/logging")
 project(":magisk-xposed-kit:diagnostics").projectDir = file("magisk-xposed-kit/diagnostics")
 project(":magisk-xposed-kit:permission").projectDir = file("magisk-xposed-kit/permission")
+project(":magisk-xposed-kit:entitlement").projectDir = file("magisk-xposed-kit/entitlement")
 project(":magisk-ui-kit:billing").projectDir = file("magisk-ui-kit/billing")
 
 // Explicitly remap moved android libraries physical paths to 'modules/'

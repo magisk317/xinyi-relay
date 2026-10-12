@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "bun check && vite build",
     "preview": "vite preview",
     "lint": "cd .. && eslint webui/src shared",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "bun check",
+    "check": "bun check",
     "test": "vitest run"
   },
   "dependencies": {
@@ -40,5 +41,5 @@
   "engines": {
     "node": ">=20"
   },
-  "packageManager": "bun@1.4.2"
+  "packageManager": "bun@1.4.3"
 }
