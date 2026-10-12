@@ -1495,4 +1495,10 @@
     <string name="pref_bottom_bar_blur_summary">懸浮導航欄的折射模糊、隨重力高光與拖曳指示器（需 Android 13+）。</string>
     <string name="pref_bottom_bar_backdrop_title">導航欄背景捕獲</string>
     <string name="pref_bottom_bar_backdrop_summary">在裝置支援時捕獲懸浮欄下方頁面，呈現靜態液態玻璃效果。</string>
+    <string name="mobile_entitlement_qq_title">QQ 啟用</string>
+    <string name="mobile_entitlement_qq_code_label">啟用碼</string>
+    <string name="mobile_entitlement_qq_join_channel">加入 QQ 頻道</string>
+    <string name="mobile_entitlement_qq_instructions">複製啟用碼，加入 QQ 頻道後在頻道內找到機器人，傳送啟用碼或啟用連結；機器人會自動回傳一次性令牌，貼到上方輸入框即可完成啟用。</string>
+    <string name="mobile_entitlement_qq_dismiss">關閉</string>
+    <string name="mobile_entitlement_qq_entry_missing">伺服器未回傳 QQ 入口資訊，請重試。</string>
 </resources>
