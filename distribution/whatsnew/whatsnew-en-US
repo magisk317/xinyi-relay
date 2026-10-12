@@ -1,3 +1,6 @@
 - Updated to 0.3.1 (52).
-- Development build; release notes will be updated before publishing.
+- Added QQ channel activation with a single code input.
+- Activation page moved to the shared UI kit; hook gate delegated to the shared kit.
+- Fixed Play flavor gate decision and sender title rendering; diagnostics carry the distribution channel.
+- Core dependencies and submodules upgraded; builds use the shared CI runner pool.
 - https://gitlab.com/magisk3171/xinyi-relay/-/releases

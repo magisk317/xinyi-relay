@@ -3,10 +3,13 @@
 本日志记录了项目近期的主要变更。 
 
 ---
-## [v0.3.1] - Unreleased
+## [v0.3.1] - 2026-10-12
 - 版本：`versionCode 52` / `versionName 0.3.1`。
-- 下一轮开发占位，发布前补充具体变更。
-
+- `[feat]` 新增 QQ 频道激活入口，激活流程收敛为单一验证码。
+- `[refactor]` 激活页面接入共享 UI 套件，Hook 门禁判定下沉共享组件。
+- `[fix]` 修复 Play 渠道 Hook 门禁分发与转发标题变量渲染。
+- `[deps]` 升级 AGP 9.5.0-alpha09、Gradle 9.9.0-M2 等核心依赖与子模块。
+- `[ci]` Android 构建/质量/发布任务接入共享 ci-android 运行池。
 > Full Changelog: https://gitlab.com/magisk3171/xinyi-relay/-/compare/v0.3.0...v0.3.1
 
 ---
