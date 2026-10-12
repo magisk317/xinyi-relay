@@ -54,7 +54,7 @@ import io.github.magisk317.relay.contract.repository.SettingsPreferencesReposito
 import io.github.magisk317.relay.contract.settings.VerificationSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.VerificationSettingsUpdate
 import io.github.magisk317.uikit.preference.StatusSettingsSection
-import io.github.magisk317.smscode.runtime.common.diagnostics.VerboseLogEnableTracker
+import io.github.magisk317.xposed.logging.VerboseLogEnableTracker
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 

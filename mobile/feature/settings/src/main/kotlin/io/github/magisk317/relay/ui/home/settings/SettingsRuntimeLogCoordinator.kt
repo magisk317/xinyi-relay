@@ -16,7 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import io.github.magisk317.smscode.runtime.common.diagnostics.LogBundleExporter
-import io.github.magisk317.smscode.runtime.common.diagnostics.VerboseLogEnableTracker
+import io.github.magisk317.xposed.logging.VerboseLogEnableTracker
 import io.github.magisk317.xposed.diagnostics.DiagnosticExportMode
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsSnapshot
