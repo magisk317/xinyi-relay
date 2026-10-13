@@ -129,7 +129,7 @@ fun StartupPermissionPrompt(enabled: Boolean) {
                             null
                         },
                     ),
-                ) { message -> XLog.w("PermissionBridge", message) }
+                ) { message -> XLog.w(message = "PermissionBridge", message) }
             }
         }
         startPromptIfNeeded()

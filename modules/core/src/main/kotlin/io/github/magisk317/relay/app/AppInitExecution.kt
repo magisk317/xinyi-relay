@@ -54,7 +54,7 @@ object AppInitExecution {
         scope.launch {
             XLog.i("$taskName executing")
             runCatching { block() }.onFailure { error ->
-                XLog.e("$taskName failed", error)
+                XLog.e(message = "$taskName failed", error)
             }
         }
     }

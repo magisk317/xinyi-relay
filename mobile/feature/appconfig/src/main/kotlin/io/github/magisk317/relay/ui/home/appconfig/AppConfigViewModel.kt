@@ -329,7 +329,7 @@ class AppConfigViewModel(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            XLog.e("Failed to grant usage stats permission", e)
+            XLog.e(message = "Failed to grant usage stats permission", e)
             return false
         }
     }

@@ -51,7 +51,7 @@ object SourceMetadataResolver {
                 }
             } ?: ""
         }.onFailure {
-            XLog.w("Contact lookup failed: %s", it.message ?: "unknown")
+            XLog.w(message = "Contact lookup failed: %s", it.message ?: "unknown")
         }.getOrDefault("")
     }
 
@@ -70,7 +70,7 @@ object SourceMetadataResolver {
                 parsePhoneArea(body)
             }
         }.onFailure {
-            XLog.d("Phone area lookup failed for %s: %s", normalized, it.message ?: "unknown")
+            XLog.d(message = "Phone area lookup failed for %s: %s", normalized, it.message ?: "unknown")
         }.getOrDefault("")
 
         if (area.isNotBlank()) {

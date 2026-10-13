@@ -107,6 +107,6 @@ class ScheduledTaskRepositoryImpl(
 
     private fun noteMutation(source: String) {
         runCatching { RuntimeDependencies.get().autoBackupTrigger.scheduleAutoBackup(source) }
-            .onFailure { XLog.e("scheduleAutoBackup failed: %s", it.message ?: it.javaClass.simpleName) }
+            .onFailure { XLog.e(message = "scheduleAutoBackup failed: %s", it.message ?: it.javaClass.simpleName) }
     }
 }

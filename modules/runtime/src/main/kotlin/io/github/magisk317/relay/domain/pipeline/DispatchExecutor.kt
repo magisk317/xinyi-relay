@@ -19,7 +19,7 @@ class DispatchExecutor(
     ): SenderDispatchResult {
         val startedAt = System.nanoTime()
         val senderName = SenderType.displayName(sender.type, sender.name)
-        XLog.d("Dispatching to sender: id=%d, type=%d, name=%s", sender.id, sender.type, sender.name)
+        XLog.d(message = "Dispatching to sender: id=%d, type=%d, name=%s", sender.id, sender.type, sender.name)
         ForwardFlowLog.d(traceId, "Dispatch sender start name=$senderName type=${sender.type}")
         return runCatching {
             val delegate = delegateProvider()

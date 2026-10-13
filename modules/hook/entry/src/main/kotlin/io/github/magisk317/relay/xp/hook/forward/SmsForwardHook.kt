@@ -93,7 +93,7 @@ class SmsForwardHook : BaseHook() {
                 stage = "hook_install",
             )
         } catch (t: Throwable) {
-            XLog.e("SmsForwardHook init failed", t)
+            XLog.e(message = "SmsForwardHook init failed", t)
             emitRelay(
                 result = "error",
                 reason = "install_failed",
@@ -113,12 +113,12 @@ class SmsForwardHook : BaseHook() {
     private fun hookDispatchIntent(classLoader: ClassLoader) {
         XLog.d("SmsForwardHook: Hooking dispatchIntent()")
         val inboundSmsHandlerClass = runCatching { HookHelpers.findClass(SMS_HANDLER_CLASS, classLoader) }.getOrNull() ?: run {
-            XLog.e("SmsForwardHook: Class not found: %s", SMS_HANDLER_CLASS)
+            XLog.e(message = "SmsForwardHook: Class not found: %s", SMS_HANDLER_CLASS)
             return
         }
         val exactMethod = inboundSmsHandlerClass.declaredMethods.firstOrNull { it.name == DISPATCH_INTENT_METHOD }
         if (exactMethod == null) {
-            XLog.e("SmsForwardHook: Method not found: %s in %s", DISPATCH_INTENT_METHOD, SMS_HANDLER_CLASS)
+            XLog.e(message = "SmsForwardHook: Method not found: %s in %s", DISPATCH_INTENT_METHOD, SMS_HANDLER_CLASS)
             return
         }
         HookEnv.api.hookMethod(exactMethod, DispatchIntentHook())
@@ -128,7 +128,7 @@ class SmsForwardHook : BaseHook() {
         override fun afterHookedMethod(param: MethodHookParam) {
             XLog.withRoute(LogRoute.FORWARD.id) {
                 runCatching { afterConstructorHandler(param) }
-                    .onFailure { XLog.e("SmsForwardHook constructor hook failed", it) }
+                    .onFailure { XLog.e(message = "SmsForwardHook constructor hook failed", it) }
             }
         }
     }
@@ -157,7 +157,7 @@ class SmsForwardHook : BaseHook() {
             XLog.w("SmsForwardHook: dispatchIntent hook ENTERED")
             XLog.withRoute(LogRoute.FORWARD.id) {
                 runCatching { beforeDispatchIntentHandler(param) }
-                    .onFailure { XLog.e("SmsForwardHook dispatchIntent hook failed", it) }
+                    .onFailure { XLog.e(message = "SmsForwardHook dispatchIntent hook failed", it) }
             }
         }
     }
@@ -200,11 +200,11 @@ class SmsForwardHook : BaseHook() {
             val context = contextField.get(handler) as? Context ?: return
             runtimeSession.initialize(context)
             XLog.w(
-                "SmsForwardHook: lazy-initialized runtimeSession from InboundSmsHandler.mContext pkg=%s",
+                message = "SmsForwardHook: lazy-initialized runtimeSession from InboundSmsHandler.mContext pkg=%s",
                 context.packageName,
             )
         } catch (t: Throwable) {
-            XLog.e("SmsForwardHook: failed to lazy-init runtimeSession from handler", t)
+            XLog.e(message = "SmsForwardHook: failed to lazy-init runtimeSession from handler", t)
         }
     }
 
@@ -227,7 +227,7 @@ class SmsForwardHook : BaseHook() {
         val pduKey = buildPduFingerprintKey(intent)
         if (pduKey != null && recentActionDedup.shouldDrop(pduKey)) {
             XLog.i(
-                "SmsForwardHook: skip redundant action=%s (same SMS already handled via other action)",
+                message = "SmsForwardHook: skip redundant action=%s (same SMS already handled via other action)",
                 action,
             )
             emitRelay(
@@ -240,7 +240,7 @@ class SmsForwardHook : BaseHook() {
         val eventId = XpDispatchCoordinator.ensureIncomingEventId(intent)
         if (SmsForwardConvergence.wasParsedSmsForwardDispatched(intent)) {
             XLog.i(
-                "SmsForwardHook skipped: parsed sms forward already dispatched. event_id=%s",
+                message = "SmsForwardHook skipped: parsed sms forward already dispatched. event_id=%s",
                 eventId,
             )
             emitRelay(
@@ -280,14 +280,14 @@ class SmsForwardHook : BaseHook() {
         )
         if (!hadSimRouting && resolvedRouting?.hasValue() == true) {
             XLog.i(
-                "SmsForwardHook inferred sim routing: event_id=%s sim_slot=%s sub_id=%s",
+                message = "SmsForwardHook inferred sim routing: event_id=%s sim_slot=%s sub_id=%s",
                 eventId,
                 resolvedRouting.simSlot?.toString() ?: "<none>",
                 resolvedRouting.subId?.toString() ?: "<none>",
             )
         } else if (!hadSimRouting) {
             XLog.w(
-                "SmsForwardHook sim routing unresolved: event_id=%s detail=%s",
+                message = "SmsForwardHook sim routing unresolved: event_id=%s detail=%s",
                 eventId,
                 SmsForwardSimRoutingResolver.debugSnapshot(param.thisObject, param.args),
             )
@@ -304,7 +304,7 @@ class SmsForwardHook : BaseHook() {
     private fun shouldSkipDispatch(dispatch: IncomingSmsDispatch): Boolean {
         if (SmsIntentHookSupport.markDispatchHandled(dispatch.intent, dispatch.action, DISPATCH_HANDLER_KEY)) {
             XLog.w(
-                "SmsForwardHook duplicate sms suppressed: event_id=%s action=%s source=intent_extra",
+                message = "SmsForwardHook duplicate sms suppressed: event_id=%s action=%s source=intent_extra",
                 dispatch.eventId,
                 dispatch.action,
             )
@@ -330,7 +330,7 @@ class SmsForwardHook : BaseHook() {
             ).reason
         ) {
             SmsHookDispatchGate.BlockReason.MODULE_DISABLED -> {
-                XLog.w("SmsForwardHook: module disabled, skip forward. event_id=%s", dispatch.eventId)
+                XLog.w(message = "SmsForwardHook: module disabled, skip forward. event_id=%s", dispatch.eventId)
                 emitRelay(
                     result = "skip",
                     reason = "module_disabled",
@@ -341,7 +341,7 @@ class SmsForwardHook : BaseHook() {
             }
 
             SmsHookDispatchGate.BlockReason.RELAY_DISABLED -> {
-                XLog.w("SmsForwardHook: relay disabled, skip forward. event_id=%s", dispatch.eventId)
+                XLog.w(message = "SmsForwardHook: relay disabled, skip forward. event_id=%s", dispatch.eventId)
                 emitRelay(
                     result = "skip",
                     reason = "relay_disabled",
@@ -352,7 +352,7 @@ class SmsForwardHook : BaseHook() {
             }
 
             SmsHookDispatchGate.BlockReason.MOBILE_ENTITLEMENT_UNAVAILABLE -> {
-                XLog.w("SmsForwardHook: mobile entitlement unavailable, skip forward. event_id=%s", dispatch.eventId)
+                XLog.w(message = "SmsForwardHook: mobile entitlement unavailable, skip forward. event_id=%s", dispatch.eventId)
                 emitRelay(
                     result = "skip",
                     reason = "mobile_entitlement",
@@ -385,7 +385,7 @@ class SmsForwardHook : BaseHook() {
 
     private fun prepareForwardDispatch(dispatch: IncomingSmsDispatch): PreparedForwardDispatch? {
         val smsMsg = XpDispatchCoordinator.parseIncomingSms(dispatch.intent) ?: run {
-            XLog.w("SmsForwardHook: parse sms failed, skip. event_id=%s", dispatch.eventId)
+            XLog.w(message = "SmsForwardHook: parse sms failed, skip. event_id=%s", dispatch.eventId)
             emitRelay(
                 result = "skip",
                 reason = "parse_failed",
@@ -395,7 +395,7 @@ class SmsForwardHook : BaseHook() {
             return null
         }
         if (smsMsg.sender.isNullOrBlank() || smsMsg.body.isNullOrBlank()) {
-            XLog.w("SmsForwardHook: empty sender/body, skip. event_id=%s", dispatch.eventId)
+            XLog.w(message = "SmsForwardHook: empty sender/body, skip. event_id=%s", dispatch.eventId)
             emitRelay(
                 result = "skip",
                 reason = "empty_sender_or_body",
@@ -415,7 +415,7 @@ class SmsForwardHook : BaseHook() {
             )
         } ?: run {
             XLog.w(
-                "SmsForwardHook: empty sender/body after ingress adapter, skip. event_id=%s",
+                message = "SmsForwardHook: empty sender/body after ingress adapter, skip. event_id=%s",
                 dispatch.eventId,
             )
             emitRelay(
@@ -427,7 +427,7 @@ class SmsForwardHook : BaseHook() {
             return null
         }
         val messageType = prepared.messageType ?: run {
-            XLog.w("SmsForwardHook: ingress message type missing, skip. event_id=%s", dispatch.eventId)
+            XLog.w(message = "SmsForwardHook: ingress message type missing, skip. event_id=%s", dispatch.eventId)
             emitRelay(
                 result = "skip",
                 reason = "message_type_missing",
@@ -438,7 +438,7 @@ class SmsForwardHook : BaseHook() {
         }
         if (!XpPrefs.isMessageTypeEnabled(dispatch.pluginContext, messageType)) {
             XLog.w(
-                "SmsForwardHook: message type disabled, skip. event_id=%s type=%s",
+                message = "SmsForwardHook: message type disabled, skip. event_id=%s type=%s",
                 dispatch.eventId,
                 messageType.name.lowercase(),
             )
@@ -475,7 +475,7 @@ class SmsForwardHook : BaseHook() {
         )
         if (!sharedDedupClaim.claimed) {
             XLog.w(
-                "SmsForwardHook duplicate sms suppressed: event_id=%s action=%s key=%s source=shared_store ageMs=%d",
+                message = "SmsForwardHook duplicate sms suppressed: event_id=%s action=%s key=%s source=shared_store ageMs=%d",
                 dispatch.eventId,
                 dispatch.action,
                 preparedDispatch.dedupKey,
@@ -491,7 +491,7 @@ class SmsForwardHook : BaseHook() {
         }
         if (recentSmsForward.shouldDrop(preparedDispatch.dedupKey)) {
             XLog.w(
-                "SmsForwardHook duplicate sms suppressed: event_id=%s action=%s key=%s source=memory",
+                message = "SmsForwardHook duplicate sms suppressed: event_id=%s action=%s key=%s source=memory",
                 dispatch.eventId,
                 dispatch.action,
                 preparedDispatch.dedupKey,
@@ -517,7 +517,7 @@ class SmsForwardHook : BaseHook() {
         val codePresent = preparedDispatch.prepared.smsMsg.smsCode?.isNotBlank() == true
         if (!dispatchResult.dispatched) {
             XLog.e(
-                "SmsForwardHook: IPC token empty, skip forward. event_id=%s",
+                message = "SmsForwardHook: IPC token empty, skip forward. event_id=%s",
                 dispatch.eventId,
             )
             emitRelay(
@@ -532,13 +532,13 @@ class SmsForwardHook : BaseHook() {
         }
         if (dispatchResult.bypassUsed) {
             XLog.w(
-                "SmsForwardHook: IPC token empty, continue with receiver-side bypass. event_id=%s uid=%d",
+                message = "SmsForwardHook: IPC token empty, continue with receiver-side bypass. event_id=%s uid=%d",
                 dispatch.eventId,
                 Process.myUid(),
             )
         }
         XLog.i(
-            "SmsForwardHook forwarded: event_id=%s code_present=%s tokenPresent=%s",
+            message = "SmsForwardHook forwarded: event_id=%s code_present=%s tokenPresent=%s",
             dispatch.eventId,
             codePresent,
             dispatchResult.tokenPresent,
@@ -563,7 +563,7 @@ class SmsForwardHook : BaseHook() {
                         OperateSmsAction.OP_DELETE,
                     ).call()
                 }.onFailure {
-                    XLog.w("SmsForwardHook blacklist delete task failed: %s", it.message ?: "unknown")
+                    XLog.w(message = "SmsForwardHook blacklist delete task failed: %s", it.message ?: "unknown")
                 }
             }
         }
@@ -630,7 +630,7 @@ class SmsForwardHook : BaseHook() {
         synchronized(this) {
             if (suppressionLogged) return
             XLog.w(
-                "SmsForwardHook suppressed: reason=%s stage=%s package=%s",
+                message = "SmsForwardHook suppressed: reason=%s stage=%s package=%s",
                 ModuleConflictArbiter.SUPPRESSION_REASON,
                 stage,
                 ModuleConflictArbiter.TARGET_RELAY_PACKAGE,

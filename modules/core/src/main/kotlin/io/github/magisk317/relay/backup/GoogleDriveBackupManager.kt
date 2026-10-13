@@ -122,7 +122,7 @@ class GoogleDriveBackupManager(
                 if (!tempFile.isFile || fileSize <= 0L) {
                     throw IllegalStateException("Local backup file missing or empty")
                 }
-                XLog.i("Google Drive backup export ready: name=%s size=%d", fileName, fileSize)
+                XLog.i(message = "Google Drive backup export ready: name=%s size=%d", fileName, fileSize)
 
                 val folderId = ensureFolderPath(config.folderPath)
 
@@ -147,7 +147,7 @@ class GoogleDriveBackupManager(
                     val body = response.body.string()
                     if (!response.isSuccessful) {
                         XLog.e(
-                            "Google Drive backup upload failed: code=%d body=%s",
+                            message = "Google Drive backup upload failed: code=%d body=%s",
                             response.code,
                             body.take(MAX_LOG_BODY_LENGTH),
                         )
@@ -158,7 +158,7 @@ class GoogleDriveBackupManager(
                     }
                     val fileId = parseObject(body).string("id")
                     require(fileId.isNotBlank()) { "Upload response missing file id" }
-                    XLog.i("Google Drive backup upload success: name=%s size=%d", fileName, fileSize)
+                    XLog.i(message = "Google Drive backup upload success: name=%s size=%d", fileName, fileSize)
                     val modifiedTime = timestamp
 
                     DriveBackupMeta(
@@ -171,7 +171,7 @@ class GoogleDriveBackupManager(
             } finally {
                 if (tempFile.exists()) {
                     val deleted = tempFile.delete()
-                    XLog.i("Google Drive backup temp cleanup: name=%s deleted=%s", fileName, deleted)
+                    XLog.i(message = "Google Drive backup temp cleanup: name=%s deleted=%s", fileName, deleted)
                 }
             }
         }.also { result ->
@@ -201,7 +201,7 @@ class GoogleDriveBackupManager(
                 val body = response.body.string()
                 if (!response.isSuccessful) {
                     XLog.e(
-                        "Google Drive backup list failed: code=%d body=%s",
+                        message = "Google Drive backup list failed: code=%d body=%s",
                         response.code,
                         body.take(MAX_LOG_BODY_LENGTH),
                     )
@@ -359,7 +359,7 @@ class GoogleDriveBackupManager(
 
     private fun logDriveFailure(operation: String, code: Int, body: String) {
         XLog.e(
-            "Google Drive backup %s failed: code=%d body=%s",
+            message = "Google Drive backup %s failed: code=%d body=%s",
             operation,
             code,
             body.take(MAX_LOG_BODY_LENGTH),

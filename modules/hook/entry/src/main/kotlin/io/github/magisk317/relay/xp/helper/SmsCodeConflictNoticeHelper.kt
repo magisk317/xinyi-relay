@@ -27,13 +27,13 @@ object SmsCodeConflictNoticeHelper {
 
     fun notifyConflictOnSms(pluginContext: Context, phoneContext: Context, eventId: String, source: String) {
         if (!markNotified(eventId)) {
-            XLog.w("SmsCode conflict notice deduped: event_id=%s source=%s", eventId, source)
+            XLog.w(message = "SmsCode conflict notice deduped: event_id=%s source=%s", eventId, source)
             return
         }
         showConflictNotification(pluginContext, phoneContext)
         showConflictToast(pluginContext, phoneContext)
         XLog.w(
-            "SmsCode conflict notice sent: event_id=%s source=%s package=%s bypass=%s",
+            message = "SmsCode conflict notice sent: event_id=%s source=%s package=%s bypass=%s",
             eventId,
             source,
             ModuleConflictArbiter.TARGET_RELAY_PACKAGE,

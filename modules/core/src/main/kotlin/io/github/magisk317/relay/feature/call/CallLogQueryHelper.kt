@@ -34,7 +34,7 @@ internal object CallLogQueryHelper {
         return runCatching {
             queryRecentCall(context, expectedCallType, sessionStartedAt, startWindow, endWindow)
         }.onFailure { error ->
-            XLog.w("CallLog query failed: %s", error.message ?: error.javaClass.simpleName)
+            XLog.w(message = "CallLog query failed: %s", error.message ?: error.javaClass.simpleName)
         }.getOrNull()
     }
 

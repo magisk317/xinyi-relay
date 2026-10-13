@@ -38,7 +38,7 @@ class AppNotificationListenerService : NotificationListenerService() {
             requestRebind(ComponentName(this, AppNotificationListenerService::class.java))
             true
         }.onFailure {
-            XLog.e("AppNotificationListenerService requestRebind failed", it)
+            XLog.e(message = "AppNotificationListenerService requestRebind failed", it)
         }.getOrDefault(false)
         emitNotify(
             result = if (rebound) "ok" else "error",
@@ -58,7 +58,7 @@ class AppNotificationListenerService : NotificationListenerService() {
                 ?: return@launch
 
             XLog.i(
-                "Notification intercepted: pkg=%s event=%s title=%s body=%s codePresent=%s",
+                message = "Notification intercepted: pkg=%s event=%s title=%s body=%s codePresent=%s",
                 payload.packageName,
                 payload.eventId,
                 payload.sender.orEmpty(),
@@ -80,7 +80,7 @@ class AppNotificationListenerService : NotificationListenerService() {
                         payload = payload,
                     ) { ack ->
                         XLog.i(
-                            "NLS ordered ack pkg=%s event=%s resultCode=%d resultData=%s extras=%s",
+                            message = "NLS ordered ack pkg=%s event=%s resultCode=%d resultData=%s extras=%s",
                             payload.packageName.orEmpty(),
                             payload.eventId,
                             ack.resultCode,
@@ -138,7 +138,7 @@ class AppNotificationListenerService : NotificationListenerService() {
             wl.acquire(WAKE_LOCK_TIMEOUT_MS)
             wl
         }.onFailure { e ->
-            XLog.w("Failed to acquire wake lock: %s", e.message)
+            XLog.w(message = "Failed to acquire wake lock: %s", e.message)
         }.getOrNull()
     }
 

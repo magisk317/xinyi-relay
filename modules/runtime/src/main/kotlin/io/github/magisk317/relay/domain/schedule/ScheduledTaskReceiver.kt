@@ -45,7 +45,7 @@ class ScheduledTaskReceiver : BroadcastReceiver() {
                         else -> emitSchedule(startedAt, result = "skip", reason = "unhandled_action", action = action)
                     }
                 }.onFailure { e ->
-                    XLog.e("ScheduledTaskReceiver failed action=$action", e)
+                    XLog.e(message = "ScheduledTaskReceiver failed action=$action", e)
                     emitSchedule(
                         startedAt,
                         result = "error",

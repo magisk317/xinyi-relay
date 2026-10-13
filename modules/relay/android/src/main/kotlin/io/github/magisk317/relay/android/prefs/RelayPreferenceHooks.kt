@@ -282,9 +282,9 @@ object RelayPreferenceHooks : AppPreferencesHooks {
         }
         val verifyToken = PrefsReader.verifyTokenReadable(context)
         if (verifyToken == "remote_libxposed") {
-            XLog.d("RemotePrefs token verification: source=%s", verifyToken)
+            XLog.d(message = "RemotePrefs token verification: source=%s", verifyToken)
         } else {
-            XLog.w("RemotePrefs token verification source unexpected: source=%s", verifyToken)
+            XLog.w(message = "RemotePrefs token verification source unexpected: source=%s", verifyToken)
         }
     }
 }

@@ -74,7 +74,7 @@ internal object HookTargetDiagnostics {
         val probe = describePackageProbe(loadParam.packageName, processName)
         if (!probe.isCandidate) return
         XLog.w(
-            "Diag package ready: pkg=%s process=%s matchedTargets=%s candidateReasons=%s missReason=%s loader=%s",
+            message = "Diag package ready: pkg=%s process=%s matchedTargets=%s candidateReasons=%s missReason=%s loader=%s",
             loadParam.packageName,
             processName,
             probe.matchedTargets.ifEmpty { listOf("<none>") }.joinToString(","),
@@ -94,7 +94,7 @@ internal object HookTargetDiagnostics {
         val packageProbe = describePackageProbe(loadParam.packageName, processName)
         val mismatch = classProbe.handlerClassFound && !PhoneHookTargetPackages.contains(loadParam.packageName)
         XLog.i(
-            "Diag inbound probe: pkg=%s process=%s matchedTargets=%s candidateReasons=%s " +
+            message = "Diag inbound probe: pkg=%s process=%s matchedTargets=%s candidateReasons=%s " +
                 "handlerClass=%s handlerDispatch=%s controllerClass=%s controllerDispatch=%s " +
                 "expectedHookPkg=%s mismatch=%s",
             loadParam.packageName,
@@ -119,7 +119,7 @@ internal object HookTargetDiagnostics {
         val hitKey = "$source|$packageName|$processName"
         if (!loggedInboundSmsRuntimeHits.add(hitKey)) return
         XLog.i(
-            "Diag inbound hit: source=%s pkg=%s process=%s detail=%s",
+            message = "Diag inbound hit: source=%s pkg=%s process=%s detail=%s",
             source,
             packageName,
             processName,
@@ -135,7 +135,7 @@ internal object HookTargetDiagnostics {
         val pluginContext = resolveModuleContext() ?: return
         if (!isVerboseEnabled(pluginContext)) return
         XLog.w(
-            "Diag target process hit: hook=%s pkg=%s process=%s expectedPkg=%s loader=%s",
+            message = "Diag target process hit: hook=%s pkg=%s process=%s expectedPkg=%s loader=%s",
             hookName,
             loadParam.packageName,
             loadParam.processName.ifBlank { loadParam.packageName },
@@ -153,7 +153,7 @@ internal object HookTargetDiagnostics {
         val pluginContext = resolveModuleContext() ?: return
         if (!isVerboseEnabled(pluginContext)) return
         XLog.w(
-            "Diag target miss: hook=%s pkg=%s process=%s reason=%s detail=%s",
+            message = "Diag target miss: hook=%s pkg=%s process=%s reason=%s detail=%s",
             hookName,
             loadParam.packageName,
             loadParam.processName.ifBlank { loadParam.packageName },

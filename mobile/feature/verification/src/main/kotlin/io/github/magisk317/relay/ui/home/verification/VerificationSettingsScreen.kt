@@ -299,14 +299,14 @@ fun VerificationSettingsScreen(
                 os.flush()
                 process.waitFor() == 0
             } catch (error: SecurityException) {
-                XLog.w("Toggle accessibility service via root failed: %s", error.message ?: error.javaClass.simpleName)
+                XLog.w(message = "Toggle accessibility service via root failed: %s", error.message ?: error.javaClass.simpleName)
                 false
             } catch (error: IOException) {
-                XLog.w("Toggle accessibility service via root failed: %s", error.message ?: error.javaClass.simpleName)
+                XLog.w(message = "Toggle accessibility service via root failed: %s", error.message ?: error.javaClass.simpleName)
                 false
             } catch (error: InterruptedException) {
                 Thread.currentThread().interrupt()
-                XLog.w("Toggle accessibility service via root interrupted: %s", error.message ?: error.javaClass.simpleName)
+                XLog.w(message = "Toggle accessibility service via root interrupted: %s", error.message ?: error.javaClass.simpleName)
                 false
             }
         }

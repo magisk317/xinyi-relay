@@ -53,7 +53,7 @@ class WebDavCloudBackupProvider(
     private fun <T> Result<T>.logFailure(operation: String): Result<T> {
         return onFailure { throwable ->
             XLog.e(
-                "WebDAV %s backup failed: %s",
+                message = "WebDAV %s backup failed: %s",
                 operation,
                 throwable.message ?: throwable.javaClass.simpleName,
             )

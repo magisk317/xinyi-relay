@@ -86,20 +86,20 @@ internal object RootShellExecutor {
                 output = output,
             )
         } catch (e: IOException) {
-            XLog.w("run failed: %s", e.message ?: e.javaClass.simpleName)
+            XLog.w(message = "run failed: %s", e.message ?: e.javaClass.simpleName)
             ShellResult(
                 exitCode = -1,
                 output = "",
             )
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
-            XLog.w("run interrupted: %s", e.message ?: e.javaClass.simpleName)
+            XLog.w(message = "run interrupted: %s", e.message ?: e.javaClass.simpleName)
             ShellResult(
                 exitCode = -1,
                 output = "",
             )
         } catch (e: SecurityException) {
-            XLog.w("run denied: %s", e.message ?: e.javaClass.simpleName)
+            XLog.w(message = "run denied: %s", e.message ?: e.javaClass.simpleName)
             ShellResult(
                 exitCode = -1,
                 output = "",

@@ -101,7 +101,7 @@ class LibXposedEntry : BaseLibXposedEntry {
         HookTargetDiagnostics.logInboundSmsClassProbeAtInfo(loadParam)
         if (isCriticalHookTarget(loadParam.packageName)) {
             XLog.w(
-                "LibXposedEntry package ready: pkg=%s process=%s",
+                message = "LibXposedEntry package ready: pkg=%s process=%s",
                 loadParam.packageName,
                 loadParam.processName,
             )

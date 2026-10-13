@@ -63,13 +63,13 @@ object AndroidXpDiagnosticsBridge : XpDiagnosticsRuntimeBridge {
             )?.getBoolean(RuntimeStateProviderContract.RESULT_OK, false) == true
         }.onFailure { error ->
             XLog.w(
-                "Hook heartbeat provider call failed: source=%s err=%s",
+                message = "Hook heartbeat provider call failed: source=%s err=%s",
                 source,
                 error.message ?: error.javaClass.simpleName,
             )
         }.getOrDefault(false)
         if (!acknowledged) {
-            XLog.w("Hook heartbeat provider call was not acknowledged: source=%s", source)
+            XLog.w(message = "Hook heartbeat provider call was not acknowledged: source=%s", source)
         }
     }
 }

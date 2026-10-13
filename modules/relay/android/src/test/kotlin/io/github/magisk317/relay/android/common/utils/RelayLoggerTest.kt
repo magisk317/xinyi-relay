@@ -24,10 +24,10 @@ class RelayLoggerTest {
     @Test
     fun xLogKeepsLogLevelGate() {
         var called = false
-        XLog.setLogLevel(5)
-        XLog.setTestSink { _, _ -> called = true }
+        ContractXLog.setLogLevel(5)
+        ContractXLog.setTestSink { _, _ -> called = true }
 
-        XLog.d("debug message")
+        ContractXLog.d("debug message")
 
         assertFalse(called)
     }
@@ -35,10 +35,10 @@ class RelayLoggerTest {
     @Test
     fun xLogTestSinkReceivesSanitizedFormattedMessage() {
         var captured: Pair<Int, String>? = null
-        XLog.setLogLevel(2)
-        XLog.setTestSink { priority, message -> captured = priority to message }
+        ContractXLog.setLogLevel(2)
+        ContractXLog.setTestSink { priority, message -> captured = priority to message }
 
-        XLog.i("token=%s body=%s", "secret123", "验证码123456")
+        ContractXLog.i(message = "token=%s body=%s", "secret123", "验证码123456")
 
         assertEquals(4, captured?.first)
         assertTrue(captured?.second.orEmpty().contains("token=***"))
@@ -50,7 +50,7 @@ class RelayLoggerTest {
     @Test
     fun relayLoggerRuntimeSinkReceivesSanitizedRouteEvent() {
         var captured: CapturedRuntimeLog? = null
-        XLog.setLogLevel(2)
+        ContractXLog.setLogLevel(2)
         RelayLogger.setRuntimeSinkForTest(
             object : RelayLogger.RuntimeSink {
                 override fun append(
@@ -78,7 +78,7 @@ class RelayLoggerTest {
     @Test
     fun relayLoggerAllowsExplicitRouteAndForcePolicy() {
         var captured: CapturedRuntimeLog? = null
-        XLog.setLogLevel(2)
+        ContractXLog.setLogLevel(2)
         RelayLogger.setRuntimeSinkForTest(
             object : RelayLogger.RuntimeSink {
                 override fun append(
@@ -111,10 +111,10 @@ class RelayLoggerTest {
     @Test
     fun xLogAllowsExplicitRoute() {
         var captured: LogEvent? = null
-        XLog.setLogLevel(2)
+        ContractXLog.setLogLevel(2)
         ContractXLog.install(LogSink { captured = it })
 
-        XLog.log(android.util.Log.INFO, LogRoute.ROOT_DB.id, false, true, "root db event")
+        ContractXLog.log(android.util.Log.INFO, LogRoute.ROOT_DB.id, false, true, "root db event")
 
         assertEquals(4, captured?.priority)
         assertEquals("root db event", captured?.message)
@@ -126,7 +126,7 @@ class RelayLoggerTest {
     @Test
     fun relayLoggerRouteHelpersUseExplicitRoute() {
         var captured: CapturedRuntimeLog? = null
-        XLog.setLogLevel(2)
+        ContractXLog.setLogLevel(2)
         RelayLogger.setRuntimeSinkForTest(
             object : RelayLogger.RuntimeSink {
                 override fun append(

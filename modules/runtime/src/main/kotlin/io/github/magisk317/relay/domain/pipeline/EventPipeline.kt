@@ -199,7 +199,7 @@ class EventPipeline(
                             }
                             cached
                         } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-                            XLog.e("Failed to render custom template for sender: %s", sender.name, e)
+                            XLog.e(message = "Failed to render custom template for sender: %s", sender.name, e)
                             val resId = context.resources.getIdentifier("sender_custom_template_render_error", "string", context.packageName)
                             val errorMsg = if (resId != 0) {
                                 context.getString(resId, e.message ?: e.javaClass.simpleName)
@@ -226,7 +226,7 @@ class EventPipeline(
                 emit(result = "ok", reason = "dispatched")
                 EventPipelineResult(dispatched = true)
             }.getOrElse { error ->
-                XLog.e("Event pipeline failed", error)
+                XLog.e(message = "Event pipeline failed", error)
                 dispatchResultWriter.persistForwardResult(
                     recordId = recordContext.recordId,
                     results = emptyList(),

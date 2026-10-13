@@ -710,9 +710,9 @@ class SettingsRepository(
 
     private suspend fun noteLocalMutationAndScheduleAutoBackup(source: String) {
         runCatching { RuntimeDependencies.get().localConfigRepository.noteLocalMutation(source) }
-            .onFailure { XLog.e("noteLocalMutation failed: %s", it.message ?: it.javaClass.simpleName) }
+            .onFailure { XLog.e(message = "noteLocalMutation failed: %s", it.message ?: it.javaClass.simpleName) }
         runCatching { RuntimeDependencies.get().autoBackupTrigger.scheduleAutoBackup(source) }
-            .onFailure { XLog.e("scheduleAutoBackup failed: %s", it.message ?: it.javaClass.simpleName) }
+            .onFailure { XLog.e(message = "scheduleAutoBackup failed: %s", it.message ?: it.javaClass.simpleName) }
     }
 
     private suspend fun handleVerificationCommitResult(result: PreferenceCommitResult) {
@@ -720,7 +720,7 @@ class SettingsRepository(
             is PreferenceCommitResult.Persisted -> {
                 result.postCommitFailures.forEach { failure ->
                     XLog.e(
-                        "Verification preference post-commit hook failed: hook=%s error=%s",
+                        message = "Verification preference post-commit hook failed: hook=%s error=%s",
                         failure.hookName,
                         failure.error.message ?: failure.error.javaClass.simpleName,
                     )
@@ -737,7 +737,7 @@ class SettingsRepository(
     private suspend fun publishHookPrefsAndScheduleAutoBackup(source: String) {
         HookPreferenceMirror.publish(appContext)
         runCatching { RuntimeDependencies.get().autoBackupTrigger.scheduleAutoBackup(source) }
-            .onFailure { XLog.e("scheduleAutoBackup failed: %s", it.message ?: it.javaClass.simpleName) }
+            .onFailure { XLog.e(message = "scheduleAutoBackup failed: %s", it.message ?: it.javaClass.simpleName) }
     }
 
     private suspend fun publishHookPrefsOnly() {

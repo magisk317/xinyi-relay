@@ -68,7 +68,7 @@ object LowBatteryReminderAlarmHandler {
                     statusOk = true,
                 )
             }.onFailure {
-                XLog.e("LowBatteryReminder alarm handling failed", it)
+                XLog.e(message = "LowBatteryReminder alarm handling failed", it)
                 MagiskOtel.event(
                     name = "battery.reminder",
                     attributes = mapOf(

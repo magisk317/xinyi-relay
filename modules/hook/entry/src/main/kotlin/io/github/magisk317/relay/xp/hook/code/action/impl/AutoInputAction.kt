@@ -65,7 +65,7 @@ class AutoInputAction(
                     }
                 }.onFailure { error ->
                     XLog.w(
-                        "Insert auto input attempt failed: %s",
+                        message = "Insert auto input attempt failed: %s",
                         error.message ?: error.javaClass.simpleName,
                     )
                 }.getOrNull()
@@ -84,7 +84,7 @@ class AutoInputAction(
             // the snapshot pipeline lands in xpbridge.
             fallbackChecker = { true },
             fallbackLogger = { pkg, _ ->
-                XLog.w("AutoInput app-config provider unavailable; fail closed: pkg=%s", pkg)
+                XLog.w(message = "AutoInput app-config provider unavailable; fail closed: pkg=%s", pkg)
             },
         )
     }
@@ -93,10 +93,10 @@ class AutoInputAction(
         return runCatching {
             runBlocking { runtimeAppConfigFacade.isPackageBlocked(packageName) }
         }.onSuccess {
-            XLog.d("AutoInput facade check: pkg=%s blocked=%s", packageName, it)
+            XLog.d(message = "AutoInput facade check: pkg=%s blocked=%s", packageName, it)
         }.onFailure { error ->
             XLog.w(
-                "AutoInput facade check failed: pkg=%s err=%s",
+                message = "AutoInput facade check failed: pkg=%s err=%s",
                 packageName,
                 error.message ?: error.javaClass.simpleName,
             )

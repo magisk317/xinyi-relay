@@ -56,9 +56,8 @@ object ForceStopRecoveryHandler {
             receivedToken = receivedToken,
         )
         if (!tokenAccepted) {
-            XLog.w(
-                LogRoute.ROOT_DB,
-                "ForceStopRecoveryService rejected token. expectedEmpty=%s receivedEmpty=%s",
+            XLog.log(
+                Log.WARN, LogRoute.ROOT_DB.id, true, true, "ForceStopRecoveryService rejected token. expectedEmpty=%s receivedEmpty=%s",
                 expectedToken.isBlank(),
                 receivedToken.isNullOrBlank(),
             )
@@ -78,9 +77,8 @@ object ForceStopRecoveryHandler {
         }
         val reason = intent.getStringExtra(ForceStopRecoveryContract.EXTRA_REASON).orEmpty()
         val eventId = intent.getStringExtra(ForceStopRecoveryContract.EXTRA_EVENT_ID).orEmpty()
-        XLog.w(
-            LogRoute.ROOT_DB,
-            "ForceStopRecoveryService started. reason=%s event=%s",
+        XLog.log(
+            Log.WARN, LogRoute.ROOT_DB.id, true, true, "ForceStopRecoveryService started. reason=%s event=%s",
             reason.ifBlank { "<none>" },
             eventId.ifBlank { "<none>" },
         )

@@ -25,7 +25,7 @@ internal class SmsInboxObserver(
         phoneContext = phoneContext,
         actionExecutor = queryExecutor,
         roleStateLogger = { eventId ->
-            XLog.w("Diag observer sms role: event_id=%s", eventId)
+            XLog.w(message = "Diag observer sms role: event_id=%s", eventId)
         },
     )
 

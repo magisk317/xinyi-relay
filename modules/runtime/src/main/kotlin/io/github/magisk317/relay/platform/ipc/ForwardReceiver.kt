@@ -74,7 +74,7 @@ class ForwardReceiver : BroadcastReceiver() {
                     receiveStartMessage,
                 )
                 if (intent.action != PrefConst.ACTION_FORWARD_SMS) {
-                    XLog.e("Rejecting broadcast with invalid action: %s", intent.action)
+                    XLog.e(message = "Rejecting broadcast with invalid action: %s", intent.action)
                     ForwardFlowLog.w(traceId, "Reject invalid action=${intent.action}")
                     markResult(RESULT_REJECT_ACTION, "invalid_action")
                     return@runCatching
@@ -327,7 +327,7 @@ class ForwardReceiver : BroadcastReceiver() {
                     )
                 ) {
                     XLog.i(
-                        "Drop duplicate notify: type=%s pkg=%s sender=%s channel=%s callType=%d source=%s",
+                        message = "Drop duplicate notify: type=%s pkg=%s sender=%s channel=%s callType=%d source=%s",
                         msgTypeStr,
                         normalizedPackageName.orEmpty(),
                         normalizedSender.orEmpty(),
@@ -387,7 +387,7 @@ class ForwardReceiver : BroadcastReceiver() {
                     return@runCatching
                 }
 
-                XLog.i("IPC verified and received message from: %s", normalizedSender ?: "")
+                XLog.i(message = "IPC verified and received message from: %s", normalizedSender ?: "")
                 val resolvedSubId = normalizedSubId ?: 0
                 val resolvedSimSlot = ForwardReceiverPolicy.resolveSimSlot(normalizedRawSlot, resolvedSubId) { id ->
                     resolvePlatformSlotIndex(id)
@@ -395,7 +395,7 @@ class ForwardReceiver : BroadcastReceiver() {
                 val contactName = SourceMetadataResolver.resolveContactName(context, normalizedSender ?: "")
                 val phoneArea = SourceMetadataResolver.resolvePhoneArea(normalizedSender ?: "")
                 XLog.i(
-                    "Resolved metadata: sim_slot=%d sub_id=%d contact=%s area=%s",
+                    message = "Resolved metadata: sim_slot=%d sub_id=%d contact=%s area=%s",
                     resolvedSimSlot,
                     resolvedSubId,
                     contactName.ifBlank { "<empty>" },
@@ -490,7 +490,7 @@ class ForwardReceiver : BroadcastReceiver() {
                     }
                 }
             }.onFailure { error ->
-                XLog.e("ForwardReceiver unexpected error", error)
+                XLog.e(message = "ForwardReceiver unexpected error", error)
                 ForwardFlowLog.e(
                     traceId,
                     buildString {
@@ -577,7 +577,7 @@ class ForwardReceiver : BroadcastReceiver() {
             "Reclassified nms_hook telephony notify to sms_code pkg=$packageName codeLength=${smsCode.length}",
         )
         XLog.w(
-            "NMS telephony notify reclassified to sms_code: pkg=%s code_len=%d",
+            message = "NMS telephony notify reclassified to sms_code: pkg=%s code_len=%d",
             packageName,
             smsCode.length,
         )
@@ -630,7 +630,7 @@ class ForwardReceiver : BroadcastReceiver() {
                     "final_decision=drop reason=empty_package",
             )
             XLog.w(
-                "App notify gate: empty package source=%s messageTypeEnabled=%s forwardTypeEnabled=%s final_decision=drop",
+                message = "App notify gate: empty package source=%s messageTypeEnabled=%s forwardTypeEnabled=%s final_decision=drop",
                 forwardSource,
                 messageTypeEnabled,
                 forwardTypeEnabled,
@@ -647,7 +647,7 @@ class ForwardReceiver : BroadcastReceiver() {
                     "final_decision=drop",
                 error,
             )
-            XLog.e("App notify gate query failed: pkg=$pkg source=$forwardSource", error)
+            XLog.e(message = "App notify gate query failed: pkg=$pkg source=$forwardSource", error)
             return false
         }
         val enabled = appInfo?.forwarding == true
@@ -672,7 +672,7 @@ class ForwardReceiver : BroadcastReceiver() {
                 "final_decision=$finalDecision",
         )
         XLog.d(
-            "App notify gate: pkg=%s source=%s state=%s messageTypeEnabled=%s forwardTypeEnabled=%s final_decision=%s",
+            message = "App notify gate: pkg=%s source=%s state=%s messageTypeEnabled=%s forwardTypeEnabled=%s final_decision=%s",
             pkg,
             forwardSource,
             state,

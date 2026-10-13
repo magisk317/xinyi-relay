@@ -157,7 +157,7 @@ class AutoInputAccessibilityService : AccessibilityService() {
                     )
                 ) {
                     XLog.w(
-                        "Accessibility auto input retry: attempt=%d reason=%s windowPkg=%s targetPkg=%s",
+                        message = "Accessibility auto input retry: attempt=%d reason=%s windowPkg=%s targetPkg=%s",
                         attempt + 2,
                         result.reason,
                         result.windowPackage.ifBlank { "<none>" },
@@ -274,7 +274,7 @@ class AutoInputAccessibilityService : AccessibilityService() {
             startActivity(intent)
             XLog.w("Accessibility heartbeat: launched main activity to wake process")
         }.onFailure { t ->
-            XLog.w("Accessibility heartbeat: wake failed: %s", t.message)
+            XLog.w(message = "Accessibility heartbeat: wake failed: %s", t.message)
         }
     }
 

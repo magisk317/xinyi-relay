@@ -51,7 +51,7 @@ object BatteryReminderForegroundMonitor {
         runCatching {
             receiver?.let { appContext.unregisterReceiver(it) }
         }.onFailure {
-            XLog.w("Battery reminder foreground monitor stop failed: %s", it.message ?: "unknown")
+            XLog.w(message = "Battery reminder foreground monitor stop failed: %s", it.message ?: "unknown")
         }
         receiver = null
         registered = false

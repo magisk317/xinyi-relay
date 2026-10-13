@@ -75,10 +75,10 @@ class FirebaseAuthManager(
             _session.value = session
             Result.success(session)
         } catch (error: FirebaseException) {
-            XLog.e("Google sign-in failed: %s", error.message ?: error.javaClass.simpleName)
+            XLog.e(message = "Google sign-in failed: %s", error.message ?: error.javaClass.simpleName)
             Result.failure(error)
         } catch (error: IllegalArgumentException) {
-            XLog.e("Google sign-in failed: %s", error.message ?: error.javaClass.simpleName)
+            XLog.e(message = "Google sign-in failed: %s", error.message ?: error.javaClass.simpleName)
             Result.failure(error)
         }
     }

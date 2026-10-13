@@ -43,7 +43,7 @@ internal class UsageStatsPermissionGranter(
         } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
             // A failed root probe degrades to the system-settings channel
             // instead of crashing the dialog on open.
-            XLog.w("Failed to probe root for usage stats permission grant", e)
+            XLog.w(message = "Failed to probe root for usage stats permission grant", e)
             false
         }
     }
@@ -94,7 +94,7 @@ private class RootShellRunner : ShellCommandRunner {
         val result = RootShell.run(command, timeoutMs)
         ShellCommandResult(result.success, result.output)
     } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-        XLog.e("Usage stats grant command failed: $command", e)
+        XLog.e(message = "Usage stats grant command failed: $command", e)
         ShellCommandResult(false, e.message.orEmpty())
     }
 }

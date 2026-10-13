@@ -210,7 +210,7 @@ IP地址列表：{{IP_LIST}}
         }.toList()
         if (removedLines.isNotEmpty()) {
             XLog.i(
-                "Template cleanup removed empty-value lines(%d): %s",
+                message = "Template cleanup removed empty-value lines(%d): %s",
                 removedLines.size,
                 removedLines.joinToString(" | "),
             )

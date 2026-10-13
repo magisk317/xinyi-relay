@@ -36,7 +36,7 @@ internal object SmsBlacklistHitRecorder {
                 XpRecordFacade(pluginContext).insertSmsBlacklistHit(hit)
             }
         }.onFailure {
-            XLog.w("Diag sms blacklist hit record failed: event_id=%s error=%s", eventId, it.message ?: "unknown")
+            XLog.w(message = "Diag sms blacklist hit record failed: event_id=%s error=%s", eventId, it.message ?: "unknown")
         }
     }
 }

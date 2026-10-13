@@ -57,7 +57,7 @@ class EventGatekeeper(
                 }
             }.getOrElse { error ->
                 ForwardFlowLog.e(traceId, "App notify gate query failed pkg=$pkg final_decision=drop", error)
-                XLog.e("App notify gate query failed for pkg=$pkg", error)
+                XLog.e(message = "App notify gate query failed for pkg=$pkg", error)
                 return GateDecision(false, "app_gate_query_failed")
             }
             val enabled = appInfo?.forwarding == true

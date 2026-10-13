@@ -130,15 +130,15 @@ object SpecialAlertNotifier {
         category: String,
     ) {
         if (!notifyEnabled && !soundEnabled && !vibrateEnabled) {
-            XLog.i("Special alert skipped: all local outputs disabled key=%s", dedupKey)
+            XLog.i(message = "Special alert skipped: all local outputs disabled key=%s", dedupKey)
             return
         }
         if (!shouldNotify(dedupKey)) {
-            XLog.i("Special alert deduplicated key=%s", dedupKey)
+            XLog.i(message = "Special alert deduplicated key=%s", dedupKey)
             return
         }
         if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) {
-            XLog.w("Special alert skipped: notifications disabled key=%s", dedupKey)
+            XLog.w(message = "Special alert skipped: notifications disabled key=%s", dedupKey)
             return
         }
         val channelId = ensureChannel(context, soundEnabled = soundEnabled, vibrateEnabled = vibrateEnabled)
@@ -168,7 +168,7 @@ object SpecialAlertNotifier {
         runCatching {
             NotificationManagerCompat.from(context).notify(dedupKey.hashCode(), builder.build())
         }.onFailure { error ->
-            XLog.w("Special alert notify failed key=%s err=%s", dedupKey, error.message ?: "unknown")
+            XLog.w(message = "Special alert notify failed key=%s err=%s", dedupKey, error.message ?: "unknown")
         }
     }
 

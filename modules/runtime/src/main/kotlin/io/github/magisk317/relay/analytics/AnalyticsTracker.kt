@@ -27,7 +27,7 @@ object AnalyticsTracker {
             val getInstance = clazz.getMethod("getInstance", Context::class.java)
             getInstance.invoke(null, appContext)
         }.onFailure { error ->
-            XLog.w("FirebaseAnalytics init skipped: %s", error.message ?: error.javaClass.simpleName)
+            XLog.w(message = "FirebaseAnalytics init skipped: %s", error.message ?: error.javaClass.simpleName)
         }.getOrNull()
     }
 
@@ -59,7 +59,7 @@ object AnalyticsTracker {
             val method = tracker.javaClass.getMethod("logEvent", String::class.java, Bundle::class.java)
             method.invoke(tracker, name, bundle)
         }.onFailure { error ->
-            XLog.w("FirebaseAnalytics logEvent failed: %s", error.message ?: error.javaClass.simpleName)
+            XLog.w(message = "FirebaseAnalytics logEvent failed: %s", error.message ?: error.javaClass.simpleName)
         }
     }
 }

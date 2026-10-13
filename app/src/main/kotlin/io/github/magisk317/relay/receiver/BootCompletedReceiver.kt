@@ -33,7 +33,7 @@ class BootCompletedReceiver : BroadcastReceiver() {
                         ComponentName(appContext, AppNotificationListenerService::class.java),
                     )
                 }.onFailure {
-                    XLog.e("BootCompletedReceiver: NLS requestRebind failed", it)
+                    XLog.e(message = "BootCompletedReceiver: NLS requestRebind failed", it)
                 }
             } finally {
                 pendingResult.finish()

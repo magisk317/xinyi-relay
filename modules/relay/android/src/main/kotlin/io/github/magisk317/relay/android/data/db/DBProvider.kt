@@ -57,7 +57,7 @@ class DBProvider : ContentProvider() {
     override fun call(method: String, arg: String?, extras: Bundle?): Bundle? {
         val ctx = context ?: return null
         if (!isCallerAllowedForRuntimeState(ctx)) {
-            XLog.w("DBProvider: deny call uid=%d method=%s", Binder.getCallingUid(), method)
+            XLog.w(message = "DBProvider: deny call uid=%d method=%s", Binder.getCallingUid(), method)
             return null
         }
         return when (method) {
@@ -72,7 +72,7 @@ class DBProvider : ContentProvider() {
         val ctx = context ?: return null
         val uriType = uriMatcher.match(uri)
         if (!isCallerAllowedForInsert(ctx, uriType)) {
-            XLog.w("DBProvider: deny insert uid=%d uri=%s", Binder.getCallingUid(), uri)
+            XLog.w(message = "DBProvider: deny insert uid=%d uri=%s", Binder.getCallingUid(), uri)
             return null
         }
         when (uriType) {
@@ -138,7 +138,7 @@ class DBProvider : ContentProvider() {
         val ctx = context ?: return null
         val uriType = uriMatcher.match(uri)
         if (!isCallerAllowedForQuery(ctx, uriType)) {
-            XLog.w("DBProvider: deny query uid=%d uri=%s", Binder.getCallingUid(), uri)
+            XLog.w(message = "DBProvider: deny query uid=%d uri=%s", Binder.getCallingUid(), uri)
             return null
         }
         return when (uriType) {
@@ -156,7 +156,7 @@ class DBProvider : ContentProvider() {
         val ctx = context ?: return 0
         val uriType = uriMatcher.match(uri)
         if (!isCallerAllowedForMutation(ctx)) {
-            XLog.w("DBProvider: deny delete uid=%d uri=%s", Binder.getCallingUid(), uri)
+            XLog.w(message = "DBProvider: deny delete uid=%d uri=%s", Binder.getCallingUid(), uri)
             return 0
         }
         val rowsDeleted: Int = when (uriType) {
@@ -386,7 +386,7 @@ class DBProvider : ContentProvider() {
         val ctx = context ?: return 0
         val uriType = uriMatcher.match(uri)
         if (!isCallerAllowedForMutation(ctx)) {
-            XLog.w("DBProvider: deny update uid=%d uri=%s", Binder.getCallingUid(), uri)
+            XLog.w(message = "DBProvider: deny update uid=%d uri=%s", Binder.getCallingUid(), uri)
             return 0
         }
         val rowsUpdated = when (uriType) {
@@ -442,7 +442,7 @@ class DBProvider : ContentProvider() {
             )
         }.onFailure { error ->
             XLog.w(
-                "DBProvider: runtime gate failed file=%s err=%s",
+                message = "DBProvider: runtime gate failed file=%s err=%s",
                 resolvedFileName,
                 error.message ?: error.javaClass.simpleName,
             )
@@ -492,7 +492,7 @@ class DBProvider : ContentProvider() {
             )
         }.onFailure { error ->
             XLog.w(
-                "DBProvider: hook heartbeat failed source=%s err=%s",
+                message = "DBProvider: hook heartbeat failed source=%s err=%s",
                 source,
                 error.message ?: error.javaClass.simpleName,
             )

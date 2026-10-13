@@ -260,16 +260,16 @@ class ConfigRepository(
 
     private suspend fun noteMutation(source: String) {
         runCatching { RuntimeDependencies.get().localConfigRepository.noteLocalMutation(source) }
-            .onFailure { XLog.e("noteLocalMutation failed: %s", it.message ?: it.javaClass.simpleName) }
+            .onFailure { XLog.e(message = "noteLocalMutation failed: %s", it.message ?: it.javaClass.simpleName) }
         runCatching { RuntimeDependencies.get().autoBackupTrigger.scheduleAutoBackup(source) }
-            .onFailure { XLog.e("scheduleAutoBackup failed: %s", it.message ?: it.javaClass.simpleName) }
+            .onFailure { XLog.e(message = "scheduleAutoBackup failed: %s", it.message ?: it.javaClass.simpleName) }
     }
 
     private suspend fun sanitizeAndPersistSenderRepair(sender: Sender): Sender {
         val safeSender = sanitizeSender(sender)
         if (safeSender != sender) {
             senderDao.update(safeSender.toEntity())
-            XLog.i("Sender config repaired id=%d type=%d", safeSender.id, safeSender.type)
+            XLog.i(message = "Sender config repaired id=%d type=%d", safeSender.id, safeSender.type)
             noteMutation("config.sender_repair")
         }
         return safeSender

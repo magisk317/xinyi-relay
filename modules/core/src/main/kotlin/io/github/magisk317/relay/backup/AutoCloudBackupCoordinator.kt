@@ -33,7 +33,7 @@ class AutoCloudBackupCoordinator(
         mutex.withLock {
             val settings = CloudBackupSettingsStore.getSettings(context)
             if (!settings.autoBackupEnabled) {
-                XLog.i("Auto cloud backup skipped: disabled reason=%s", reason)
+                XLog.i(message = "Auto cloud backup skipped: disabled reason=%s", reason)
                 emitBackup(result = "skip", reason = "disabled", source = reason)
                 return
             }
@@ -47,7 +47,7 @@ class AutoCloudBackupCoordinator(
                 BackupSource.WEBDAV -> {
                     val config = WebDavConfigStore.getConfig(context)
                     if (config == null) {
-                        XLog.w("Auto cloud backup skipped: WebDAV config missing reason=%s", reason)
+                        XLog.w(message = "Auto cloud backup skipped: WebDAV config missing reason=%s", reason)
                         emitBackup(result = "skip", reason = "webdav_config_missing", source = reason)
                         return
                     }
@@ -58,7 +58,7 @@ class AutoCloudBackupCoordinator(
 
             if (!provider.isAvailable()) {
                 XLog.w(
-                    "Auto cloud backup skipped: provider unavailable source=%s reason=%s",
+                    message = "Auto cloud backup skipped: provider unavailable source=%s reason=%s",
                     settings.autoBackupSource.name,
                     reason,
                 )
@@ -72,7 +72,7 @@ class AutoCloudBackupCoordinator(
             }
 
             XLog.i(
-                "Auto cloud backup start: source=%s reason=%s",
+                message = "Auto cloud backup start: source=%s reason=%s",
                 settings.autoBackupSource.name,
                 reason,
             )
@@ -80,7 +80,7 @@ class AutoCloudBackupCoordinator(
             result.fold(
                 onSuccess = { backupId ->
                     XLog.i(
-                        "Auto cloud backup success: source=%s reason=%s backupId=%s",
+                        message = "Auto cloud backup success: source=%s reason=%s backupId=%s",
                         settings.autoBackupSource.name,
                         reason,
                         backupId,
@@ -94,7 +94,7 @@ class AutoCloudBackupCoordinator(
                 },
                 onFailure = { error ->
                     XLog.e(
-                        "Auto cloud backup failed: source=%s reason=%s error=%s",
+                        message = "Auto cloud backup failed: source=%s reason=%s error=%s",
                         settings.autoBackupSource.name,
                         reason,
                         error.message ?: error.javaClass.simpleName,

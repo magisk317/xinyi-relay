@@ -32,20 +32,20 @@ internal class ParsedCodeSmsForwarder(
             )
             if (!dispatchResult.dispatched) {
                 XLog.e(
-                    "ParsedCodeSmsForwarder: IPC token empty, skip direct sms forward. event_id=%s",
+                    message = "ParsedCodeSmsForwarder: IPC token empty, skip direct sms forward. event_id=%s",
                     eventId,
                 )
                 false
             } else {
                 if (dispatchResult.bypassUsed) {
                     XLog.w(
-                        "ParsedCodeSmsForwarder: IPC token empty, continue with receiver-side bypass. event_id=%s uid=%d",
+                        message = "ParsedCodeSmsForwarder: IPC token empty, continue with receiver-side bypass. event_id=%s uid=%d",
                         eventId,
                         Process.myUid(),
                     )
                 }
                 XLog.i(
-                    "ParsedCodeSmsForwarder dispatched parsed sms forward: event_id=%s code_present=%s tokenPresent=%s",
+                    message = "ParsedCodeSmsForwarder dispatched parsed sms forward: event_id=%s code_present=%s tokenPresent=%s",
                     eventId,
                     prepared.smsMsg.smsCode?.isNotBlank() == true,
                     dispatchResult.tokenPresent,
@@ -91,7 +91,7 @@ internal class ParsedCodeSmsForwarder(
             }
         }.onFailure { error ->
             prepareFailed = true
-            XLog.e("ParsedCodeSmsForwarder failed to prepare direct sms forward", error)
+            XLog.e(message = "ParsedCodeSmsForwarder failed to prepare direct sms forward", error)
             emit(result = "error", statusOk = false, reason = "prepare_failed")
         }.getOrNull()
         if (preparedForward == null) {

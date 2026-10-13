@@ -236,7 +236,7 @@ object BackupManager {
                     if (sanitized == defaultJson && rawCanonical != defaultJson) {
                         degradedSenderConfigs += 1
                         XLog.w(
-                            "Backup inspect sender degraded to defaults: type=%d name=%s raw=%s",
+                            message = "Backup inspect sender degraded to defaults: type=%d name=%s raw=%s",
                             type,
                             name,
                             trimmed.take(256),

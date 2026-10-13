@@ -133,18 +133,18 @@ object ForwardPayloadFactory {
                     val warnings = result.warnings.joinToString(",") { it.name.lowercase() }
                         .ifEmpty { "none" }
                     XLog.w(
-                        "MMS PDU parsed with diagnostics: missing=%s warnings=%s",
+                        message = "MMS PDU parsed with diagnostics: missing=%s warnings=%s",
                         missing,
                         warnings,
                     )
                 }
             }
             is MmsNotificationPduParser.Result.Unsupported -> XLog.w(
-                "MMS PDU type unsupported: messageType=0x%s; using intent metadata or safe fallback",
+                message = "MMS PDU type unsupported: messageType=0x%s; using intent metadata or safe fallback",
                 result.messageType.toString(16),
             )
             is MmsNotificationPduParser.Result.Malformed -> XLog.w(
-                "MMS PDU malformed: reason=%s; using intent metadata or safe fallback",
+                message = "MMS PDU malformed: reason=%s; using intent metadata or safe fallback",
                 result.reason.name.lowercase(),
             )
             null -> Unit

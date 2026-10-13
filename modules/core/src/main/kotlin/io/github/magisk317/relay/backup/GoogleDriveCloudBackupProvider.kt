@@ -73,7 +73,7 @@ class GoogleDriveCloudBackupProvider(
     private fun <T> Result<T>.logFailure(operation: String): Result<T> {
         return onFailure { throwable ->
             XLog.e(
-                "Google Drive %s backup failed: %s",
+                message = "Google Drive %s backup failed: %s",
                 operation,
                 throwable.message ?: throwable.javaClass.simpleName,
             )

@@ -21,6 +21,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":magisk-xposed-kit:logging"))
     implementation(project(":relay:android"))
     implementation(project(":relay:contract"))
     implementation(project(":relay:engine:api"))

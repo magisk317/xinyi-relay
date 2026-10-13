@@ -34,7 +34,7 @@ val billingModule = module {
         runCatching {
             GoogleSignInHelperImpl(get())
         }.getOrElse { error ->
-            XLog.e("GoogleSignInHelper init failed, degrading to NoOp", error)
+            XLog.e(message = "GoogleSignInHelper init failed, degrading to NoOp", error)
             NoOpGoogleSignInHelper(get())
         }
     }
@@ -42,7 +42,7 @@ val billingModule = module {
         runCatching {
             FirebaseAuthManager(get(), get())
         }.getOrElse { error ->
-            XLog.e("FirebaseAuthManager init failed, degrading to NoOp", error)
+            XLog.e(message = "FirebaseAuthManager init failed, degrading to NoOp", error)
             NoOpAuthManager()
         }
     }
@@ -53,7 +53,7 @@ val billingModule = module {
         runCatching {
             GoogleDriveCloudBackupProvider(get(), get(), get())
         }.getOrElse { error ->
-            XLog.e("GoogleDriveCloudBackupProvider init failed, degrading to NoOp", error)
+            XLog.e(message = "GoogleDriveCloudBackupProvider init failed, degrading to NoOp", error)
             NoOpCloudBackupProvider()
         }
     }

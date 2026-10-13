@@ -39,7 +39,7 @@ class DispatchResultWriter(
                 persistSenderDispatchLogs(recordId, msgTypeForAnalytics, results)
             }
         }.onFailure { error ->
-            XLog.w("persistForwardResult failed: %s", error.message ?: error.javaClass.simpleName)
+            XLog.w(message = "persistForwardResult failed: %s", error.message ?: error.javaClass.simpleName)
         }
     }
 
@@ -132,7 +132,7 @@ class DispatchResultWriter(
                 )
             }.onFailure { error ->
                 XLog.w(
-                    "Persist sender dispatch log failed: %s",
+                    message = "Persist sender dispatch log failed: %s",
                     error.message ?: error.javaClass.simpleName,
                 )
             }

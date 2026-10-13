@@ -98,7 +98,7 @@ class CustomMessageReceiver : BroadcastReceiver() {
                 }
                 finish(RESULT_OK, "accepted")
             }.onFailure { error ->
-                XLog.e("CustomMessageReceiver failed", error)
+                XLog.e(message = "CustomMessageReceiver failed", error)
                 finish(RESULT_DISPATCH_FAILED, "receiver_error")
             }
         }

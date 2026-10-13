@@ -127,7 +127,7 @@ class MainActivity : ComponentActivity() {
         val enqueueResult = newIntents.trySend(incoming)
         if (enqueueResult.isFailure) {
             XLog.w(
-                "Incoming intent channel rejected event: reason=%s",
+                message = "Incoming intent channel rejected event: reason=%s",
                 enqueueResult.exceptionOrNull()?.javaClass?.simpleName ?: "buffer_full",
             )
             lifecycleScope.launch {
@@ -137,7 +137,7 @@ class MainActivity : ComponentActivity() {
                     throw cancelled
                 } catch (failure: Throwable) {
                     XLog.w(
-                        "Incoming intent channel fallback failed: reason=%s",
+                        message = "Incoming intent channel fallback failed: reason=%s",
                         failure.javaClass.simpleName,
                     )
                 }
@@ -711,7 +711,7 @@ class MainActivity : ComponentActivity() {
         }
         jankStats = JankStats.createAndTrack(window) { frameData ->
             if (frameData.isJank) {
-                XLog.d("UI jank frame: %s", frameData)
+                XLog.d(message = "UI jank frame: %s", frameData)
             }
         }
     }

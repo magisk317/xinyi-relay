@@ -83,10 +83,10 @@ class WebDavBackupManager(
                 if (!tempFile.isFile || fileSize <= 0L) {
                     throw IllegalStateException("Local backup file missing or empty")
                 }
-                XLog.i("WebDAV backup export ready: name=%s size=%d", fileName, fileSize)
+                XLog.i(message = "WebDAV backup export ready: name=%s size=%d", fileName, fileSize)
 
                 currentClient.uploadFile(tempFile, fileName).getOrThrow()
-                XLog.i("WebDAV backup upload success: name=%s size=%d", fileName, fileSize)
+                XLog.i(message = "WebDAV backup upload success: name=%s size=%d", fileName, fileSize)
 
                 CloudBackupMeta(
                     id = fileName,
@@ -98,7 +98,7 @@ class WebDavBackupManager(
             } finally {
                 if (tempFile.exists()) {
                     val deleted = tempFile.delete()
-                    XLog.i("WebDAV backup temp cleanup: name=%s deleted=%s", fileName, deleted)
+                    XLog.i(message = "WebDAV backup temp cleanup: name=%s deleted=%s", fileName, deleted)
                 }
             }
         }.also { result ->
