@@ -1,62 +1,3 @@
-import java.io.File
-import org.gradle.api.credentials.HttpHeaderCredentials
-import org.gradle.authentication.http.HttpHeaderAuthentication
-
-/**
- * Detect which auth header the given GitLab token validates under.
- *
- * GitLab accepts the same token under two headers, but not every token type
- * is accepted under both: classic PATs / project tokens / OAuth tokens all
- * work with `Authorization: Bearer`, while some legacy setups only accept
- * `Private-Token`. We probe once (HEAD on a known private artifact) and cache
- * the winner per token, so a single settings.gradle.kts auto-adapts to
- * whatever token the host supplies (e.g. lzc vs server) — no manual header
- * guesswork. Any failure (offline, timeout, unexpected response) safely
- * falls back to `Authorization: Bearer`, which is the superset accepted by
- * every GitLab personal/group token.
- */
-fun resolveGitlabAuthHeader(token: String): Pair<String, String> {
-    val cacheFile = File(System.getProperty("user.home"), ".gradle/gitlab_auth_header_cache")
-    val key = token.hashCode().toString()
-    runCatching {
-        if (cacheFile.exists()) {
-            cacheFile.readLines()
-                .firstOrNull { it.startsWith("$key=") }
-                ?.substringAfter("=")
-                ?.let { name ->
-                    val value = if (name == "Authorization") "Bearer $token" else token
-                    return name to value
-                }
-        }
-    }
-    val probeUrl = "https://gitlab.com/api/v4/projects/85187820/packages/maven/" +
-        "com/magisk317/mobile/entitlement-android/0.2.1/entitlement-android-0.2.1.pom"
-    val candidates = listOf("Authorization" to "Bearer $token", "Private-Token" to token)
-    var chosen: Pair<String, String>? = null
-    for ((name, value) in candidates) {
-        val ok = runCatching {
-            (java.net.URL(probeUrl).openConnection() as java.net.HttpURLConnection).let { conn ->
-                conn.requestMethod = "HEAD"
-                conn.setRequestProperty(name, value)
-                conn.connectTimeout = 4000
-                conn.readTimeout = 4000
-                val code = conn.responseCode
-                conn.disconnect()
-                code != 401
-            }
-        }.getOrElse { false }
-        if (ok) { chosen = name to value; break }
-    }
-    val result = chosen ?: ("Authorization" to "Bearer $token")
-    runCatching {
-        cacheFile.parentFile?.mkdirs()
-        val kept = runCatching { cacheFile.readLines() }.getOrElse { emptyList() }
-            .filter { !it.startsWith("$key=") } + listOf("$key=${result.first}")
-        cacheFile.writeText(kept.takeLast(20).joinToString("\n"))
-    }
-    return result
-}
-
 pluginManagement {
     includeBuild("build-logic")
     repositories {
@@ -69,7 +10,6 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-        mavenLocal()
         // The fork registry below is the only source for
         // org.matrix.rustcomponents: the fork shares GAVs with Maven
         // Central, so public repos must exclude the group or resolution
@@ -90,43 +30,6 @@ mavenCentral()
                     ?: "https://gitlab.com/api/v4/projects/84113188/packages/maven",
             )
 
-            val jobToken = System.getenv("CI_JOB_TOKEN")
-            val privateToken = System.getenv("GITLAB_TOKEN")
-                ?: System.getenv("GITLAB_PRIVATE_TOKEN")
-                ?: providers.gradleProperty("gitlab.token").orNull
-            val deployToken = System.getenv("GITLAB_DEPLOY_TOKEN")
-                ?: System.getenv("gitlab.deployToken")
-
-            when {
-                !jobToken.isNullOrBlank() -> {
-                    credentials(HttpHeaderCredentials::class) {
-                        name = "Job-Token"
-                        value = jobToken
-                    }
-                    authentication {
-                        create<HttpHeaderAuthentication>("header")
-                    }
-                }
-                !privateToken.isNullOrBlank() -> {
-                    val (headerName, headerValue) = resolveGitlabAuthHeader(privateToken)
-                    credentials(HttpHeaderCredentials::class) {
-                        name = headerName
-                        value = headerValue
-                    }
-                    authentication {
-                        create<HttpHeaderAuthentication>("header")
-                    }
-                }
-                !deployToken.isNullOrBlank() -> {
-                    credentials(HttpHeaderCredentials::class) {
-                        name = "Deploy-Token"
-                        value = deployToken
-                    }
-                    authentication {
-                        create<HttpHeaderAuthentication>("header")
-                    }
-                }
-            }
 
             content {
                 includeGroup("rustls")
@@ -139,36 +42,6 @@ mavenCentral()
                     ?: System.getenv("MOBILE_PRIVATE_MAVEN_URL")
                     ?: "https://gitlab.com/api/v4/projects/85187820/packages/maven",
             )
-            val jobToken = System.getenv("CI_JOB_TOKEN")
-            val deployToken = System.getenv("GITLAB_DEPLOY_TOKEN")
-            val privateToken = System.getenv("GITLAB_TOKEN")
-                ?: System.getenv("GITLAB_PRIVATE_TOKEN")
-            if (!jobToken.isNullOrBlank()) {
-                credentials(HttpHeaderCredentials::class) {
-                    name = "Job-Token"
-                    value = jobToken
-                }
-                authentication {
-                    create<HttpHeaderAuthentication>("header")
-                }
-            } else if (!deployToken.isNullOrBlank()) {
-                credentials(HttpHeaderCredentials::class) {
-                    name = "Deploy-Token"
-                    value = deployToken
-                }
-                authentication {
-                    create<HttpHeaderAuthentication>("header")
-                }
-            } else if (!privateToken.isNullOrBlank()) {
-                val (headerName, headerValue) = resolveGitlabAuthHeader(privateToken)
-                credentials(HttpHeaderCredentials::class) {
-                    name = headerName
-                    value = headerValue
-                }
-                authentication {
-                    create<HttpHeaderAuthentication>("header")
-                }
-            }
             content {
                 includeGroup("com.magisk317.mobile")
             }
