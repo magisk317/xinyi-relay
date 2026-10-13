@@ -81,8 +81,7 @@ internal fun rememberSettingsRuntimeLogActions(
             kotlinx.coroutines.runBlocking { repository.getDiagnosticsSettings().verboseLogMode }
         )
         if (blockReason != null) {
-            val resId = context.resources.getIdentifier(blockReason, "string", context.packageName)
-            val message = if (resId != 0) context.getString(resId) else blockReason
+            val message = io.github.magisk317.uikit.preference.resolveLogExportBlockMessage(context, blockReason)
             scope.launch { snackbarHostState.showLatestSnackbar(message) }
             return
         }
