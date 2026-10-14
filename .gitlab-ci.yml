@@ -338,12 +338,7 @@ backend:container:amd64:
       artifacts: false
   script:
     - chmod +x scripts/ci/gitlab_backend_container.sh
-    - scripts/ci/gitlab_backend_container.sh build-arch-export amd64
-  artifacts:
-    when: on_success
-    expire_in: 1 day
-    paths:
-      - backend-image-amd64.tar.gz
+    - scripts/ci/gitlab_backend_container.sh build-arch amd64
 
 backend:container:arm64:
   extends:
@@ -372,12 +367,11 @@ backend:container:manifest:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
     - job: backend:container:amd64
-      artifacts: true
+      artifacts: false
     - job: backend:container:arm64
       artifacts: false
   script:
     - chmod +x scripts/ci/gitlab_backend_container.sh
-    - scripts/ci/gitlab_backend_container.sh publish-arch-archive amd64
     - scripts/ci/gitlab_backend_container.sh publish-manifests
   artifacts:
     reports:
