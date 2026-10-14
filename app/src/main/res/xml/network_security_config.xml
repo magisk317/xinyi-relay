@@ -25,6 +25,9 @@
         <domain includeSubdomains="false">api.dingtalk.com</domain>
         <domain includeSubdomains="false">api.day.app</domain>
         <domain includeSubdomains="false">ntfy.sh</domain>
+        <domain includeSubdomains="false">api2.pushdeer.com</domain>
+        <domain includeSubdomains="false">chat-go.jwzhd.com</domain>
+        <domain includeSubdomains="true">push.ft07.com</domain>
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
