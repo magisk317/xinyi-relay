@@ -39,13 +39,7 @@ default:
 stages:
   - build
   - package
-  - release-validate
-  - release-build
-  # sync must precede release-publish: android:release:github declares
-  # `needs: sync:github`, and `needs` may only target the same or an earlier stage.
-  - sync
-  - release-publish
-  - notify
+  - release
   - quality
   - maintenance
 
@@ -373,7 +367,7 @@ backend:container:manifest:
     - .xinyi_docker
     - .xinyi_backend_publish_rules
   resource_group: xinyi-backend-docker-manifest
-  stage: release-publish
+  stage: release
   allow_failure: true
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
@@ -411,7 +405,7 @@ desktop-kmp:linux:arm64:
 
 desktop:release:gitlab:
   extends: .magisk_linux_base
-  stage: release-publish
+  stage: release
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   rules:
@@ -757,7 +751,7 @@ security:gitleaks:
 
 android:release:guard:
   extends: .magisk_android_release_guard
-  stage: release-validate
+  stage: release
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs: []
@@ -776,7 +770,7 @@ android:release:github-apk:
     - !reference [.magisk_android_base, before_script]
     - *xinyi_decode_google_services
   resource_group: xinyi-android-release-apk
-  stage: release-build
+  stage: release
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
@@ -796,7 +790,7 @@ android:release:play-bundle:
     - .magisk_android_base
     - .magisk_android_release_tag_rules
   resource_group: xinyi-android-release-play
-  stage: release-build
+  stage: release
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   rules:
@@ -847,7 +841,7 @@ android:release:play-bundle:
 android:release:gitlab:
   extends: .magisk_android_gitlab_release
   resource_group: xinyi-android-release-publish
-  stage: release-publish
+  stage: release
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
@@ -860,7 +854,7 @@ android:release:gitlab:
 android:release:play:
   extends: .magisk_android_publish_play
   resource_group: xinyi-android-release-play
-  stage: release-publish
+  stage: release
   # Play publishing is best effort: a Play-side block (policy review,
   # accessibility permission declaration, track rejection) must not hold back
   # the remaining release channels or the Telegram release notification.
@@ -886,7 +880,7 @@ android:release:play:
 android:ci:play-beta-bundle:
   extends: .magisk_android_base
   resource_group: xinyi-android-release-play
-  stage: release-build
+  stage: release
   tags:
     - $XINYI_BUNDLE_RUNNER_TAG
   # The release build is self-contained (keystore and google-services.json
@@ -925,7 +919,7 @@ android:ci:play-beta-bundle:
 android:ci:play-beta:
   extends: .magisk_android_base
   resource_group: xinyi-android-release-play
-  stage: release-publish
+  stage: release
   tags:
     - $XINYI_BUILD_RUNNER_TAG
   rules:
@@ -965,7 +959,7 @@ android:release:modules-repo:
   # the template's APK lookup fail with "no release APK files found".
   extends: .magisk_android_publish_modules_repo
   resource_group: xinyi-android-release-publish
-  stage: release-publish
+  stage: release
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
@@ -975,7 +969,7 @@ android:release:modules-repo:
 
 telegram:release:
   extends: .magisk_telegram_release
-  stage: notify
+  stage: release
   allow_failure: true
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
@@ -998,7 +992,7 @@ telegram:ci:
   extends:
     - .magisk_telegram_ci
     - .xinyi_signed_android_rules
-  stage: notify
+  stage: release
   allow_failure: true
   rules:
     - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_AUTHOR =~ /Renovate317@users.noreply/ && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != ""'
@@ -1032,7 +1026,7 @@ renovate:gitlab:
 android:release:github:
   extends: .magisk_android_release_github
   resource_group: xinyi-android-release-publish
-  stage: release-publish
+  stage: release
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   variables:
@@ -1052,7 +1046,7 @@ android:release:github:
 # tag pipelines fall back to the project-level GITHUB_RELEASE_TOKEN.
 sync:github:
   extends: .magisk_utility_base
-  stage: sync
+  stage: release
   needs:
     - job: android:release:guard
       optional: true
