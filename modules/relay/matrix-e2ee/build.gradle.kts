@@ -25,7 +25,7 @@ kotlin {
             implementation(project(":magisk-xposed-kit:logging"))
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.matrix.sdk.android)
-            implementation("rustls:rustls-platform-verifier:0.1.1")
+            implementation(libs.rustls.platform.verifier)
         }
     }
 }

@@ -141,7 +141,7 @@ dependencies {
 
     implementation(project(":relay:matrix-e2ee"))
     implementation(libs.matrix.sdk.android)
-    implementation("rustls:rustls-platform-verifier:0.1.1")
+    implementation(libs.rustls.platform.verifier)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.core.ktx)
