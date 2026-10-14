@@ -223,7 +223,7 @@ variables:
   stage: build
   variables:
     GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
-    GRADLE_OPTS: "-Dorg.gradle.warning.mode=all -Dorg.gradle.workers.max=2"
+    GRADLE_OPTS: "-Dorg.gradle.warning.mode=all -Dorg.gradle.workers.max=1 -Dorg.gradle.jvmargs='-Xmx2048m -XX:MaxMetaspaceSize=512m'"
   artifacts:
     when: always
     expire_in: 30 days
@@ -238,6 +238,32 @@ variables:
   # if-not-present. See "CI Java Runtime" in AGENTS.md for the fallback recipe.
   image: "eclipse-temurin:27_35-jdk-resolute"
   before_script:
+    - |
+      set -euo pipefail
+      export DEBIAN_FRONTEND=noninteractive
+      use_mirror="${MAGISK_LINUX_USE_MIRROR:-true}"
+      if [[ "$use_mirror" == "true" ]]; then
+        sed -i \
+          -e 's#http://deb.debian.org/debian-security#https://mirrors.tuna.tsinghua.edu.cn/debian-security#g' \
+          -e 's#http://security.debian.org/debian-security#https://mirrors.tuna.tsinghua.edu.cn/debian-security#g' \
+          -e 's#http://deb.debian.org/debian#https://mirrors.tuna.tsinghua.edu.cn/debian#g' \
+          -e 's#http://archive.ubuntu.com/ubuntu#https://mirrors.tuna.tsinghua.edu.cn/ubuntu#g' \
+          -e 's#http://security.ubuntu.com/ubuntu#https://mirrors.tuna.tsinghua.edu.cn/ubuntu#g' \
+          /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+        if ! apt-get -o APT::Update::Error-Mode=any update; then
+          echo "Mirror apt-get update failed, falling back to official sources" >&2
+          sed -i \
+            -e 's#https://mirrors.tuna.tsinghua.edu.cn/debian-security#http://deb.debian.org/debian-security#g' \
+            -e 's#https://mirrors.tuna.tsinghua.edu.cn/debian#http://deb.debian.org/debian#g' \
+            -e 's#https://mirrors.tuna.tsinghua.edu.cn/ubuntu#http://archive.ubuntu.com/ubuntu#g' \
+            /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+          apt-get -o APT::Update::Error-Mode=any update
+        fi
+      else
+        apt-get -o APT::Update::Error-Mode=any update
+      fi
+      apt-get install -y --no-install-recommends git dpkg fakeroot
+      rm -rf /var/lib/apt/lists/*
     - chmod +x scripts/ci/gitlab_desktop_kmp_package.sh
 
 backend:go:
