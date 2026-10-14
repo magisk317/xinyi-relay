@@ -38,7 +38,6 @@ default:
 
 stages:
   - build
-  - package
   - release
   - quality
   - maintenance
@@ -221,7 +220,7 @@ variables:
 
 .xinyi_desktop_kmp_base:
   extends: .xinyi_desktop_kmp_rules
-  stage: package
+  stage: build
   variables:
     GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
     GRADLE_OPTS: "-Dorg.gradle.warning.mode=all -Dorg.gradle.workers.max=2"
@@ -330,7 +329,7 @@ backend:container:amd64:
     - .xinyi_docker
     - .xinyi_backend_publish_rules
   resource_group: xinyi-backend-docker-amd64
-  stage: package
+  stage: build
   allow_failure: true
   tags:
     - $XINYI_GITLAB_LINUX_AMD64_RUNNER_TAG
@@ -351,7 +350,7 @@ backend:container:arm64:
     - .xinyi_docker
     - .xinyi_backend_publish_rules
   resource_group: xinyi-backend-docker-arm64
-  stage: package
+  stage: build
   allow_failure: true
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
@@ -703,7 +702,7 @@ e2ee-plugin:sync:
 # toolchain patch is caught before it can publish a wrong artifact.
 rustls-platform-verifier:publish:
   extends: .magisk_android_base
-  stage: package
+  stage: build
   needs: []
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
@@ -751,7 +750,7 @@ security:gitleaks:
 
 android:release:guard:
   extends: .magisk_android_release_guard
-  stage: release
+  stage: build
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs: []
@@ -770,7 +769,7 @@ android:release:github-apk:
     - !reference [.magisk_android_base, before_script]
     - *xinyi_decode_google_services
   resource_group: xinyi-android-release-apk
-  stage: release
+  stage: build
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
@@ -790,7 +789,7 @@ android:release:play-bundle:
     - .magisk_android_base
     - .magisk_android_release_tag_rules
   resource_group: xinyi-android-release-play
-  stage: release
+  stage: build
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   rules:
@@ -880,7 +879,7 @@ android:release:play:
 android:ci:play-beta-bundle:
   extends: .magisk_android_base
   resource_group: xinyi-android-release-play
-  stage: release
+  stage: build
   tags:
     - $XINYI_BUNDLE_RUNNER_TAG
   # The release build is self-contained (keystore and google-services.json
