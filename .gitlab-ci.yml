@@ -699,6 +699,52 @@ e2ee-plugin:sync:
       fi
       scripts/ci/e2ee_plugin_publish.sh
 
+# rustls-platform-verifier JVM component publish -- decoupled from the app
+# release cadence. matrix-rust-sdk reflects into this AAR at runtime but does
+# not depend on it in Gradle, and upstream never ships it to Maven, so the
+# registry copy (settings.gradle.kts pins group "rustls" to it) is built here
+# from the pinned upstream tag with this repository's own toolchain. Scheduled
+# pipelines only publish catalog versions the registry does not have yet; MRs
+# run a dry run (build + contract check, no registry writes) so a broken
+# toolchain patch is caught before it can publish a wrong artifact.
+rustls-platform-verifier:publish:
+  extends: .magisk_android_base
+  stage: package
+  needs: []
+  tags:
+    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH =~ /^renovate\//'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - gradle/libs.versions.toml
+        - scripts/ci/rustls_pv_publish.sh
+        - scripts/ci/rustls_pv_toolchain.patch
+        - .gitlab-ci.yml
+      variables:
+        RUSTLS_PV_DRY_RUN: "1"
+    - if: '$CI_COMMIT_BRANCH'
+      changes:
+        - gradle/libs.versions.toml
+        - scripts/ci/rustls_pv_publish.sh
+        - scripts/ci/rustls_pv_toolchain.patch
+        - .gitlab-ci.yml
+    - when: never
+  script:
+    - chmod +x scripts/ci/rustls_pv_publish.sh
+    - scripts/ci/rustls_pv_publish.sh
+  artifacts:
+    when: on_success
+    expire_in: 1 week
+    paths:
+      - .cache/rustls-platform-verifier/*.aar
+      - .cache/rustls-platform-verifier/*.pom
+
 security:gitleaks:
   extends: .xinyi_ci_rules
   image:

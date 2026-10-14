@@ -1,0 +1,87 @@
+diff --git a/android/build.gradle b/android/build.gradle
+index 6d52ea5..3b961fd 100644
+--- a/android/build.gradle
++++ b/android/build.gradle
+@@ -1,8 +1,8 @@
+ // Top-level build file where you can add configuration options common to all sub-projects/modules.
+ buildscript {
+     dependencies {
+-        classpath libs.kotlin.gradle.plugin
+         classpath libs.android.gradle.plugin
++        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:@KOTLIN@:gradle96"
+     }
+ 
+     repositories {
+diff --git a/android/gradle/libraries.versions.toml b/android/gradle/libraries.versions.toml
+index 6cf1e1d..1fabcbd 100644
+--- a/android/gradle/libraries.versions.toml
++++ b/android/gradle/libraries.versions.toml
+@@ -1,6 +1,6 @@
+ [versions]
+-kotlin = "2.2.10"
++kotlin = "@KOTLIN@"
+ 
+ [libraries]
+-android-gradle-plugin = { group = "com.android.tools.build", name = "gradle", version = "8.3.2" }
++android-gradle-plugin = { group = "com.android.tools.build", name = "gradle", version = "@AGP@" }
+ kotlin-gradle-plugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
+\ No newline at end of file
+diff --git a/android/rustls-platform-verifier/build.gradle b/android/rustls-platform-verifier/build.gradle
+index 8a89d09..2a51a39 100644
+--- a/android/rustls-platform-verifier/build.gradle
++++ b/android/rustls-platform-verifier/build.gradle
+@@ -1,6 +1,5 @@
+ plugins {
+     id 'com.android.library'
+-    id 'org.jetbrains.kotlin.android'
+ }
+ 
+ def isTest = gradle.startParameter.taskNames.any { it.contains("Test") }
+@@ -24,18 +23,19 @@ static def getOsArch() {
+ }
+ 
+ android {
+-    compileSdk 33
++    buildToolsVersion "@BUILD_TOOLS@"
++    compileSdk { spec -> spec.version = spec.release(@COMPILE_SDK_MAJOR@) { minorApiLevel = @COMPILE_SDK_MINOR@ } }
+ 
+     defaultConfig {
+         minSdk 22
+-        targetSdk 33
++        targetSdk @TARGET_SDK@
+ 
+         buildConfigField "boolean", "TEST", "$isTest"
+ 
+         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+     }
+ 
+-    namespace "org.rustls.platformverifier"
++    namespace = "org.rustls.platformverifier"
+ 
+     buildTypes {
+         release {
+@@ -61,11 +61,11 @@ android {
+     }
+ 
+     compileOptions {
+-        sourceCompatibility JavaVersion.VERSION_1_8
+-        targetCompatibility JavaVersion.VERSION_1_8
++        sourceCompatibility JavaVersion.VERSION_@JAVA_BYTECODE@
++        targetCompatibility JavaVersion.VERSION_@JAVA_BYTECODE@
+     }
+-    kotlinOptions {
+-        jvmTarget = '1.8'
++    tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile).configureEach {
++        compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_@JAVA_BYTECODE@)
+     }
+     sourceSets {
+         main {
+@@ -75,7 +75,7 @@ android {
+         }
+     }
+     buildFeatures {
+-        buildConfig true
++        buildConfig = true
+     }
+ }
+ 

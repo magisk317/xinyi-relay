@@ -184,6 +184,7 @@ retrofit-converter-scalars = { module = "com.squareup.retrofit2:converter-scalar
 timber = { module = "com.jakewharton.timber:timber", version.ref = "timber" }
 zxing-core = { module = "com.google.zxing:core", version.ref = "zxing" }
 matrix-sdk-android = { module = "org.matrix.rustcomponents:sdk-android", version.ref = "matrix-sdk-android" }
+rustls-platform-verifier = { module = "rustls:rustls-platform-verifier", version = "0.7.1" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
