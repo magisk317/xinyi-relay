@@ -10,10 +10,6 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-        // The fork registry below is the only source for
-        // org.matrix.rustcomponents: the fork shares GAVs with Maven
-        // Central, so public repos must exclude the group or resolution
-        // depends on repository order.
 google()
 mavenCentral()
         maven("https://jitpack.io") {
