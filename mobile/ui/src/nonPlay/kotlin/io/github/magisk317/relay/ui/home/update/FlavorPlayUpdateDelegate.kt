@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.ui.home.update
 
 import androidx.activity.ComponentActivity
+import io.github.magisk317.uikit.shell.PlayUpdateDelegate
 
 class FlavorPlayUpdateDelegate : PlayUpdateDelegate {
 

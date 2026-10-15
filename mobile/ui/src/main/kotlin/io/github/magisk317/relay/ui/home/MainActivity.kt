@@ -79,7 +79,7 @@ import io.github.magisk317.uikit.theme.UpdateSystemBars
 import io.github.magisk317.uikit.theme.applyEdgeToEdge
 import io.github.magisk317.uikit.foundation.LocalSnackbarHostState
 import io.github.magisk317.relay.ui.home.update.FlavorPlayUpdateDelegate
-import io.github.magisk317.relay.ui.home.update.PlayUpdateDelegate
+import io.github.magisk317.uikit.shell.PlayUpdateDelegate
 import io.github.magisk317.relay.ui.nav.SmsCodeNavHost
 import io.github.magisk317.relay.ui.privacy.PrivacyPolicyPage
 import io.github.magisk317.relay.ui.theme.AppTheme

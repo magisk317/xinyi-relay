@@ -32,7 +32,7 @@ android {
 
     sourceSets {
         getByName("github") {
-            setRoot("src/github")
+            kotlin.directories.add("src/nonPlay/kotlin")
         }
     }
 
