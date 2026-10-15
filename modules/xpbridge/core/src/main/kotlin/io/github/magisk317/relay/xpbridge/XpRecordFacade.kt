@@ -186,9 +186,6 @@ class XpRecordFacade(
         @Volatile
         private var runtimeBridge: XpRecordRuntimeBridge = NoopXpRecordRuntimeBridge
 
-        internal val activeRuntimeBridge: XpRecordRuntimeBridge
-            get() = runtimeBridge
-
         fun installRuntimeBridge(bridge: XpRecordRuntimeBridge?) {
             runtimeBridge = bridge ?: NoopXpRecordRuntimeBridge
         }
