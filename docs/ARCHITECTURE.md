@@ -68,6 +68,7 @@
 - 遗产目录（`src/main/`、`src/test/`）在 KMP 模块里**不参与编译**，文件必须放进带源集名的子目录，否则静默失效（曾造成 `WorkModeResolverPropertyTest` 变成永不执行的死测试）。
 - 跨包调用 commonMain 里的**顶层扩展函数**必须在调用点显式 `import`（object 成员则不需要）；`Type::extFun` 的方法引用同样需要导入。
 - 平台专属入口不要塞进 commonMain 再把调用方改成反射/判空，留在对应 sourceSet 做薄封装，commonMain 只保留可共享的纯逻辑。
+- `jvm()` + `android()` 双目标模块（如 `relay/net`）两边都是 JVM 字节码，纯 JDK API（`java.net.Proxy` 等）与 JVM 库（OkHttp、协程）可直接进 commonMain，不必拆 `expect/actual`；手写 dependsOn 接线反而会触发默认层级模板 fallback 警告。
 
 `:desktop` 与 `:desktop:core`/`:desktop:data` 只有 `jvm()` 目标，因此它们的 `commonMain` 与 `jvmMain` 在编译产物上等价，但仍按上述布局分层，方便后续追加 `androidMain` 复用同一份 store/sync 逻辑。
 
