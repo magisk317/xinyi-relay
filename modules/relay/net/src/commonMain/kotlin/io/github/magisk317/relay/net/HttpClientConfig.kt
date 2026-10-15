@@ -34,4 +34,3 @@ data class ProxyConfig(
     val password: String = "",
 )
 
-expect fun OkHttpClient.Builder.applyProxy(config: ProxyConfig): OkHttpClient.Builder

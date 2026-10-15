@@ -6,7 +6,7 @@ import okhttp3.OkHttpClient
 import java.net.InetSocketAddress
 import java.net.Proxy
 
-actual fun OkHttpClient.Builder.applyProxy(config: ProxyConfig): OkHttpClient.Builder {
+fun OkHttpClient.Builder.applyProxy(config: ProxyConfig): OkHttpClient.Builder {
     val port = config.port.toIntOrNull()
     if (config.type == ProxyType.DIRECT || config.host.isBlank() || port == null || port <= 0) {
         return this
