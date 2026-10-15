@@ -3,6 +3,7 @@ package io.github.magisk317.relay.ui.app
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.uikit.entitlement.MobileGate
 import io.github.magisk317.relay.android.prefs.RelayPreferenceHooks
+import io.github.magisk317.relay.security.CiUpdateGateVault
 import android.app.Application
 import android.app.Activity
 import android.os.Bundle
@@ -70,6 +71,7 @@ class SmsCodeApplication : Application() {
         val initializers = koin.getAll<AppInitializer>().filterNot { it is InfrastructureInitializer }
         initializers.forEach { it.init(this) }
         if (BuildConfig.ENABLE_MOBILE_ENTITLEMENT) {
+            CiUpdateGateVault.restoreIfEligible(this)
             MobileEntitlementCoordinator.initialize(this, applicationScope)
             registerEntitlementForegroundRefresh()
         }

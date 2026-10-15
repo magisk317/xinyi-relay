@@ -76,6 +76,8 @@ import io.github.magisk317.smscode.runtime.contract.update.UpgradeCheckResult
 import io.github.magisk317.smscode.runtime.contract.update.UpgradeInfo
 import io.github.magisk317.smscode.runtime.common.update.UpdatePolicy
 import io.github.magisk317.uikit.theme.UpdateSystemBars
+import io.github.magisk317.uikit.update.AppUpdateController
+import io.github.magisk317.uikit.update.AppUpdateDialog
 import io.github.magisk317.uikit.theme.applyEdgeToEdge
 import io.github.magisk317.uikit.foundation.LocalSnackbarHostState
 import io.github.magisk317.relay.ui.home.update.FlavorPlayUpdateDelegate
@@ -98,6 +100,7 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import org.koin.android.ext.android.inject
+import org.koin.compose.koinInject
 import org.koin.androidx.compose.koinViewModel
 import java.io.File
 import io.github.magisk317.relay.ui.home.settings.StartupPermissionPrompt
@@ -415,6 +418,25 @@ class MainActivity : ComponentActivity() {
                                 onBottomContentPaddingChanged = { mainContentBottomPadding = it },
                                 modifier = Modifier,
                             )
+
+                            if (blockingStartupDialog == null &&
+                                privacyAccepted == true &&
+                                !showPrivacyPolicyDialog &&
+                                !showPrivacyPolicyPage
+                            ) {
+                                val updateController = koinInject<AppUpdateController>()
+                                LaunchedEffect(Unit) {
+                                    val isCiOrDebug = BuildConfig.DEBUG ||
+                                        BuildConfig.VERSION_NAME.contains("-202") ||
+                                        BuildConfig.VERSION_NAME.contains("-test") ||
+                                        BuildConfig.VERSION_NAME.contains("-ci")
+                                    updateController.check(userInitiated = isCiOrDebug)
+                                }
+                                AppUpdateDialog(
+                                    controller = updateController,
+                                    onInstall = { updateController.install(this@MainActivity) },
+                                )
+                            }
 
                         StartupPermissionPrompt(
                             enabled = startupCompatibilityChecked &&

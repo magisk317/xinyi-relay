@@ -88,6 +88,7 @@ include(
     ":smscode-core:db",
     ":magisk-ui-kit",
     ":magisk-ui-kit:billing",
+    ":magisk-ui-kit:update",
     ":magisk-xposed-kit",
     ":magisk-xposed-kit:logging",
     ":magisk-xposed-kit:logging-core",
@@ -113,6 +114,7 @@ project(":magisk-xposed-kit:diagnostics").projectDir = file("magisk-xposed-kit/d
 project(":magisk-xposed-kit:permission").projectDir = file("magisk-xposed-kit/permission")
 project(":magisk-xposed-kit:entitlement").projectDir = file("magisk-xposed-kit/entitlement")
 project(":magisk-ui-kit:billing").projectDir = file("magisk-ui-kit/billing")
+project(":magisk-ui-kit:update").projectDir = file("magisk-ui-kit/update")
 
 // Explicitly remap moved android libraries physical paths to 'modules/'
 project(":core").projectDir = file("modules/core")

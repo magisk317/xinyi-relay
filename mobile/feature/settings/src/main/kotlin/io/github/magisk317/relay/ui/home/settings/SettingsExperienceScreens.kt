@@ -273,22 +273,6 @@ fun SettingsHomeScreen(
 
                 onRuntimeLogRetentionClick = runtimeLogActions.onRuntimeLogRetentionClick,
                 onClearLog = runtimeLogActions.onClearLog,
-                onAutoUpdateOnStartChange = { enabled ->
-                    scope.launch {
-                        diagnostics = repository.updateDiagnosticsSettings(
-                            DiagnosticsSettingsUpdate(autoUpdateOnStart = enabled),
-                        )
-                        notifySaved()
-                    }
-                },
-                onAutoUpdateWifiOnlyChange = { enabled ->
-                    scope.launch {
-                        diagnostics = repository.updateDiagnosticsSettings(
-                            DiagnosticsSettingsUpdate(autoUpdateWifiOnly = enabled),
-                        )
-                        notifySaved()
-                    }
-                },
                 onAnalyticsEnabledChange = { enabled ->
                     scope.launch {
                         diagnostics = repository.updateDiagnosticsSettings(

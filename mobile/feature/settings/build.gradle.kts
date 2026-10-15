@@ -39,6 +39,7 @@ dependencies {
     implementation(project(":policy"))
     implementation(project(":core"))
     implementation(project(":magisk-ui-kit"))
+    implementation(project(":magisk-ui-kit:update"))
     implementation(project(":magisk-xposed-kit:diagnostics"))
     implementation(project(":magisk-xposed-kit:permission"))
     implementation(project(":mobile:feature:common"))

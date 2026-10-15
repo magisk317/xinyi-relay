@@ -28,7 +28,9 @@ import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsLabels
 import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsLayout
 import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsState
 import io.github.magisk317.uikit.preference.AppArrowItem
+import io.github.magisk317.uikit.update.AppUpdateController
 import io.github.magisk317.uikit.surface.AppPrimaryButton
+import org.koin.compose.koinInject
 
 @Composable
 internal fun SettingsGeneralSection(
@@ -159,10 +161,9 @@ internal fun SettingsDiagnosticsSection(
     onSensitiveDebugLogModeChange: (Boolean) -> Unit = {},
     onRuntimeLogRetentionClick: () -> Unit,
     onClearLog: () -> Unit,
-    onAutoUpdateOnStartChange: (Boolean) -> Unit,
-    onAutoUpdateWifiOnlyChange: (Boolean) -> Unit,
     onAnalyticsEnabledChange: (Boolean) -> Unit,
 ) {
+    val updateController = koinInject<AppUpdateController>()
     SectionCard(
         title = stringResource(id = R.string.settings_group_others),
         summary = stringResource(id = R.string.settings_group_others_summary),
@@ -208,19 +209,11 @@ internal fun SettingsDiagnosticsSection(
                 ),
             ),
         )
-        StateSwitchItem(
-            title = stringResource(id = R.string.pref_auto_update_on_start_title),
-            summary = stringResource(id = R.string.pref_auto_update_on_start_summary),
-            checked = diagnostics.autoUpdateOnStart,
-            onCheckedChange = onAutoUpdateOnStartChange,
-        )
-        if (diagnostics.autoUpdateOnStart) {
-            StateSwitchItem(
-                title = stringResource(id = R.string.pref_auto_update_wifi_only_title),
-                summary = stringResource(id = R.string.pref_auto_update_wifi_only_summary),
-                checked = diagnostics.autoUpdateWifiOnly,
-                onCheckedChange = onAutoUpdateWifiOnlyChange,
-            )
+        AppArrowItem(
+            title = stringResource(id = R.string.check_update_title),
+            summary = stringResource(id = R.string.check_update_summary),
+        ) {
+            updateController.check(userInitiated = true)
         }
 
     }
