@@ -44,7 +44,7 @@ val uiModule = module {
                     projectPath = "magisk3171/xinyi-relay",
                     branch = "beta",
                     jobName = "android:build",
-                    artifactPath = "app/build/outputs/apk/github/release/universal_xinyi-relay_release.apk",
+                    artifactPath = "ci-dist/app-ci.apk",
                     currentCommitHash = BuildConfig.COMMIT_HASH,
                 ),
                 GitLabReleaseUpdateSource("magisk3171/xinyi-relay"),
