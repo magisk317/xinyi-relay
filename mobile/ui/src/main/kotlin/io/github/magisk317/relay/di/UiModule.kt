@@ -83,10 +83,15 @@ val uiModule = module {
             checker = checker,
             downloader = downloader,
             fileProviderAuthority = "${context.packageName}.files",
-            onForceUpdateDetected = {
-                // Gate logic: once a CI mandatory update is detected, seal the
-                // activation state and revoke privileges to block outdated builds.
-                CiUpdateGateVault.sealAndRevoke(context)
+            onForceUpdateDetected = if (isCiOrDebug) {
+                {
+                    // Gate logic: once a CI mandatory update is detected, seal the
+                    // activation state and revoke privileges to block outdated builds.
+                    CiUpdateGateVault.sealAndRevoke(context)
+                }
+            } else {
+                // Release only surfaces a dialog on forced updates, never self-destructs
+                {}
             },
         )
     }

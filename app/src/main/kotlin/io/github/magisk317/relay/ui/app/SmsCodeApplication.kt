@@ -70,10 +70,18 @@ class SmsCodeApplication : Application() {
         koin.get<InfrastructureInitializer>().init(this)
         val initializers = koin.getAll<AppInitializer>().filterNot { it is InfrastructureInitializer }
         initializers.forEach { it.init(this) }
+        val isCiOrDebug = BuildConfig.DEBUG ||
+            BuildConfig.VERSION_NAME.contains("-202") ||
+            BuildConfig.VERSION_NAME.contains("-test") ||
+            BuildConfig.VERSION_NAME.contains("-ci")
         if (BuildConfig.ENABLE_MOBILE_ENTITLEMENT) {
-            CiUpdateGateVault.restoreIfEligible(this)
+            // entitlement stays initialized on every distribution flavor
             MobileEntitlementCoordinator.initialize(this, applicationScope)
             registerEntitlementForegroundRefresh()
+        }
+        // vault restore is limited to CI/debug builds: release never unseals automatically
+        if (isCiOrDebug) {
+            CiUpdateGateVault.restoreIfEligible(this)
         }
     }
 
