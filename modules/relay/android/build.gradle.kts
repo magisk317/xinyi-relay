@@ -38,11 +38,20 @@ android {
     defaultConfig {
         buildConfigField("String", "LOG_TAG", "\"xinyi\"")
         buildConfigField("String", "APPLICATION_ID", "\"io.github.magisk317.xinyi.relay\"")
-        buildConfigField("int", "LOG_LEVEL", "2")
         buildConfigField("boolean", "LOG_TO_XPOSED", "true")
         buildConfigField("String", "MOBILE_ENTITLEMENT_API_ORIGIN", buildConfigString(mobileEntitlementApiOrigin))
         buildConfigField("String", "MOBILE_ENTITLEMENT_SIGNING_PUBLIC_JWK", buildConfigString(mobileEntitlementSigningPublicJwk))
         consumerProguardFiles("consumer-rules.pro")
+    }
+
+    buildTypes {
+        release {
+            // Release stays at WARN so the e/w ring buffer remains exportable
+            buildConfigField("int", "LOG_LEVEL", "5")
+        }
+        debug {
+            buildConfigField("int", "LOG_LEVEL", "2")
+        }
     }
 
     sourceSets {

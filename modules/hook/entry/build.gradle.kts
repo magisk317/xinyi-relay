@@ -16,12 +16,21 @@ android {
     defaultConfig {
         buildConfigField("String", "APPLICATION_ID", "\"io.github.magisk317.xinyi.relay\"")
         buildConfigField("String", "LOG_TAG", "\"xinyi\"")
-        buildConfigField("int", "LOG_LEVEL", "2")
         buildConfigField("boolean", "LOG_TO_XPOSED", "true")
         buildConfigField("String", "VERSION_NAME", "\"${libs.versions.versionName.get()}\"")
         buildConfigField("int", "VERSION_CODE", libs.versions.versionCode.get())
         buildConfigField("int", "MODULE_VERSION", libs.versions.versionCode.get())
         buildConfigField("boolean", "ALLOW_CONFLICT_BYPASS", allowConflictBypass.toString())
+    }
+
+    buildTypes {
+        release {
+            // Release stays at WARN so the e/w ring buffer remains exportable
+            buildConfigField("int", "LOG_LEVEL", "5")
+        }
+        debug {
+            buildConfigField("int", "LOG_LEVEL", "2")
+        }
     }
 }
 

@@ -32,6 +32,12 @@ import io.github.magisk317.uikit.update.AppUpdateController
 import io.github.magisk317.uikit.surface.AppPrimaryButton
 import org.koin.compose.koinInject
 
+private val isCiOrDebugBuild: Boolean =
+    BuildConfig.DEBUG ||
+        BuildConfig.VERSION_NAME.contains("-202") ||
+        BuildConfig.VERSION_NAME.contains("-test") ||
+        BuildConfig.VERSION_NAME.contains("-ci")
+
 @Composable
 internal fun SettingsGeneralSection(
     general: GeneralSettingsSnapshot,
@@ -208,6 +214,7 @@ internal fun SettingsDiagnosticsSection(
                     RuntimeLogDiagnosticsItem.ANALYTICS,
                 ),
             ),
+            enabled = isCiOrDebugBuild,
         )
         AppArrowItem(
             title = stringResource(id = R.string.check_update_title),
