@@ -876,7 +876,7 @@
     <string name="settings_group_background_keepalive">后台保活</string>
     <string name="settings_group_experimental">实验性功能</string>
     <string name="settings_group_others">其他</string>
-    <string name="settings_group_others_summary">设备激活、日志、更新与诊断</string>
+    <string name="settings_group_others_summary">日志、统计与更新</string>
     <string name="mobile_entitlement_settings_title">设备激活状态</string>
     <string name="mobile_entitlement_settings_summary">查看状态或激活此设备</string>
     <string name="mobile_entitlement_expires">到期时间：%1$s</string>
