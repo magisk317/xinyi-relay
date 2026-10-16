@@ -41,8 +41,19 @@ val uiModule = module {
             BuildConfig.VERSION_NAME.contains("-test") ||
             BuildConfig.VERSION_NAME.contains("-ci")
 
-        val sources = if (isCiOrDebug) {
-            listOf(
+        val isPlayFlavor = BuildConfig.HAS_BILLING
+
+        val sources = when {
+            // Play flavor: version is owned by Play, no CI source
+            isPlayFlavor -> listOf(
+                GitLabReleaseUpdateSource("magisk3171/xinyi-relay"),
+                GitHubReleaseUpdateSource(
+                    repository = "magisk317/xinyi-relay",
+                    gitlabProjectPath = "magisk3171/xinyi-relay",
+                ),
+            )
+
+            isCiOrDebug -> listOf(
                 GitLabCiArtifactUpdateSource(
                     projectPath = "magisk3171/xinyi-relay",
                     branch = "beta",
@@ -52,10 +63,13 @@ val uiModule = module {
                 ),
                 GitLabReleaseUpdateSource("magisk3171/xinyi-relay"),
             )
-        } else {
-            listOf(
+
+            else -> listOf(
                 GitLabReleaseUpdateSource("magisk3171/xinyi-relay"),
-                GitHubReleaseUpdateSource("magisk317/xinyi-relay"),
+                GitHubReleaseUpdateSource(
+                    repository = "magisk317/xinyi-relay",
+                    gitlabProjectPath = "magisk3171/xinyi-relay",
+                ),
             )
         }
 

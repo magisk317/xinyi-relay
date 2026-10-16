@@ -77,7 +77,6 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
-    add("playImplementation", libs.play.app.update)
     add("playImplementation", libs.play.services.auth)
     add("githubImplementation", libs.play.services.auth)
 }

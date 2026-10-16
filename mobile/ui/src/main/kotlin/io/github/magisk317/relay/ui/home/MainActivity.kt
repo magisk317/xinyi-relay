@@ -80,7 +80,9 @@ import io.github.magisk317.uikit.update.AppUpdateController
 import io.github.magisk317.uikit.update.AppUpdateDialog
 import io.github.magisk317.uikit.theme.applyEdgeToEdge
 import io.github.magisk317.uikit.foundation.LocalSnackbarHostState
-import io.github.magisk317.relay.ui.home.update.FlavorPlayUpdateDelegate
+import io.github.magisk317.uikit.update.FlavorPlayUpdateDelegate
+import io.github.magisk317.uikit.update.UpdatePlayPolicy
+import io.github.magisk317.uikit.update.WifiState
 import io.github.magisk317.uikit.shell.PlayUpdateDelegate
 import io.github.magisk317.relay.ui.nav.SmsCodeNavHost
 import io.github.magisk317.relay.ui.privacy.PrivacyPolicyPage
@@ -426,11 +428,8 @@ class MainActivity : ComponentActivity() {
                             ) {
                                 val updateController = koinInject<AppUpdateController>()
                                 LaunchedEffect(Unit) {
-                                    val isCiOrDebug = BuildConfig.DEBUG ||
-                                        BuildConfig.VERSION_NAME.contains("-202") ||
-                                        BuildConfig.VERSION_NAME.contains("-test") ||
-                                        BuildConfig.VERSION_NAME.contains("-ci")
-                                    updateController.check(userInitiated = isCiOrDebug)
+                                    // 冷启动静默检测更新：后台不打扰用户，强制更新照常弹窗
+                                    updateController.check(userInitiated = false)
                                 }
                                 AppUpdateDialog(
                                     controller = updateController,
@@ -781,8 +780,8 @@ class MainActivity : ComponentActivity() {
             val enabled = updateSettings.enabled
             if (!enabled) return@launch
             val wifiOnly = updateSettings.wifiOnly
-            val onWifi = relayPackageActions.isOnWifi(this@MainActivity)
-            if (!UpdatePolicy.shouldRunAutoCheck(enabled, wifiOnly, onWifi)) return@launch
+            val onWifi = WifiState.isOnWifi(this@MainActivity)
+            if (!UpdatePlayPolicy.shouldRunAutoCheck(enabled, wifiOnly, onWifi)) return@launch
 
             requestPlayUpdateInternal(silentIfNoUpdate = true, fallbackOnQueryFailure = false)
         }
@@ -839,7 +838,7 @@ class MainActivity : ComponentActivity() {
             if (!enabled) return GithubUpdateQueryResult.NoUpdate
 
             val wifiOnly = updateSettings.wifiOnly
-            val onWifi = relayPackageActions.isOnWifi(this)
+            val onWifi = WifiState.isOnWifi(this)
             if (UpdatePolicy.shouldSkipGithubCheckOnStartup(installedFromPlay, enabled, wifiOnly, onWifi)) {
                 return GithubUpdateQueryResult.NoUpdate
             }
