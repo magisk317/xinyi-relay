@@ -160,6 +160,25 @@ object OpenApiRouteContracts {
             responses = listOf(OpenApiRouteResponse(status = "201", schema = "DeviceConfigCommandItem")),
         ),
         OpenApiRouteContract(
+            path = "/api/v1/devices/{id}/actions",
+            method = "post",
+            operationId = "queueDeviceAction",
+            requestSchema = "DeviceActionRequest",
+            parameters = listOf(OpenApiRouteParameter(name = "id", location = "path", schema = "Long")),
+            responses = listOf(OpenApiRouteResponse(status = "201", schema = "DeviceActionCommandItem")),
+        ),
+        OpenApiRouteContract(
+            path = "/api/v1/devices/{id}/actions",
+            method = "get",
+            operationId = "listDeviceActions",
+            parameters = listOf(
+                OpenApiRouteParameter(name = "id", location = "path", schema = "Long"),
+                OpenApiRouteParameter(name = "limit", location = "query", required = false, schema = "Int"),
+                OpenApiRouteParameter(name = "offset", location = "query", required = false, schema = "Int"),
+            ),
+            responses = listOf(OpenApiRouteResponse(status = "200", schema = "DeviceActionsResponse")),
+        ),
+        OpenApiRouteContract(
             path = "/api/v1/devices/{id}/config/audit",
             method = "get",
             operationId = "listDeviceConfigAuditLogs",
@@ -204,6 +223,13 @@ object OpenApiRouteContracts {
             operationId = "ackAgentConfigCommands",
             requestSchema = "AgentConfigCommandsAckRequest",
             responses = listOf(OpenApiRouteResponse(status = "200", schema = "DeviceConfigCommandItem")),
+        ),
+        OpenApiRouteContract(
+            path = "/api/v1/agent/actions:ack",
+            method = "post",
+            operationId = "ackDeviceAction",
+            requestSchema = "DeviceActionAckRequest",
+            responses = listOf(OpenApiRouteResponse(status = "200", schema = "DeviceActionCommandItem")),
         ),
         OpenApiRouteContract(
             path = "/api/v1/agent/records:batch",

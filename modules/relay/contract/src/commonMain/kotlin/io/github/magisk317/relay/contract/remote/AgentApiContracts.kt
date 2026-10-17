@@ -47,6 +47,7 @@ data class AgentConfigCommandsPullResponse(
     val revision: Long = 0L,
     val mirrorContent: JsonObject? = null,
     val pendingCommands: List<DeviceConfigCommandResponse> = emptyList(),
+    val pendingActions: List<DeviceActionCommandResponse> = emptyList(),
     val updatedAt: String = "",
 )
 
@@ -66,6 +67,22 @@ data class DeviceConfigCommandResponse(
     val appliedAt: String? = null,
 )
 
+/**
+ * One-shot device action (ringer mode, interruption filter, ...). Unlike config
+ * commands it carries no revision semantics: executed once, then acked.
+ */
+@Serializable
+data class DeviceActionCommandResponse(
+    val id: Long = 0L,
+    val action: String = "",
+    val params: JsonObject,
+    val status: String = "",
+    val failureReason: String? = null,
+    val actorType: String = "",
+    val actorId: Long = 0L,
+    val createdAt: String = "",
+)
+
 @Serializable
 data class DeviceConfigStateResponse(
     val deviceId: Long = 0L,
@@ -82,6 +99,13 @@ data class AgentConfigCommandsAckRequest(
     val appliedRevision: Long,
     val failureReason: String = "",
     val mirrorContent: JsonObject,
+)
+
+@Serializable
+data class DeviceActionAckRequest(
+    val actionId: Long,
+    val status: String,
+    val failureReason: String = "",
 )
 
 @Serializable

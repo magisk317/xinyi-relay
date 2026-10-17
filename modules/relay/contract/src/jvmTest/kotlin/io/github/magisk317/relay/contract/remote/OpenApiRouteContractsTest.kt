@@ -69,6 +69,8 @@ class OpenApiRouteContractsTest {
             "pullAgentConfigCommands" to "AgentConfigCommandsPullRequest",
             "ackAgentConfigCommands" to "AgentConfigCommandsAckRequest",
             "ingestAgentRecords" to "RelayRecordsBatchRequest",
+            "queueDeviceAction" to "DeviceActionRequest",
+            "ackDeviceAction" to "DeviceActionAckRequest",
         )
 
         expected.forEach { (operationId, schema) ->
