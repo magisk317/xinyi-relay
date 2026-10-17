@@ -547,6 +547,7 @@ android:build:
     paths:
       - app/build/outputs/apk/github/debug/*.apk
       - ci-dist/app-ci.apk
+      - ci-dist/version.txt
   # A job-level after_script replaces the one inherited from
   # .magisk_android_base, so the otel export is restated here before staging.
   after_script:
@@ -559,11 +560,15 @@ android:build:
       fi
     # The universal APK name embeds the build timestamp, while
     # GitLabCiArtifactUpdateSource can only fetch artifacts by exact path
-    # (no glob), so stage a stable copy for the in-app update check.
+    # (no glob), so stage a stable copy for the in-app update check, plus
+    # the embedded version string as a plain-text sidecar so the update
+    # dialog can display the real build timestamp.
     - |
       set -euo pipefail
       mkdir -p ci-dist
       cp app/build/outputs/apk/github/debug/universal_*.apk ci-dist/app-ci.apk
+      apk_name=$(basename app/build/outputs/apk/github/debug/universal_*.apk)
+      echo "$apk_name" | sed -n 's/^universal_.*_v\(.*\)_debug\.apk$/\1/p' > ci-dist/version.txt
 
 android:check:
   extends: .magisk_android_build
