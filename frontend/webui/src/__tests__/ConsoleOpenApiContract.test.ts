@@ -3,6 +3,10 @@ import openApi from '../../../shared/contracts/openapi.json'
 import type {
   BindCodeResponse,
   AgentConfigCommandsPullResponse,
+  DeviceActionAckRequest,
+  DeviceActionCommandItem,
+  DeviceActionRequest,
+  DeviceActionsResponse,
   DeviceConfigAuditLogItem,
   DeviceConfigAuditLogsResponse,
   DeviceConfigCommandState,
@@ -97,6 +101,7 @@ const schemaCases = [
       'revision',
       'mirrorContent',
       'pendingCommands',
+      'pendingActions',
       'updatedAt'
     )
   },
@@ -134,6 +139,31 @@ const schemaCases = [
   {
     schemaName: 'DeviceConfigAuditLogsResponse',
     fields: fieldsFor<DeviceConfigAuditLogsResponse>()('logs', 'limit', 'offset')
+  },
+  {
+    schemaName: 'DeviceActionRequest',
+    fields: fieldsFor<DeviceActionRequest>()('action', 'params')
+  },
+  {
+    schemaName: 'DeviceActionCommandItem',
+    fields: fieldsFor<DeviceActionCommandItem>()(
+      'action',
+      'actorId',
+      'actorType',
+      'createdAt',
+      'failureReason',
+      'id',
+      'params',
+      'status'
+    )
+  },
+  {
+    schemaName: 'DeviceActionsResponse',
+    fields: fieldsFor<DeviceActionsResponse>()('actions', 'limit', 'offset')
+  },
+  {
+    schemaName: 'DeviceActionAckRequest',
+    fields: fieldsFor<DeviceActionAckRequest>()('actionId', 'failureReason', 'status')
   },
   {
     schemaName: 'RelayRecord',

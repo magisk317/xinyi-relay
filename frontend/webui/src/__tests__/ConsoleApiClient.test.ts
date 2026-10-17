@@ -71,6 +71,35 @@ describe('shared console API client', () => {
     ])
   })
 
+  it('routes device action writes through csrf-protected endpoints', async () => {
+    const { client, requests } = createRecordingClient()
+
+    await client.queueDeviceAction(7, 'SET_RINGER_MODE', { mode: 'silent' })
+
+    expect(requests).toEqual([
+      {
+        path: '/api/v1/devices/7/actions',
+        options: {
+          method: 'POST',
+          body: { action: 'SET_RINGER_MODE', params: { mode: 'silent' } },
+          requiresCsrf: true
+        }
+      }
+    ])
+  })
+
+  it('reads device action history through device-scoped endpoints', async () => {
+    const { client, requests } = createRecordingClient()
+
+    await client.listDeviceActions(7)
+    await client.listDeviceActions(7, 20, 5)
+
+    expect(requests.map((request) => request.path)).toEqual([
+      '/api/v1/devices/7/actions?limit=50&offset=0',
+      '/api/v1/devices/7/actions?limit=20&offset=5'
+    ])
+  })
+
   it('keeps optional query parameters out of record list requests', async () => {
     const { client, requests } = createRecordingClient()
 

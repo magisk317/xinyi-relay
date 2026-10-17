@@ -1,6 +1,8 @@
 import type {
   BindCodeResponse,
   ConfigMutationBatch,
+  DeviceActionCommandItem,
+  DeviceActionsResponse,
   DeviceConfigAuditLogsResponse,
   DeviceConfigCommandState,
   DeviceConfigState,
@@ -107,6 +109,18 @@ export function createConsoleApiClient(transport: ConsoleApiTransport) {
     getDeviceConfigAuditLogs: (deviceId: number, limit = 50, offset = 0) =>
       transport.request<DeviceConfigAuditLogsResponse>(
         `/api/v1/devices/${deviceId}/config/audit?${buildQuery({ limit, offset })}`
+      ),
+
+    queueDeviceAction: (deviceId: number, action: string, params: Record<string, string>) =>
+      transport.request<DeviceActionCommandItem>(`/api/v1/devices/${deviceId}/actions`, {
+        method: 'POST',
+        body: { action, params },
+        requiresCsrf: true
+      }),
+
+    listDeviceActions: (deviceId: number, limit = 50, offset = 0) =>
+      transport.request<DeviceActionsResponse>(
+        `/api/v1/devices/${deviceId}/actions?${buildQuery({ limit, offset })}`
       ),
 
     getRecords: (limit = 80, deviceId?: number) =>

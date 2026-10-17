@@ -18,7 +18,8 @@ export function AppLayout() {
     { to: '/records', label: t('layout.nav.records'), icon: ClipboardListIcon },
     { to: '/senders', label: t('layout.nav.senders'), icon: StarIcon },
     { to: '/settings', label: t('layout.nav.settings'), icon: HomeIcon },
-    { to: '/advanced', label: t('layout.nav.advanced'), icon: ClipboardListIcon }
+    { to: '/advanced', label: t('layout.nav.advanced'), icon: ClipboardListIcon },
+    { to: '/device-control', label: t('layout.nav.deviceControl'), icon: ClipboardListIcon }
   ] as const
 
   const renderNavTabs = (mobile = false) => (
