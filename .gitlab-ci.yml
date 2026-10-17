@@ -675,16 +675,32 @@ e2ee-plugin:check:
 # Matrix E2EE plugin publish -- decoupled from the app release cadence.
 # The plugin is versioned by the upstream matrix-rust-sdk it bundles, so it only
 # ships when the catalog version moves (Renovate bumps matrix-sdk-android, then
-# this scheduled job notices the catalog version is not yet published and
-# publishes it). Manual web runs force a republish of the current catalog
-# version; uploads are idempotent (409 = already there).
+# this job notices the catalog version is not yet published and publishes it).
+# The beta push rule publishes the moment the bump lands; the schedule below is
+# a backstop, because a scheduled run checks out its pipeline SHA, which
+# predates any bump the same pipeline's renovate:gitlab job produces -- the
+# schedule alone always lags one period (and a job retry is equally blind,
+# since it re-runs on the same pipeline SHA). Manual web runs force a
+# republish of the current catalog version; uploads are idempotent
+# (409 = already there).
 e2ee-plugin:sync:
   extends: .magisk_android_base
   stage: maintenance
   needs: []
+  # The build+upload takes minutes; beta receives pushes every few minutes
+  # during Renovate windows and workflow auto_cancel would otherwise kill a
+  # running publish mid-flight. renovate:gitlab is non-interruptible for the
+  # same reason.
+  interruptible: false
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   rules:
+    # New matrix-sdk catalog version on beta: publish right away instead of
+    # waiting for the next scheduled run. The script's skip-if-published
+    # check makes unrelated catalog bumps no-ops (exit 0 before any build).
+    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != ""'
+      changes:
+        - gradle/libs.versions.toml
     - if: '$CI_PIPELINE_SOURCE == "schedule" && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != ""'
     - if: '$CI_PIPELINE_SOURCE == "web"'
       when: manual
