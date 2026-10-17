@@ -1,4 +1,31 @@
 {
+  "/api/v1/agent/actions:ack": {
+    "post": {
+      "operationId": "ackDeviceAction",
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/DeviceActionAckRequest"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceActionCommandItem"
+              }
+            }
+          },
+          "description": "OK"
+        }
+      }
+    }
+  },
   "/api/v1/agent/config/commands:ack": {
     "post": {
       "operationId": "ackAgentConfigCommands",
@@ -486,6 +513,88 @@
             }
           },
           "description": "OK"
+        }
+      }
+    }
+  },
+  "/api/v1/devices/{id}/actions": {
+    "get": {
+      "operationId": "listDeviceActions",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "id",
+          "required": true,
+          "schema": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        {
+          "in": "query",
+          "name": "limit",
+          "required": false,
+          "schema": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        {
+          "in": "query",
+          "name": "offset",
+          "required": false,
+          "schema": {
+            "format": "int64",
+            "type": "integer"
+          }
+        }
+      ],
+      "responses": {
+        "200": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceActionsResponse"
+              }
+            }
+          },
+          "description": "OK"
+        }
+      }
+    },
+    "post": {
+      "operationId": "queueDeviceAction",
+      "parameters": [
+        {
+          "in": "path",
+          "name": "id",
+          "required": true,
+          "schema": {
+            "format": "int64",
+            "type": "integer"
+          }
+        }
+      ],
+      "requestBody": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/DeviceActionRequest"
+            }
+          }
+        },
+        "required": true
+      },
+      "responses": {
+        "201": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceActionCommandItem"
+              }
+            }
+          },
+          "description": "Created"
         }
       }
     }

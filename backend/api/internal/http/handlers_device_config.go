@@ -180,7 +180,13 @@ func (s *Server) handleAgentConfigCommandsPull(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	response := toAgentConfigCommandsPullResponse(state)
+	pendingActions, err := s.store.ListPendingDeviceActions(r.Context(), auth.Device.UserID, auth.Device.ID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "load device actions failed")
+		return
+	}
+
+	response := toAgentConfigCommandsPullResponse(state, pendingActions)
 	if payload.LocalRevision > 0 && payload.LocalRevision >= state.Revision {
 		response.MirrorContent = parseJSONMap(nil)
 	}
@@ -253,16 +259,21 @@ func toDeviceConfigStateResponse(state store.DeviceConfigState) deviceConfigStat
 	}
 }
 
-func toAgentConfigCommandsPullResponse(state store.DeviceConfigState) agentConfigCommandsPullResponse {
+func toAgentConfigCommandsPullResponse(state store.DeviceConfigState, pendingActions []store.DeviceAction) agentConfigCommandsPullResponse {
 	items := make([]deviceConfigCommandItem, 0, len(state.PendingCommands))
 	for _, command := range state.PendingCommands {
 		items = append(items, toDeviceConfigCommandItem(command))
+	}
+	actionItems := make([]deviceActionItem, 0, len(pendingActions))
+	for _, action := range pendingActions {
+		actionItems = append(actionItems, toDeviceActionItem(action))
 	}
 	return agentConfigCommandsPullResponse{
 		DeviceID:        state.DeviceID,
 		Revision:        state.Revision,
 		MirrorContent:   state.Snapshot,
 		PendingCommands: items,
+		PendingActions:  actionItems,
 		UpdatedAt:       state.UpdatedAt,
 	}
 }

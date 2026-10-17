@@ -111,6 +111,18 @@ func (panicStore) UpsertDeviceConfigMirror(context.Context, int64, int64, int64,
 func (panicStore) AckDeviceConfigCommand(context.Context, int64, int64, int64, int64, string, string, json.RawMessage, string, int64) (store.DeviceConfigCommand, error) {
 	panic("unimplemented: AckDeviceConfigCommand")
 }
+func (panicStore) CreateDeviceAction(context.Context, int64, int64, string, json.RawMessage, string, int64) (store.DeviceAction, error) {
+	panic("unimplemented: CreateDeviceAction")
+}
+func (panicStore) ListPendingDeviceActions(context.Context, int64, int64) ([]store.DeviceAction, error) {
+	panic("unimplemented: ListPendingDeviceActions")
+}
+func (panicStore) ListDeviceActions(context.Context, int64, int64, int32, int32) ([]store.DeviceAction, error) {
+	panic("unimplemented: ListDeviceActions")
+}
+func (panicStore) AckDeviceAction(context.Context, int64, int64, int64, string, string) (store.DeviceAction, error) {
+	panic("unimplemented: AckDeviceAction")
+}
 func (panicStore) SyncRelayRecords(context.Context, int64, int64, []store.RelayRecord, bool) (store.RelayRecordSyncResult, error) {
 	panic("unimplemented: SyncRelayRecords")
 }

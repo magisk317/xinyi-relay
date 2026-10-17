@@ -136,7 +136,36 @@ type agentConfigCommandsPullResponse struct {
 	Revision        int64                     `json:"revision"`
 	MirrorContent   json.RawMessage           `json:"mirrorContent"`
 	PendingCommands []deviceConfigCommandItem `json:"pendingCommands"`
+	PendingActions  []deviceActionItem        `json:"pendingActions"`
 	UpdatedAt       time.Time                 `json:"updatedAt"`
+}
+
+type deviceActionRequest struct {
+	Action string          `json:"action"`
+	Params json.RawMessage `json:"params"`
+}
+
+type deviceActionItem struct {
+	ID            int64           `json:"id"`
+	Action        string          `json:"action"`
+	Params        json.RawMessage `json:"params"`
+	Status        string          `json:"status"`
+	FailureReason *string         `json:"failureReason"`
+	ActorType     string          `json:"actorType"`
+	ActorID       int64           `json:"actorId"`
+	CreatedAt     time.Time       `json:"createdAt"`
+}
+
+type deviceActionsResponse struct {
+	Actions []deviceActionItem `json:"actions"`
+	Limit   int32              `json:"limit"`
+	Offset  int32              `json:"offset"`
+}
+
+type deviceActionAckRequest struct {
+	ActionID      int64  `json:"actionId"`
+	Status        string `json:"status"`
+	FailureReason string `json:"failureReason"`
 }
 
 type agentConfigCommandsAckRequest struct {

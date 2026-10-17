@@ -166,6 +166,13 @@ func (s *Server) handleDeviceByID(w http.ResponseWriter, r *http.Request, auth a
 			return
 		}
 		s.handleDeviceConfigAuditLogs(w, r, auth, deviceID)
+	case strings.HasSuffix(r.URL.Path, "/actions"):
+		deviceID, err := pathID(r.URL.Path, "/api/v1/devices/", "/actions")
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid device id")
+			return
+		}
+		s.handleDeviceActions(w, r, auth, deviceID)
 	case strings.HasSuffix(r.URL.Path, "/config"):
 		deviceID, err := pathID(r.URL.Path, "/api/v1/devices/", "/config")
 		if err != nil {

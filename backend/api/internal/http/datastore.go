@@ -65,6 +65,14 @@ type configStore interface {
 	AckDeviceConfigCommand(ctx context.Context, userID int64, deviceID int64, commandID int64, appliedRevision int64, status string, failureReason string, mirrorContent json.RawMessage, actorType string, actorID int64) (store.DeviceConfigCommand, error)
 }
 
+// deviceActionStore covers one-shot device action persistence.
+type deviceActionStore interface {
+	CreateDeviceAction(ctx context.Context, userID int64, deviceID int64, action string, params json.RawMessage, actorType string, actorID int64) (store.DeviceAction, error)
+	ListPendingDeviceActions(ctx context.Context, userID int64, deviceID int64) ([]store.DeviceAction, error)
+	ListDeviceActions(ctx context.Context, userID int64, deviceID int64, limit int32, offset int32) ([]store.DeviceAction, error)
+	AckDeviceAction(ctx context.Context, userID int64, deviceID int64, actionID int64, status string, failureReason string) (store.DeviceAction, error)
+}
+
 // recordStore covers relay-record persistence + retention.
 type recordStore interface {
 	SyncRelayRecords(ctx context.Context, userID int64, deviceID int64, records []store.RelayRecord, replaceExisting bool) (store.RelayRecordSyncResult, error)
@@ -80,6 +88,7 @@ type dataStore interface {
 	bindCodeStore
 	deviceStore
 	configStore
+	deviceActionStore
 	recordStore
 }
 
