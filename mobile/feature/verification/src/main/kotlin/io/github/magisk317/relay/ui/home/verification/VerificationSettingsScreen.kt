@@ -80,8 +80,8 @@ import org.koin.compose.koinInject
 import java.io.DataOutputStream
 import java.io.IOException
 
-@Suppress("CyclomaticComplexMethod")
 @Composable
+@Suppress("CyclomaticComplexMethod")
 fun VerificationSettingsScreen(
     onBack: () -> Unit,
     onOpenRules: () -> Unit,

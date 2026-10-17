@@ -5,46 +5,26 @@ import io.github.magisk317.relay.ui.common.PrivacyPolicyDialog
 
 import io.github.magisk317.uikit.common.showLatestSnackbar
 import io.github.magisk317.uikit.surface.AppAlertDialog
-import io.github.magisk317.uikit.surface.AppLinearProgressIndicator
 import io.github.magisk317.uikit.surface.AppPrimaryButton
-import io.github.magisk317.uikit.surface.AppSecondaryButton
-import io.github.magisk317.uikit.surface.AppTextButton
 import io.github.magisk317.uikit.text.AppText
 
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
+import android.view.View
 import androidx.activity.compose.setContent
 import androidx.activity.ComponentActivity
 import android.content.res.Configuration
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.MaterialExpressiveTheme
 import io.github.magisk317.uikit.common.AppSnackbarHostState
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.SpanStyle
@@ -59,23 +39,10 @@ import androidx.compose.runtime.CompositionLocalProvider
 import io.github.magisk317.relay.mobileui.BuildConfig
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
-import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
-import io.github.magisk317.smscode.runtime.common.update.GithubUpdateChecker
 import io.github.magisk317.smscode.runtime.common.utils.FrameworkCompatibilityMonitor
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.common.utils.relayPackageActions
-import io.github.magisk317.smscode.runtime.common.utils.BrowserUtils
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
-import io.github.magisk317.smscode.runtime.common.update.ApkSecurityVerifier
-import io.github.magisk317.relay.update.GithubUpdateConfigHolder
-import io.github.magisk317.smscode.runtime.contract.update.UpgradeApkAsset
-import io.github.magisk317.relay.update.UpgradeDownloader
-import io.github.magisk317.relay.update.UpgradeInstaller
-import io.github.magisk317.smscode.runtime.contract.update.GithubReleaseInfo
-import io.github.magisk317.smscode.runtime.contract.update.UpgradeCheckResult
-import io.github.magisk317.smscode.runtime.contract.update.UpgradeInfo
-import io.github.magisk317.smscode.runtime.common.update.UpdatePolicy
-import io.github.magisk317.uikit.theme.UpdateSystemBars
 import io.github.magisk317.uikit.update.AppUpdateController
 import io.github.magisk317.uikit.update.AppUpdateDialog
 import io.github.magisk317.uikit.theme.applyEdgeToEdge
@@ -87,16 +54,15 @@ import io.github.magisk317.uikit.shell.PlayUpdateDelegate
 import io.github.magisk317.relay.ui.nav.SmsCodeNavHost
 import io.github.magisk317.relay.ui.privacy.PrivacyPolicyPage
 import io.github.magisk317.relay.ui.theme.AppTheme
+import io.github.magisk317.uikit.theme.ThemeRevealState
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.surface.AppSurface
 import io.github.magisk317.uikit.theme.AppColorRole
 import io.github.magisk317.uikit.theme.appColor
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -104,7 +70,6 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import org.koin.android.ext.android.inject
 import org.koin.compose.koinInject
 import org.koin.androidx.compose.koinViewModel
-import java.io.File
 import io.github.magisk317.relay.ui.home.settings.StartupPermissionPrompt
 import io.github.magisk317.relay.ui.home.settings.SettingsViewModel
 import io.github.magisk317.relay.ui.home.settings.SettingsEvent
@@ -150,7 +115,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @Suppress("CyclomaticComplexMethod")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         applyEdgeToEdge(this)
@@ -192,61 +156,6 @@ class MainActivity : ComponentActivity() {
             var showPrivacyPolicyPage by remember { mutableStateOf(false) }
             var blockingStartupDialog by remember { mutableStateOf<BlockingStartupDialog?>(null) }
             var startupCompatibilityChecked by remember { mutableStateOf(false) }
-            var githubUpdateUiState by remember { mutableStateOf<GithubUpdateUiState?>(null) }
-            var downloadState by remember { mutableStateOf<UpdateDownloadState>(UpdateDownloadState.Idle) }
-            var unknownSourceApk by remember { mutableStateOf<File?>(null) }
-            var downloadJob by remember { mutableStateOf<Job?>(null) }
-
-            fun startStructuredDownload(update: GithubStructuredUpdate) {
-                downloadJob?.cancel()
-                downloadState = UpdateDownloadState.Downloading(progress = 0f, progressText = "0%")
-                downloadJob = scope.launch {
-                    try {
-                        val downloadedFile = UpgradeDownloader.download(
-                            context = this@MainActivity,
-                            versionCode = update.info.versionCode,
-                            asset = update.asset,
-                        ) { progress ->
-                            runOnUiThread {
-                                downloadState = UpdateDownloadState.Downloading(
-                                    progress = progress.percent,
-                                    progressText = formatDownloadProgress(progress),
-                                )
-                            }
-                        }
-                        val verifyResult = ApkSecurityVerifier.verifyDownloadedApk(
-                            context = this@MainActivity,
-                            apkFile = downloadedFile,
-                            expectedSha256 = update.asset.sha256,
-                            expectedSigningCertSha256 = update.info.signingCertSha256,
-                        )
-                        if (!verifyResult.success) {
-                            runCatching { downloadedFile.delete() }
-                            downloadState = UpdateDownloadState.Failed(
-                                message = getString(
-                                    R.string.update_security_check_failed,
-                                    verifyResult.reason ?: "unknown",
-                                ),
-                                retry = update,
-                            )
-                            return@launch
-                        }
-                        downloadState = UpdateDownloadState.Downloaded(
-                            file = downloadedFile,
-                            update = update,
-                        )
-                    } catch (_: CancellationException) {
-                        downloadState = UpdateDownloadState.Idle
-                    } catch (t: Throwable) {
-                        downloadState = UpdateDownloadState.Failed(
-                            message = t.message ?: t.javaClass.simpleName,
-                            retry = update,
-                        )
-                    } finally {
-                        downloadJob = null
-                    }
-                }
-            }
 
             // Circular Reveal Animation State
             var currentThemeMode by remember { mutableIntStateOf(themeState.mode) }
@@ -317,38 +226,17 @@ class MainActivity : ComponentActivity() {
 
             // Effect to trigger logic when ThemeState changes
             LaunchedEffect(themeState) {
-                if (themeState.mode != currentThemeMode) {
-                    val requestedCenter = if (themeState.centerX >= 0f && themeState.centerY >= 0f) {
-                        Offset(themeState.centerX, themeState.centerY)
-                    } else {
-                        Offset.Unspecified
-                    }
-                    val animated = themeRevealState.animateThemeChange(
-                        view = view,
-                        requestedCenter = requestedCenter,
-                    ) {
-                        currentThemeMode = themeState.mode
-                        currentUiKitStyle = themeState.uiKitStyle
-                    }
-                    if (!animated) {
-                        currentThemeMode = themeState.mode
-                        currentUiKitStyle = themeState.uiKitStyle
-                    }
-                } else if (themeState.uiKitStyle != currentUiKitStyle) {
-                    // A UI-kit style swap replaces the whole UI tree, so it deserves the
-                    // same reveal treatment as a theme-mode change. No tap origin is
-                    // attached to a style change, so the reveal grows from the center.
-                    val animated = themeRevealState.animateThemeChange(view = view) {
-                        currentUiKitStyle = themeState.uiKitStyle
-                    }
-                    if (!animated) {
-                        currentUiKitStyle = themeState.uiKitStyle
-                    }
-                } else {
-                    // Initial load
-                    currentThemeMode = themeState.mode
-                    currentUiKitStyle = themeState.uiKitStyle
-                }
+                applyThemeReveal(
+                    themeState = themeState,
+                    currentThemeMode = currentThemeMode,
+                    currentUiKitStyle = currentUiKitStyle,
+                    view = view,
+                    themeRevealState = themeRevealState,
+                    onThemeApplied = { mode, style ->
+                        currentThemeMode = mode
+                        currentUiKitStyle = style
+                    },
+                )
             }
 
             // Collect navigation events
@@ -538,177 +426,6 @@ class MainActivity : ComponentActivity() {
                             )
                         }
 
-                        if (blockingStartupDialog == null) {
-                            githubUpdateUiState?.let { updateState ->
-                            AppAlertDialog(
-                                onDismissRequest = { githubUpdateUiState = null },
-                                title = { AppText(text = getString(R.string.github_update_dialog_title)) },
-                                text = {
-                                    AppText(
-                                        text = buildUpdateDialogText(updateState),
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .heightIn(max = 400.dp)
-                                            .verticalScroll(rememberScrollState()),
-                                    )
-                                },
-                                confirmButton = {
-                                    AppPrimaryButton(
-                                        text = getString(R.string.github_update_download),
-                                        onClick = {
-                                            when (updateState) {
-                                                is GithubUpdateUiState.ReleaseLink -> {
-                                                    BrowserUtils.openWebPage(
-                                                        this@MainActivity,
-                                                        updateState.release.htmlUrl,
-                                                        R.string.browser_install_or_enable_prompt,
-                                                    )
-                                                        ?.let(::enqueueSnackbar)
-                                                    githubUpdateUiState = null
-                                                }
-
-                                                is GithubUpdateUiState.Structured -> {
-                                                    githubUpdateUiState = null
-                                                    startStructuredDownload(updateState.update)
-                                                }
-                                            }
-                                        },
-                                    )
-                                },
-                                dismissButton = {
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        AppSecondaryButton(
-                                            text = getString(R.string.github_update_ignore_this_version),
-                                            onClick = {
-                                                val versionName = when (updateState) {
-                                                    is GithubUpdateUiState.ReleaseLink -> updateState.release.versionName
-                                                    is GithubUpdateUiState.Structured -> updateState.update.info.versionName
-                                                }
-                                                lifecycleScope.launch {
-                                                    settingsRepository.setIgnoredGithubVersion(versionName)
-                                                }
-                                                githubUpdateUiState = null
-                                            },
-                                        )
-                                        AppSecondaryButton(
-                                            text = getString(R.string.cancel),
-                                            onClick = { githubUpdateUiState = null },
-                                        )
-                                    }
-                                },
-                            )
-                        }
-                        }
-
-                        when (val state = downloadState) {
-                            is UpdateDownloadState.Downloading -> {
-                                AppAlertDialog(
-                                    onDismissRequest = {},
-                                    title = { AppText(text = getString(R.string.update_download_in_progress_title)) },
-                                    text = {
-                                        Column {
-                                            AppLinearProgressIndicator(
-                                                progress = state.progress,
-                                                modifier = Modifier.fillMaxWidth(),
-                                            )
-                                            AppText(text = state.progressText)
-                                        }
-                                    },
-                                    confirmButton = {
-                                        AppTextButton(
-                                            text = getString(R.string.update_download_cancel),
-                                            onClick = {
-                                                downloadJob?.cancel()
-                                                downloadState = UpdateDownloadState.Idle
-                                            },
-                                        )
-                                    },
-                                )
-                            }
-
-                            is UpdateDownloadState.Failed -> {
-                                AppAlertDialog(
-                                    onDismissRequest = { downloadState = UpdateDownloadState.Idle },
-                                    title = { AppText(text = getString(R.string.update_download_failed_title)) },
-                                    text = { AppText(text = state.message) },
-                                    dismissButton = {
-                                        AppSecondaryButton(
-                                            text = getString(R.string.cancel),
-                                            onClick = { downloadState = UpdateDownloadState.Idle },
-                                        )
-                                    },
-                                    confirmButton = {
-                                        if (state.retry != null) {
-                                            AppPrimaryButton(
-                                                text = getString(R.string.update_retry),
-                                                onClick = { startStructuredDownload(state.retry) },
-                                            )
-                                        }
-                                    },
-                                )
-                            }
-
-                            is UpdateDownloadState.Downloaded -> {
-                                AppAlertDialog(
-                                    onDismissRequest = {},
-                                    title = { AppText(text = getString(R.string.update_download_completed_title)) },
-                                    text = { AppText(text = getString(R.string.update_download_completed_message)) },
-                                    dismissButton = {
-                                        AppSecondaryButton(
-                                            text = getString(R.string.cancel),
-                                            onClick = { downloadState = UpdateDownloadState.Idle },
-                                        )
-                                    },
-                                    confirmButton = {
-                                        AppPrimaryButton(
-                                            text = getString(R.string.update_install),
-                                            onClick = {
-                                                if (!UpgradeInstaller.canRequestPackageInstalls(this@MainActivity)) {
-                                                    unknownSourceApk = state.file
-                                                    return@AppPrimaryButton
-                                                }
-                                                val installResult = UpgradeInstaller.installApk(this@MainActivity, state.file)
-                                                if (installResult.isSuccess) {
-                                                    downloadState = UpdateDownloadState.Idle
-                                                } else {
-                                                    downloadState = UpdateDownloadState.Failed(
-                                                        message = installResult.exceptionOrNull()?.message
-                                                            ?: "install_failed",
-                                                        retry = state.update,
-                                                    )
-                                                }
-                                            },
-                                        )
-                                    },
-                                )
-                            }
-
-                            UpdateDownloadState.Idle -> Unit
-                        }
-
-                        unknownSourceApk?.let {
-                            AppAlertDialog(
-                                onDismissRequest = { unknownSourceApk = null },
-                                title = { AppText(text = getString(R.string.update_unknown_source_title)) },
-                                text = { AppText(text = getString(R.string.update_unknown_source_message)) },
-                                dismissButton = {
-                                    AppSecondaryButton(
-                                        text = getString(R.string.cancel),
-                                        onClick = { unknownSourceApk = null },
-                                    )
-                                },
-                                confirmButton = {
-                                    AppPrimaryButton(
-                                        text = getString(R.string.update_open_settings),
-                                        onClick = {
-                                            startActivity(UpgradeInstaller.buildUnknownSourceSettingsIntent(this@MainActivity))
-                                            unknownSourceApk = null
-                                        },
-                                    )
-                                },
-                            )
-                        }
-
                         io.github.magisk317.uikit.theme.ThemeRevealOverlay(themeRevealState)
                             io.github.magisk317.uikit.common.AppSnackbarHost(
                                 hostState = appSnackbarHostState,
@@ -736,8 +453,6 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-
-
 
     override fun onResume() {
         super.onResume()
@@ -787,171 +502,50 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private suspend fun checkStartupGithubUpdateIfNeeded(): GithubUpdateUiState? {
-        if (!autoUpdateChecked) triggerAutoUpdateIfEnabled()
-        val result = findGithubUpdate(
-            isAutoCheck = true,
-            respectIgnoredVersion = true,
-        )
-        return when (result) {
-            is GithubUpdateQueryResult.Available -> result.update
-            else -> null
-        }
-    }
-
-    private fun requestGithubUpdateCheck(
-        showNoUpdateMessage: Boolean,
-        onUpdateFound: (GithubUpdateUiState) -> Unit,
+    /**
+     * Runs the circular-reveal animation when the theme mode or the UI-kit style changes,
+     * and applies the new values directly when no animation is needed (initial load) or the
+     * reveal is skipped because the view cannot be captured.
+     *
+     * Extracted from onCreate so the entry point stays readable; the reveal decision tree
+     * (mode change vs. style swap vs. initial load) lives here under a name.
+     */
+    private suspend fun applyThemeReveal(
+        themeState: SettingsViewModel.ThemeState,
+        currentThemeMode: Int,
+        currentUiKitStyle: Int,
+        view: View,
+        themeRevealState: ThemeRevealState,
+        onThemeApplied: (mode: Int, style: Int) -> Unit,
     ) {
-        lifecycleScope.launch {
-            when (
-                val result = findGithubUpdate(
-                    isAutoCheck = false,
-                    respectIgnoredVersion = false,
-                )
+        if (themeState.mode != currentThemeMode) {
+            val requestedCenter = if (themeState.centerX >= 0f && themeState.centerY >= 0f) {
+                Offset(themeState.centerX, themeState.centerY)
+            } else {
+                Offset.Unspecified
+            }
+            val animated = themeRevealState.animateThemeChange(
+                view = view,
+                requestedCenter = requestedCenter,
             ) {
-                is GithubUpdateQueryResult.Failed -> {
-                    enqueueSnackbar(getString(R.string.check_update_failed))
-                }
-
-                GithubUpdateQueryResult.NoUpdate -> {
-                    if (showNoUpdateMessage) {
-                        enqueueSnackbar(getString(R.string.app_already_newest))
-                    }
-                }
-
-                is GithubUpdateQueryResult.Available -> {
-                    onUpdateFound(result.update)
-                }
+                onThemeApplied(themeState.mode, themeState.uiKitStyle)
             }
-        }
-    }
-
-    private suspend fun findGithubUpdate(
-        isAutoCheck: Boolean,
-        respectIgnoredVersion: Boolean,
-    ): GithubUpdateQueryResult {
-        val installedFromPlay = relayPackageActions.isInstalledFromPlay(this)
-        val updateSettings = settingsRepository.getAutoUpdateSettings()
-        if (isAutoCheck) {
-            val enabled = updateSettings.enabled
-            if (!enabled) return GithubUpdateQueryResult.NoUpdate
-
-            val wifiOnly = updateSettings.wifiOnly
-            val onWifi = WifiState.isOnWifi(this)
-            if (UpdatePolicy.shouldSkipGithubCheckOnStartup(installedFromPlay, enabled, wifiOnly, onWifi)) {
-                return GithubUpdateQueryResult.NoUpdate
+            if (!animated) {
+                onThemeApplied(themeState.mode, themeState.uiKitStyle)
             }
-        } else if (installedFromPlay) {
-            return GithubUpdateQueryResult.NoUpdate
-        }
-
-        val checkResult = GithubUpdateChecker.fetchUpgradeInfo(GithubUpdateConfigHolder.config)
-        val updateState = when (checkResult) {
-            is UpgradeCheckResult.CheckFailed -> {
-                return if (isAutoCheck) {
-                    GithubUpdateQueryResult.NoUpdate
-                } else {
-                    GithubUpdateQueryResult.Failed(checkResult.message)
-                }
+        } else if (themeState.uiKitStyle != currentUiKitStyle) {
+            // A UI-kit style swap replaces the whole UI tree, so it deserves the
+            // same reveal treatment as a theme-mode change. No tap origin is
+            // attached to a style change, so the reveal grows from the center.
+            val animated = themeRevealState.animateThemeChange(view = view) {
+                onThemeApplied(currentThemeMode, themeState.uiKitStyle)
             }
-
-            UpgradeCheckResult.NoUpdate -> return GithubUpdateQueryResult.NoUpdate
-            is UpgradeCheckResult.ReleaseLink -> {
-                if (!GithubUpdateChecker.isNewer(BuildConfig.VERSION_NAME, checkResult.release.versionName)) {
-                    return GithubUpdateQueryResult.NoUpdate
-                }
-                GithubUpdateUiState.ReleaseLink(checkResult.release)
+            if (!animated) {
+                onThemeApplied(currentThemeMode, themeState.uiKitStyle)
             }
-
-            is UpgradeCheckResult.Structured -> {
-                val info = checkResult.info
-                val newer = if (info.versionCode > 0L) {
-                    GithubUpdateChecker.isNewer(BuildConfig.VERSION_CODE.toLong(), info.versionCode)
-                } else {
-                    GithubUpdateChecker.isNewer(BuildConfig.VERSION_NAME, info.versionName)
-                }
-                if (!newer) {
-                    return GithubUpdateQueryResult.NoUpdate
-                }
-
-                val selectedApk = GithubUpdateChecker.selectBestApkForDevice(
-                    apks = info.apks,
-                )
-                if (selectedApk != null && selectedApk.sha256.isNotBlank() && info.signingCertSha256.isNotBlank()) {
-                    GithubUpdateUiState.Structured(
-                        update = GithubStructuredUpdate(
-                            info = info,
-                            asset = selectedApk,
-                        ),
-                    )
-                } else {
-                    GithubUpdateUiState.ReleaseLink(
-                        GithubReleaseInfo(
-                            versionName = info.versionName,
-                            htmlUrl = info.htmlUrl.ifBlank { Const.PROJECT_GITHUB_LATEST_RELEASE_URL },
-                        ),
-                    )
-                }
-            }
-        }
-
-        if (respectIgnoredVersion) {
-            val ignoredVersion = updateSettings.ignoredGithubVersion
-            val latestVersionName = when (updateState) {
-                is GithubUpdateUiState.ReleaseLink -> updateState.release.versionName
-                is GithubUpdateUiState.Structured -> updateState.update.info.versionName
-            }
-            if (UpdatePolicy.shouldSkipIgnoredVersion(respectIgnoredVersion, ignoredVersion, latestVersionName)) {
-                return GithubUpdateQueryResult.NoUpdate
-            }
-        }
-        return GithubUpdateQueryResult.Available(updateState)
-    }
-
-    private fun buildUpdateDialogText(updateState: GithubUpdateUiState): String {
-        return when (updateState) {
-            is GithubUpdateUiState.ReleaseLink -> {
-                getString(R.string.github_update_dialog_message, updateState.release.versionName)
-            }
-
-            is GithubUpdateUiState.Structured -> {
-                val info = updateState.update.info
-                val title = "v${BuildConfig.VERSION_NAME} -> v${info.versionName}"
-                val matchedLogs = info.versionLogs.filter { it.code > BuildConfig.VERSION_CODE.toLong() }
-                val content = when {
-                    matchedLogs.size > 1 -> matchedLogs.joinToString("\n\n") { log ->
-                        "v${log.name}\n${log.desc}"
-                    }
-                    matchedLogs.isNotEmpty() -> matchedLogs.first().desc
-                    info.changelog.isNotBlank() -> info.changelog
-                    else -> getString(R.string.github_update_dialog_message, info.versionName)
-                }
-                "$title\n\n$content".trim()
-            }
-        }
-    }
-
-    private fun formatDownloadProgress(progress: UpgradeDownloader.Progress): String {
-        val percent = (progress.percent * 100f).toInt().coerceIn(0, 100)
-        val current = formatBytes(progress.bytesRead)
-        val total = if (progress.totalBytes > 0L) formatBytes(progress.totalBytes) else "?"
-        return getString(R.string.update_download_progress_text, percent, current, total)
-    }
-
-    private fun formatBytes(bytes: Long): String {
-        if (bytes <= 0L) return "0B"
-        val units = arrayOf("B", "KB", "MB", "GB")
-        var value = bytes.toDouble()
-        var index = 0
-        while (value >= BYTES_PER_UNIT && index < units.lastIndex) {
-            value /= BYTES_PER_UNIT
-            index++
-        }
-        return if (index == 0) {
-            "${value.toInt()}${units[index]}"
         } else {
-            String.format("%.1f%s", value, units[index])
+            // Initial load
+            onThemeApplied(themeState.mode, themeState.uiKitStyle)
         }
     }
 
@@ -980,31 +574,3 @@ private fun ExitOnlyConflictDialog(
         },
     )
 }
-
-private data class GithubStructuredUpdate(
-    val info: UpgradeInfo,
-    val asset: UpgradeApkAsset,
-)
-
-private sealed class GithubUpdateUiState {
-    data class ReleaseLink(val release: GithubReleaseInfo) : GithubUpdateUiState()
-    data class Structured(val update: GithubStructuredUpdate) : GithubUpdateUiState()
-}
-
-private sealed class GithubUpdateQueryResult {
-    data object NoUpdate : GithubUpdateQueryResult()
-    data class Failed(val message: String?) : GithubUpdateQueryResult()
-    data class Available(val update: GithubUpdateUiState) : GithubUpdateQueryResult()
-}
-
-private sealed class UpdateDownloadState {
-    data object Idle : UpdateDownloadState()
-    data class Downloading(val progress: Float, val progressText: String) : UpdateDownloadState()
-    data class Failed(val message: String, val retry: GithubStructuredUpdate?) : UpdateDownloadState()
-    data class Downloaded(val file: File, val update: GithubStructuredUpdate) : UpdateDownloadState()
-}
-
-private const val BYTES_PER_UNIT = 1024.0
-private const val MAX_CAPTURE_PIXELS = 8_388_608L
-private const val MAX_CAPTURE_SIDE_PX = 4096
-private const val LARGE_BITMAP_ERROR_KEYWORD = "trying to draw too large"

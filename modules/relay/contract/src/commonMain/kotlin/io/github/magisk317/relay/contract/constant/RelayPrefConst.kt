@@ -125,7 +125,6 @@ object RelayPrefConst {
     const val KEY_HOME_CHART_WINDOW = "pref_home_chart_window"
     const val KEY_AUTO_UPDATE_ON_START = "pref_auto_update_on_start"
     const val KEY_AUTO_UPDATE_WIFI_ONLY = "pref_auto_update_wifi_only"
-    const val KEY_GITHUB_IGNORED_VERSION = "pref_github_ignored_version"
     const val KEY_LOW_BATTERY_REMINDER_ENABLE = "pref_low_battery_reminder_enable"
     const val KEY_LOW_BATTERY_THRESHOLD = "pref_low_battery_threshold"
     const val LOW_BATTERY_THRESHOLD_DEFAULT = 20

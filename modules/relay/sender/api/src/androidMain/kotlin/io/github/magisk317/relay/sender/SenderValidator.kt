@@ -31,7 +31,6 @@ data class SenderValidationResult(
 
 object SenderValidator {
 
-    @Suppress("CyclomaticComplexMethod")
     fun validateForEnable(
         sender: Sender,
         allowHttpWebhook: Boolean = true,

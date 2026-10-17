@@ -340,7 +340,6 @@ data class OverviewSettingsUpdate(
 data class AutoUpdateSettingsSnapshot(
     val enabled: Boolean,
     val wifiOnly: Boolean,
-    val ignoredGithubVersion: String,
 )
 
 // ── Remote Agent ─────────────────────────────────────────────────────────────
