@@ -13,6 +13,8 @@ import io.github.magisk317.relay.contract.remote.AgentConfigCommandsPullResponse
 import io.github.magisk317.relay.contract.remote.AgentConfigMirrorRequest
 import io.github.magisk317.relay.contract.remote.AgentRegisterRequest
 import io.github.magisk317.relay.contract.remote.AgentRegisterResponse
+import io.github.magisk317.relay.contract.remote.DeviceActionAckRequest
+import io.github.magisk317.relay.contract.remote.DeviceActionCommandResponse
 import io.github.magisk317.relay.contract.remote.DeviceConfigCommandResponse
 import io.github.magisk317.relay.contract.remote.DeviceConfigStateResponse
 import io.github.magisk317.relay.contract.remote.HeartbeatRequest
@@ -23,6 +25,7 @@ import io.github.magisk317.relay.android.data.secret.InternalSecretStore
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
 import io.github.magisk317.relay.data.remote.RemoteAgentApi
 import io.github.magisk317.relay.data.remote.DeviceTokenExpiredException
+import io.github.magisk317.relay.domain.action.DeviceActionExecutor
 import io.github.magisk317.relay.testing.relaxedContext
 import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceChange
 import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceChangeSet
@@ -32,6 +35,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkObject
+import io.mockk.verify
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.runBlocking
@@ -484,16 +488,130 @@ class RemoteAgentRepositoryTest {
     }
 
 
+    @Test
+    fun `pullPendingCommands executes supported pending action and acks done`() = runBlocking {
+        val localConfigRepository = FakeLocalConfigRepository(
+            revision = 4,
+            pendingLocalChanges = 0,
+            content = baseMirror(),
+        )
+        val audioManager = mockk<android.media.AudioManager>(relaxed = true)
+        val actionContext = relaxedContext()
+        every { actionContext.getSystemService(android.content.Context.AUDIO_SERVICE) } returns audioManager
+        val api = FakeRemoteAgentApi(
+            pullResponse = AgentConfigCommandsPullResponse(
+                deviceId = 42,
+                revision = 4,
+                pendingActions = listOf(
+                    DeviceActionCommandResponse(
+                        id = 21,
+                        action = "SET_RINGER_MODE",
+                        params = jsonObject("""{"mode":"silent"}"""),
+                    ),
+                ),
+            ),
+        )
+        val repository = repository(
+            remotePreferences(),
+            localConfigRepository,
+            api,
+            DeviceActionExecutor(actionContext),
+        )
+
+        repository.pullPendingCommands()
+
+        verify { audioManager.ringerMode = android.media.AudioManager.RINGER_MODE_SILENT }
+        assertEquals(1, api.actionAckRequests.size)
+        val ack = api.actionAckRequests.single()
+        assertEquals(21L, ack.actionId)
+        assertEquals("done", ack.status)
+        assertEquals("", ack.failureReason)
+    }
+
+    @Test
+    fun `pullPendingCommands acks failed action with reason without aborting pull`() = runBlocking {
+        val localConfigRepository = FakeLocalConfigRepository(
+            revision = 4,
+            pendingLocalChanges = 0,
+            content = baseMirror(),
+        )
+        val notificationManager = mockk<android.app.NotificationManager>(relaxed = true)
+        every { notificationManager.isNotificationPolicyAccessGranted } returns false
+        val actionContext = relaxedContext()
+        every { actionContext.getSystemService(android.content.Context.NOTIFICATION_SERVICE) } returns notificationManager
+        val api = FakeRemoteAgentApi(
+            pullResponse = AgentConfigCommandsPullResponse(
+                deviceId = 42,
+                revision = 4,
+                pendingActions = listOf(
+                    DeviceActionCommandResponse(
+                        id = 22,
+                        action = "SET_INTERRUPTION_FILTER",
+                        params = jsonObject("""{"filter":"none"}"""),
+                    ),
+                ),
+            ),
+        )
+        val repository = repository(
+            remotePreferences(),
+            localConfigRepository,
+            api,
+            DeviceActionExecutor(actionContext),
+        )
+
+        repository.pullPendingCommands()
+
+        assertEquals(1, api.actionAckRequests.size)
+        val ack = api.actionAckRequests.single()
+        assertEquals(22L, ack.actionId)
+        assertEquals("failed", ack.status)
+        assertEquals("notification_policy_access_required", ack.failureReason)
+        verify(exactly = 0) { notificationManager.setInterruptionFilter(any()) }
+    }
+
+    @Test
+    fun `pullPendingCommands acks unsupported action without executing`() = runBlocking {
+        val localConfigRepository = FakeLocalConfigRepository(
+            revision = 4,
+            pendingLocalChanges = 0,
+            content = baseMirror(),
+        )
+        val api = FakeRemoteAgentApi(
+            pullResponse = AgentConfigCommandsPullResponse(
+                deviceId = 42,
+                revision = 4,
+                pendingActions = listOf(
+                    DeviceActionCommandResponse(
+                        id = 23,
+                        action = "REBOOT_DEVICE",
+                        params = jsonObject("""{}"""),
+                    ),
+                ),
+            ),
+        )
+        val repository = repository(remotePreferences(), localConfigRepository, api)
+
+        repository.pullPendingCommands()
+
+        assertEquals(1, api.actionAckRequests.size)
+        val ack = api.actionAckRequests.single()
+        assertEquals(23L, ack.actionId)
+        assertEquals("failed", ack.status)
+        assertEquals("unsupported_action", ack.failureReason)
+    }
+
     private fun repository(
         preferences: PreferenceDataSource,
         localConfigRepository: LocalConfigRepository,
         remoteApi: RemoteAgentApi,
+        deviceActionExecutor: DeviceActionExecutor = DeviceActionExecutor(relaxedContext()),
     ): RemoteAgentRepository {
         return RemoteAgentRepository(
             appContext = relaxedContext(),
             preferenceDataSource = preferences,
             localConfigRepository = localConfigRepository,
             remoteApiClient = remoteApi,
+            deviceActionExecutor = deviceActionExecutor,
         )
     }
 
@@ -600,6 +718,7 @@ private class FakeRemoteAgentApi(
 ) : RemoteAgentApi {
     val pullRequests = mutableListOf<AgentConfigCommandsPullRequest>()
     val ackRequests = mutableListOf<AgentConfigCommandsAckRequest>()
+    val actionAckRequests = mutableListOf<DeviceActionAckRequest>()
 
     override fun registerDevice(baseUrl: String, request: AgentRegisterRequest): AgentRegisterResponse {
         throw UnsupportedOperationException("registerDevice is not used in this test")
@@ -646,6 +765,21 @@ private class FakeRemoteAgentApi(
             id = request.commandId,
             targetRevision = request.appliedRevision,
             mutation = JsonObject(emptyMap()),
+            status = request.status,
+            failureReason = request.failureReason,
+        )
+    }
+
+    override fun ackDeviceAction(
+        baseUrl: String,
+        deviceToken: String,
+        request: DeviceActionAckRequest,
+    ): DeviceActionCommandResponse {
+        actionAckRequests += request
+        return DeviceActionCommandResponse(
+            id = request.actionId,
+            action = "",
+            params = JsonObject(emptyMap()),
             status = request.status,
             failureReason = request.failureReason,
         )

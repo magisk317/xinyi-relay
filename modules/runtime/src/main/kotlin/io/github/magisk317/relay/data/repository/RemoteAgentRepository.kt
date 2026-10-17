@@ -18,6 +18,8 @@ import io.github.magisk317.relay.contract.remote.AgentConfigCommandsAckRequest
 import io.github.magisk317.relay.contract.remote.AgentConfigCommandsPullRequest
 import io.github.magisk317.relay.contract.remote.AgentConfigMirrorRequest
 import io.github.magisk317.relay.contract.remote.AgentRegisterRequest
+import io.github.magisk317.relay.contract.remote.DeviceActionAckRequest
+import io.github.magisk317.relay.contract.remote.DeviceActionCommandResponse
 import io.github.magisk317.relay.contract.remote.DeviceConfigCommandResponse
 import io.github.magisk317.relay.contract.remote.HeartbeatRequest
 import io.github.magisk317.relay.contract.remote.MAX_RELAY_RECORDS_PER_SNAPSHOT
@@ -28,6 +30,8 @@ import io.github.magisk317.relay.contract.settings.RemoteAgentSnapshot
 import io.github.magisk317.relay.data.remote.DeviceTokenExpiredException
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
 import io.github.magisk317.relay.android.common.utils.DeviceIdentityUtils
+import io.github.magisk317.relay.contract.constant.DeviceActionConst
+import io.github.magisk317.relay.domain.action.DeviceActionExecutor
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.relay.data.remote.RemoteAgentApi
 import io.github.magisk317.relay.data.remote.RemoteApiClient
@@ -61,6 +65,7 @@ class RemoteAgentRepository(
     private val preferenceDataSource: PreferenceDataSource,
     private val localConfigRepository: LocalConfigRepository,
     private val remoteApiClient: RemoteAgentApi = RemoteApiClient(),
+    private val deviceActionExecutor: DeviceActionExecutor = DeviceActionExecutor(appContext),
 ) : ConfigSyncCoordinator {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val syncMutex = Mutex()
@@ -304,6 +309,9 @@ class RemoteAgentRepository(
                     val commandCount = payload.pendingCommands.size
                     payload.pendingCommands.forEach { command ->
                         currentMirror = applyPulledCommand(baseUrl, token, command, currentMirror)
+                    }
+                    payload.pendingActions.forEach { action ->
+                        applyPulledAction(baseUrl, token, action)
                     }
                     preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_PULL_AT, nowEpochMillis().toString())
                     preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_ERROR, "")
@@ -564,6 +572,32 @@ class RemoteAgentRepository(
             )
         }
         return appliedMirror
+    }
+
+    /**
+     * Device actions are one-shot and carry no revision semantics: execute
+     * locally, then ack done/failed. Execution failures ack with a reason
+     * instead of aborting the pull; transport failures propagate so the action
+     * stays pending for the next pull.
+     */
+    private suspend fun applyPulledAction(
+        baseUrl: String,
+        deviceToken: String,
+        action: DeviceActionCommandResponse,
+    ) {
+        val outcome = deviceActionExecutor.execute(action)
+        val status = if (outcome.success) DeviceActionConst.STATUS_DONE else DeviceActionConst.STATUS_FAILED
+        withTokenRefresh {
+            remoteApiClient.ackDeviceAction(
+                baseUrl = baseUrl,
+                deviceToken = deviceToken,
+                request = DeviceActionAckRequest(
+                    actionId = action.id,
+                    status = status,
+                    failureReason = outcome.failureReason,
+                ),
+            )
+        }
     }
 
     private suspend fun ackPulledCommandFailed(
