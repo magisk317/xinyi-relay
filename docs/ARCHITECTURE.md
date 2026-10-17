@@ -350,6 +350,7 @@ KMP 模块里的 contract 源文件，因此 contract 源在 `commonMain`/`andro
 | 设备配置镜像（device_config_mirrors） | 按设备 | Backend 只保存每台设备最新 mirror 与 revision，用于 Web/Desktop 读取和命令基线校验。 |
 | 设备配置命令（device_config_commands） | 按设备 | Web/Desktop 写入的是排队命令；设备上线后按 revision 顺序拉取、应用并 ack。 |
 | 设备配置审计（device_config_audit_logs） | 按设备 | 记录谁对哪台设备发了什么 mutation、设备何时应用、结果如何。 |
+| 设备动作指令（device_actions） | 按设备 | WebUI/App 排队一次性动作（白名单 SET_RINGER_MODE / SET_INTERRUPTION_FILTER，params 单键取值校验），无 revision 语义；设备随配置周期 pull 下发、执行一次并经 `agent/actions:ack` 回执 done/failed，失败带 failureReason，actor_type/actor_id 审计字段齐全。 |
 | 设备信息（devices） | 按设备 | 每台设备独立注册，独立 token。 |
 
 ## 后续演进
