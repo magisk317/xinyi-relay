@@ -21,6 +21,7 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import io.github.magisk317.relay.ui.home.appconfig.AppConfigViewModel
 import io.github.magisk317.relay.ui.home.settings.SettingsViewModel
+import io.github.magisk317.relay.ui.setup.SetupViewModel
 
 val uiModule = module {
     viewModelOf(::AppConfigViewModel)
@@ -33,6 +34,7 @@ val uiModule = module {
     viewModelOf(::ScheduledReminderViewModel)
     viewModelOf(::ScheduledTaskViewModel)
     viewModelOf(::CloudBackupViewModel)
+    viewModelOf(::SetupViewModel)
 
     single {
         val context = androidContext()

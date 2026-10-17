@@ -64,6 +64,7 @@ fun SettingsHomeScreen(
     onOpenThemeSettings: () -> Unit,
     onOpenAdvancedRelay: () -> Unit,
     onOpenCloudBackup: (io.github.magisk317.relay.backup.BackupSource?, Boolean) -> Unit = { _, _ -> },
+    onOpenDeviceControl: () -> Unit = {},
     onBack: (() -> Unit)? = null,
     isActive: Boolean = true,
     bottomContentPadding: Dp = 0.dp,
@@ -244,6 +245,7 @@ fun SettingsHomeScreen(
                         notifySaved()
                     }
                 },
+                onOpenDeviceControl = onOpenDeviceControl,
             )
             SettingsBackupRestoreSection(
                 expanded = expandBackupRestore,

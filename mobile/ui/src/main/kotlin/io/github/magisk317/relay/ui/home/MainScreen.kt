@@ -63,6 +63,7 @@ import io.github.magisk317.relay.ui.home.relayconfig.RelayConfigScreen
 import io.github.magisk317.relay.ui.home.relayconfig.RemoteAgentScreen
 import io.github.magisk317.relay.ui.home.scheduled.ScheduledReminderScreen
 import io.github.magisk317.relay.ui.home.settings.AdvancedScreen
+import io.github.magisk317.relay.ui.home.settings.DeviceControlScreen
 import io.github.magisk317.relay.ui.home.settings.SettingsHomeScreen
 import io.github.magisk317.relay.ui.home.verification.VerificationSettingsScreen
 import io.github.magisk317.relay.ui.nav.AdvancedRoute
@@ -74,6 +75,7 @@ import io.github.magisk317.relay.ui.nav.AppsManageRoute
 import io.github.magisk317.relay.ui.nav.AppsRoute
 import io.github.magisk317.relay.ui.nav.BlacklistHitsRoute
 import io.github.magisk317.relay.ui.nav.CloudBackupRoute
+import io.github.magisk317.relay.ui.nav.DeviceControlRoute
 import io.github.magisk317.relay.ui.nav.ForwardKeepAliveRoute
 import io.github.magisk317.relay.ui.nav.GlobalForwardFilterRoute
 import io.github.magisk317.relay.ui.nav.InterceptRoute
@@ -209,6 +211,7 @@ fun MainScreen(
             destination.hasRoute(ThemeSettingsRoute::class) -> NavigationSection.SETTINGS
             destination.hasRoute(VerificationSettingsRoute::class) -> NavigationSection.SETTINGS
             destination.hasRoute(RemoteAgentRoute::class) -> NavigationSection.SETTINGS
+            destination.hasRoute(DeviceControlRoute::class) -> NavigationSection.SETTINGS
             destination.hasRoute(InterceptRoute::class) -> NavigationSection.ADVANCED
             destination.hasRoute(BlacklistHitsRoute::class) -> NavigationSection.ADVANCED
             destination.hasRoute(ScheduledReminderRoute::class) -> NavigationSection.ADVANCED
@@ -548,6 +551,7 @@ fun MainScreen(
                                 ),
                             )
                         },
+                        onOpenDeviceControl = { navController.navigate(DeviceControlRoute) },
                     )
                 }
             }
@@ -896,6 +900,9 @@ fun MainScreen(
                     }
                     composable<RemoteAgentRoute> {
                         RemoteAgentScreen(onBack = { navController.popBackStack() })
+                    }
+                    composable<DeviceControlRoute> {
+                        DeviceControlScreen(onBack = { navController.popBackStack() })
                     }
                     composable<ThemeSettingsRoute> {
                         io.github.magisk317.relay.ui.home.settings.ThemeSettingsPage(

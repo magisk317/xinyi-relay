@@ -42,6 +42,7 @@ dependencies {
     implementation(project(":magisk-xposed-kit:logging"))
     implementation(project(":core"))
     implementation(project(":mobile:feature:common"))
+    implementation(project(":mobile:feature:setup"))
     implementation(project(":mobile:feature:overview"))
     implementation(project(":mobile:feature:settings"))
     implementation(project(":mobile:feature:verification"))

@@ -57,6 +57,7 @@ include(
     ":policy",
     ":mobile:ui",
     ":mobile:feature:common",
+    ":mobile:feature:setup",
     ":mobile:feature:overview",
     ":mobile:feature:settings",
     ":mobile:feature:verification",

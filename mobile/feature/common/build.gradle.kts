@@ -7,6 +7,10 @@ plugins {
 android {
     namespace = "io.github.magisk317.relay.mobilefeature.common"
 
+    defaultConfig {
+        buildConfigField("int", "VERSION_CODE", libs.versions.versionCode.get())
+    }
+
     buildFeatures {
         compose = true
         buildConfig = true
@@ -21,6 +25,8 @@ android {
 
 dependencies {
     implementation(project(":core"))
+    implementation(project(":policy"))
+    implementation(project(":magisk-xposed-kit:permission"))
     implementation(project(":relay:android"))
     implementation(project(":relay:engine:api"))
     implementation(project(":relay:contract"))

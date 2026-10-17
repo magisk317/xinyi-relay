@@ -73,6 +73,8 @@ import org.koin.androidx.compose.koinViewModel
 import io.github.magisk317.relay.ui.home.settings.StartupPermissionPrompt
 import io.github.magisk317.relay.ui.home.settings.SettingsViewModel
 import io.github.magisk317.relay.ui.home.settings.SettingsEvent
+import io.github.magisk317.relay.ui.setup.SetupScreen
+import io.github.magisk317.relay.ui.setup.SetupViewModel
 
 class MainActivity : ComponentActivity() {
 
@@ -154,6 +156,7 @@ class MainActivity : ComponentActivity() {
             var privacyAccepted by remember { mutableStateOf<Boolean?>(null) }
             var showPrivacyPolicyDialog by remember { mutableStateOf(false) }
             var showPrivacyPolicyPage by remember { mutableStateOf(false) }
+            var showSetup by remember { mutableStateOf(false) }
             var blockingStartupDialog by remember { mutableStateOf<BlockingStartupDialog?>(null) }
             var startupCompatibilityChecked by remember { mutableStateOf(false) }
 
@@ -195,7 +198,7 @@ class MainActivity : ComponentActivity() {
                 val accepted = settingsRepository.isPrivacyPolicyAccepted()
                 privacyAccepted = accepted
                 if (!accepted) {
-                    showPrivacyPolicyDialog = true
+                    showSetup = true
                 }
             }
             LaunchedEffect(Unit) {
@@ -312,7 +315,8 @@ class MainActivity : ComponentActivity() {
                             if (blockingStartupDialog == null &&
                                 privacyAccepted == true &&
                                 !showPrivacyPolicyDialog &&
-                                !showPrivacyPolicyPage
+                                !showPrivacyPolicyPage &&
+                                !showSetup
                             ) {
                                 val updateController = koinInject<AppUpdateController>()
                                 LaunchedEffect(Unit) {
@@ -330,7 +334,8 @@ class MainActivity : ComponentActivity() {
                                 blockingStartupDialog == null &&
                                 privacyAccepted == true &&
                                 !showPrivacyPolicyDialog &&
-                                !showPrivacyPolicyPage,
+                                !showPrivacyPolicyPage &&
+                                !showSetup,
                         )
 
                         if (blockingStartupDialog == null && showPrivacyPolicyDialog) {
@@ -365,6 +370,17 @@ class MainActivity : ComponentActivity() {
                                             showPrivacyPolicyDialog = true
                                         }
                                     }
+                                },
+                            )
+                        }
+
+                        if (blockingStartupDialog == null && showSetup) {
+                            val setupViewModel: SetupViewModel = koinViewModel()
+                            SetupScreen(
+                                onDecline = { finish() },
+                                onFinished = {
+                                    privacyAccepted = true
+                                    showSetup = false
                                 },
                             )
                         }

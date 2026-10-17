@@ -71,6 +71,9 @@ object VerificationSettingsRoute
 object RemoteAgentRoute
 
 @Serializable
+object DeviceControlRoute
+
+@Serializable
 data class RelayConfigRoute(val origin: String = ROUTE_ORIGIN_ADVANCED)
 
 @Serializable
