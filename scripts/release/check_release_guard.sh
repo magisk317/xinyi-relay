@@ -114,6 +114,20 @@ echo "Release guard (xinyi-relay)"
 check_version_extraction "$ROOT_DIR"
 check_commit_subjects "$ROOT_DIR" "$ALLOW_NON_ASCII_COMMIT_SUBJECT"
 check_changelog_section "$ROOT_DIR" "$VERSION_NAME"
+
+# README badge blocks must stay in sync with the version catalog.
+if ! declare -f check_readme_badges >/dev/null; then
+  echo "FAIL: resolved magisk-ci-toolkit predates the README badge check" >&2
+  exit 1
+fi
+check_readme_badges "$ROOT_DIR"
+
+# versionCode must be last-released + 1 (no jumps, no reuse).
+if ! declare -f check_versioncode_increment >/dev/null; then
+  echo "FAIL: resolved magisk-ci-toolkit predates the versionCode increment check" >&2
+  exit 1
+fi
+check_versioncode_increment "$ROOT_DIR"
 check_tag_matches_version "$TAG_NAME" "$VERSION_NAME"
 check_desktop_version "$ROOT_DIR" "$VERSION_NAME"
 check_backend_version "$ROOT_DIR" "$VERSION_NAME"

@@ -20,6 +20,9 @@ include:
   - project: magisk3171/shared/magisk-ci-toolkit
     ref: v1
     file: /.gitlab/ci/utility.yml
+  - project: magisk3171/shared/magisk-ci-toolkit
+    ref: v1
+    file: /.gitlab/ci/readme-badges.yml
 
 workflow:
   auto_cancel:
@@ -38,14 +41,7 @@ default:
 
 stages:
   - build
-  - package
-  - release-validate
-  - release-build
-  # sync must precede release-publish: android:release:github declares
-  # `needs: sync:github`, and `needs` may only target the same or an earlier stage.
-  - sync
-  - release-publish
-  - notify
+  - release
   - quality
   - maintenance
 
@@ -227,10 +223,10 @@ variables:
 
 .xinyi_desktop_kmp_base:
   extends: .xinyi_desktop_kmp_rules
-  stage: package
+  stage: build
   variables:
     GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
-    GRADLE_OPTS: "-Dorg.gradle.warning.mode=all -Dorg.gradle.workers.max=2"
+    GRADLE_OPTS: "-Dorg.gradle.warning.mode=all -Dorg.gradle.workers.max=1 -Dorg.gradle.jvmargs='-Xmx2048m -XX:MaxMetaspaceSize=512m'"
   artifacts:
     when: always
     expire_in: 30 days
@@ -245,6 +241,32 @@ variables:
   # if-not-present. See "CI Java Runtime" in AGENTS.md for the fallback recipe.
   image: "eclipse-temurin:27_35-jdk-resolute"
   before_script:
+    - |
+      set -euo pipefail
+      export DEBIAN_FRONTEND=noninteractive
+      use_mirror="${MAGISK_LINUX_USE_MIRROR:-true}"
+      if [[ "$use_mirror" == "true" ]]; then
+        sed -i \
+          -e 's#http://deb.debian.org/debian-security#https://mirrors.tuna.tsinghua.edu.cn/debian-security#g' \
+          -e 's#http://security.debian.org/debian-security#https://mirrors.tuna.tsinghua.edu.cn/debian-security#g' \
+          -e 's#http://deb.debian.org/debian#https://mirrors.tuna.tsinghua.edu.cn/debian#g' \
+          -e 's#http://archive.ubuntu.com/ubuntu#https://mirrors.tuna.tsinghua.edu.cn/ubuntu#g' \
+          -e 's#http://security.ubuntu.com/ubuntu#https://mirrors.tuna.tsinghua.edu.cn/ubuntu#g' \
+          /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+        if ! apt-get -o APT::Update::Error-Mode=any update; then
+          echo "Mirror apt-get update failed, falling back to official sources" >&2
+          sed -i \
+            -e 's#https://mirrors.tuna.tsinghua.edu.cn/debian-security#http://deb.debian.org/debian-security#g' \
+            -e 's#https://mirrors.tuna.tsinghua.edu.cn/debian#http://deb.debian.org/debian#g' \
+            -e 's#https://mirrors.tuna.tsinghua.edu.cn/ubuntu#http://archive.ubuntu.com/ubuntu#g' \
+            /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
+          apt-get -o APT::Update::Error-Mode=any update
+        fi
+      else
+        apt-get -o APT::Update::Error-Mode=any update
+      fi
+      apt-get install -y --no-install-recommends git dpkg fakeroot
+      rm -rf /var/lib/apt/lists/*
     - chmod +x scripts/ci/gitlab_desktop_kmp_package.sh
 
 backend:go:
@@ -336,7 +358,7 @@ backend:container:amd64:
     - .xinyi_docker
     - .xinyi_backend_publish_rules
   resource_group: xinyi-backend-docker-amd64
-  stage: package
+  stage: build
   allow_failure: true
   tags:
     - $XINYI_GITLAB_LINUX_AMD64_RUNNER_TAG
@@ -345,19 +367,14 @@ backend:container:amd64:
       artifacts: false
   script:
     - chmod +x scripts/ci/gitlab_backend_container.sh
-    - scripts/ci/gitlab_backend_container.sh build-arch-export amd64
-  artifacts:
-    when: on_success
-    expire_in: 1 day
-    paths:
-      - backend-image-amd64.tar.gz
+    - scripts/ci/gitlab_backend_container.sh build-arch amd64
 
 backend:container:arm64:
   extends:
     - .xinyi_docker
     - .xinyi_backend_publish_rules
   resource_group: xinyi-backend-docker-arm64
-  stage: package
+  stage: build
   allow_failure: true
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
@@ -373,18 +390,17 @@ backend:container:manifest:
     - .xinyi_docker
     - .xinyi_backend_publish_rules
   resource_group: xinyi-backend-docker-manifest
-  stage: release-publish
+  stage: release
   allow_failure: true
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
     - job: backend:container:amd64
-      artifacts: true
+      artifacts: false
     - job: backend:container:arm64
       artifacts: false
   script:
     - chmod +x scripts/ci/gitlab_backend_container.sh
-    - scripts/ci/gitlab_backend_container.sh publish-arch-archive amd64
     - scripts/ci/gitlab_backend_container.sh publish-manifests
   artifacts:
     reports:
@@ -411,7 +427,7 @@ desktop-kmp:linux:arm64:
 
 desktop:release:gitlab:
   extends: .magisk_linux_base
-  stage: release-publish
+  stage: release
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   rules:
@@ -524,12 +540,38 @@ android:build:
       -PbuildSplits
       -PminifyDebug
       -PskipGoogleServices=true
+    # Bind artifact versionCode to the pipeline iid so the in-app
+    # update check sees a monotonically increasing version axis.
+    MAGISK_GRADLE_ARGS: "--warning-mode all -PversionCode=$CI_PIPELINE_IID"
   artifacts:
     name: "XinyiRelay-debug-$CI_COMMIT_REF_SLUG"
     when: always
     expire_in: 14 days
     paths:
       - app/build/outputs/apk/github/debug/*.apk
+      - ci-dist/app-ci.apk
+      - ci-dist/version.txt
+  # A job-level after_script replaces the one inherited from
+  # .magisk_android_base, so the otel export is restated here before staging.
+  after_script:
+    - |
+      set +e
+      if [ -x "${MAGISK_CI_TOOLKIT_DIR:-}/ci/otel_export.sh" ]; then
+        bash "$MAGISK_CI_TOOLKIT_DIR/ci/otel_export.sh" "ci.job"           "magisk.toolkit_ref=${MAGISK_CI_TOOLKIT_REF:-}"           "magisk.span_source=android_base_after_script"
+      else
+        echo "otel: helper missing, skip"
+      fi
+    # The universal APK name embeds the build timestamp, while
+    # GitLabCiArtifactUpdateSource can only fetch artifacts by exact path
+    # (no glob), so stage a stable copy for the in-app update check, plus
+    # the embedded version string as a plain-text sidecar so the update
+    # dialog can display the real build timestamp.
+    - |
+      set -euo pipefail
+      mkdir -p ci-dist
+      cp app/build/outputs/apk/github/debug/universal_*.apk ci-dist/app-ci.apk
+      apk_name=$(basename app/build/outputs/apk/github/debug/universal_*.apk)
+      echo "$apk_name" | sed -n 's/^universal_.*_v\(.*\)_debug\.apk$/\1/p' > ci-dist/version.txt
 
 android:check:
   extends: .magisk_android_build
@@ -641,16 +683,32 @@ e2ee-plugin:check:
 # Matrix E2EE plugin publish -- decoupled from the app release cadence.
 # The plugin is versioned by the upstream matrix-rust-sdk it bundles, so it only
 # ships when the catalog version moves (Renovate bumps matrix-sdk-android, then
-# this scheduled job notices the catalog version is not yet published and
-# publishes it). Manual web runs force a republish of the current catalog
-# version; uploads are idempotent (409 = already there).
+# this job notices the catalog version is not yet published and publishes it).
+# The beta push rule publishes the moment the bump lands; the schedule below is
+# a backstop, because a scheduled run checks out its pipeline SHA, which
+# predates any bump the same pipeline's renovate:gitlab job produces -- the
+# schedule alone always lags one period (and a job retry is equally blind,
+# since it re-runs on the same pipeline SHA). Manual web runs force a
+# republish of the current catalog version; uploads are idempotent
+# (409 = already there).
 e2ee-plugin:sync:
   extends: .magisk_android_base
   stage: maintenance
   needs: []
+  # The build+upload takes minutes; beta receives pushes every few minutes
+  # during Renovate windows and workflow auto_cancel would otherwise kill a
+  # running publish mid-flight. renovate:gitlab is non-interruptible for the
+  # same reason.
+  interruptible: false
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   rules:
+    # New matrix-sdk catalog version on beta: publish right away instead of
+    # waiting for the next scheduled run. The script's skip-if-published
+    # check makes unrelated catalog bumps no-ops (exit 0 before any build).
+    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != ""'
+      changes:
+        - gradle/libs.versions.toml
     - if: '$CI_PIPELINE_SOURCE == "schedule" && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != ""'
     - if: '$CI_PIPELINE_SOURCE == "web"'
       when: manual
@@ -699,6 +757,52 @@ e2ee-plugin:sync:
       fi
       scripts/ci/e2ee_plugin_publish.sh
 
+# rustls-platform-verifier JVM component publish -- decoupled from the app
+# release cadence. matrix-rust-sdk reflects into this AAR at runtime but does
+# not depend on it in Gradle, and upstream never ships it to Maven, so the
+# registry copy (settings.gradle.kts pins group "rustls" to it) is built here
+# from the pinned upstream tag with this repository's own toolchain. Scheduled
+# pipelines only publish catalog versions the registry does not have yet; MRs
+# run a dry run (build + contract check, no registry writes) so a broken
+# toolchain patch is caught before it can publish a wrong artifact.
+rustls-platform-verifier:publish:
+  extends: .magisk_android_base
+  stage: build
+  needs: []
+  tags:
+    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH =~ /^renovate\//'
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - gradle/libs.versions.toml
+        - scripts/ci/rustls_pv_publish.sh
+        - scripts/ci/rustls_pv_toolchain.patch
+        - .gitlab-ci.yml
+      variables:
+        RUSTLS_PV_DRY_RUN: "1"
+    - if: '$CI_COMMIT_BRANCH'
+      changes:
+        - gradle/libs.versions.toml
+        - scripts/ci/rustls_pv_publish.sh
+        - scripts/ci/rustls_pv_toolchain.patch
+        - .gitlab-ci.yml
+    - when: never
+  script:
+    - chmod +x scripts/ci/rustls_pv_publish.sh
+    - scripts/ci/rustls_pv_publish.sh
+  artifacts:
+    when: on_success
+    expire_in: 1 week
+    paths:
+      - .cache/rustls-platform-verifier/*.aar
+      - .cache/rustls-platform-verifier/*.pom
+
 security:gitleaks:
   extends: .xinyi_ci_rules
   image:
@@ -711,7 +815,7 @@ security:gitleaks:
 
 android:release:guard:
   extends: .magisk_android_release_guard
-  stage: release-validate
+  stage: build
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs: []
@@ -730,7 +834,7 @@ android:release:github-apk:
     - !reference [.magisk_android_base, before_script]
     - *xinyi_decode_google_services
   resource_group: xinyi-android-release-apk
-  stage: release-build
+  stage: build
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
@@ -750,7 +854,7 @@ android:release:play-bundle:
     - .magisk_android_base
     - .magisk_android_release_tag_rules
   resource_group: xinyi-android-release-play
-  stage: release-build
+  stage: build
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   rules:
@@ -801,7 +905,7 @@ android:release:play-bundle:
 android:release:gitlab:
   extends: .magisk_android_gitlab_release
   resource_group: xinyi-android-release-publish
-  stage: release-publish
+  stage: release
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
@@ -814,7 +918,7 @@ android:release:gitlab:
 android:release:play:
   extends: .magisk_android_publish_play
   resource_group: xinyi-android-release-play
-  stage: release-publish
+  stage: release
   # Play publishing is best effort: a Play-side block (policy review,
   # accessibility permission declaration, track rejection) must not hold back
   # the remaining release channels or the Telegram release notification.
@@ -840,7 +944,7 @@ android:release:play:
 android:ci:play-beta-bundle:
   extends: .magisk_android_base
   resource_group: xinyi-android-release-play
-  stage: release-build
+  stage: build
   tags:
     - $XINYI_BUNDLE_RUNNER_TAG
   # The release build is self-contained (keystore and google-services.json
@@ -877,9 +981,10 @@ android:ci:play-beta-bundle:
       - play-release.env
 
 android:ci:play-beta:
-  extends: .magisk_android_base
+  extends: .magisk_utility_base
   resource_group: xinyi-android-release-play
-  stage: release-publish
+  stage: release
+  interruptible: false
   tags:
     - $XINYI_BUILD_RUNNER_TAG
   rules:
@@ -894,6 +999,17 @@ android:ci:play-beta:
   needs:
     - job: android:ci:play-beta-bundle
       artifacts: true
+  # .magisk_utility_base ships the image only, and this job runs
+  # release/publish_play.sh from the toolkit, so resolve the toolkit here with
+  # the same contract .magisk_linux_base uses. bash/curl/python3/jq/openssl are
+  # pre-baked into utility:3.24; only the toolkit checkout was missing.
+  variables:
+    MAGISK_CI_TOOLKIT_DIR: "$CI_PROJECT_DIR/.magisk-ci-toolkit"
+  before_script:
+    - |
+      set -euo pipefail
+      chmod +x scripts/resolve_ci_toolkit.sh
+      bash scripts/resolve_ci_toolkit.sh >/dev/null
   script:
     - |
       set -euo pipefail
@@ -919,7 +1035,7 @@ android:release:modules-repo:
   # the template's APK lookup fail with "no release APK files found".
   extends: .magisk_android_publish_modules_repo
   resource_group: xinyi-android-release-publish
-  stage: release-publish
+  stage: release
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
@@ -929,7 +1045,7 @@ android:release:modules-repo:
 
 telegram:release:
   extends: .magisk_telegram_release
-  stage: notify
+  stage: release
   allow_failure: true
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
@@ -952,7 +1068,7 @@ telegram:ci:
   extends:
     - .magisk_telegram_ci
     - .xinyi_signed_android_rules
-  stage: notify
+  stage: release
   allow_failure: true
   rules:
     - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_AUTHOR =~ /Renovate317@users.noreply/ && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != ""'
@@ -986,7 +1102,7 @@ renovate:gitlab:
 android:release:github:
   extends: .magisk_android_release_github
   resource_group: xinyi-android-release-publish
-  stage: release-publish
+  stage: release
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   variables:
@@ -1006,7 +1122,7 @@ android:release:github:
 # tag pipelines fall back to the project-level GITHUB_RELEASE_TOKEN.
 sync:github:
   extends: .magisk_utility_base
-  stage: sync
+  stage: release
   needs:
     - job: android:release:guard
       optional: true
@@ -1031,3 +1147,11 @@ sync:github:
       else
         git push github "HEAD:refs/heads/$CI_COMMIT_BRANCH" --force
       fi
+
+# Scheduled/manual README badge sync (replaces the retired GitHub workflow).
+sync:readme-badges:
+  extends:
+    - .magisk_utility_base
+    - .magisk_readme_badges
+  tags:
+    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG

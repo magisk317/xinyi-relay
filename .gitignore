@@ -89,3 +89,9 @@ __pycache__/
 # Patch & merge artifacts
 *.orig
 *.patch
+
+# CI build cache (rustls-platform-verifier publish workspace)
+.cache/
+
+# CI input, not a merge artifact -- keep it tracked despite *.patch above
+!scripts/ci/rustls_pv_toolchain.patch

@@ -3,6 +3,7 @@ package io.github.magisk317.relay.ui.app
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.uikit.entitlement.MobileGate
 import io.github.magisk317.relay.android.prefs.RelayPreferenceHooks
+import io.github.magisk317.relay.security.CiUpdateGateVault
 import android.app.Application
 import android.app.Activity
 import android.os.Bundle
@@ -69,9 +70,18 @@ class SmsCodeApplication : Application() {
         koin.get<InfrastructureInitializer>().init(this)
         val initializers = koin.getAll<AppInitializer>().filterNot { it is InfrastructureInitializer }
         initializers.forEach { it.init(this) }
+        val isCiOrDebug = BuildConfig.DEBUG ||
+            BuildConfig.VERSION_NAME.contains("-202") ||
+            BuildConfig.VERSION_NAME.contains("-test") ||
+            BuildConfig.VERSION_NAME.contains("-ci")
         if (BuildConfig.ENABLE_MOBILE_ENTITLEMENT) {
+            // entitlement stays initialized on every distribution flavor
             MobileEntitlementCoordinator.initialize(this, applicationScope)
             registerEntitlementForegroundRefresh()
+        }
+        // vault restore is limited to CI/debug builds: release never unseals automatically
+        if (isCiOrDebug) {
+            CiUpdateGateVault.restoreIfEligible(this)
         }
     }
 

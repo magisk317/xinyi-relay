@@ -474,6 +474,7 @@ object MatrixE2eeRuntime : MatrixE2eeSender {
             }
             is QueueWedgeError.GenericApiError -> "GenericApiError msg=${error.msg}"
             is QueueWedgeError.CrossVerificationRequired -> "CrossVerificationRequired"
+            is QueueWedgeError.ExpiredAccessToken -> "ExpiredAccessToken"
             is QueueWedgeError.InvalidMimeType -> "InvalidMimeType"
             is QueueWedgeError.MissingMediaContent -> "MissingMediaContent"
         }
