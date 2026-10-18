@@ -3,6 +3,13 @@
 本日志记录了项目近期的主要变更。 
 
 ---
+## [v0.4.1] - Unreleased
+- 版本：`versionCode 54` / `versionName 0.4.1`。
+- 下一轮开发占位，发布前补充具体变更。
+
+> Full Changelog: https://gitlab.com/magisk3171/xinyi-relay/-/compare/v0.4.0...v0.4.1
+
+---
 ## [v0.4.0] - 2026-10-18
 - 版本：`versionCode 53` / `versionName 0.4.0`。
 - `[feat]` 更新支持 OTA 与分发渠道分流。
