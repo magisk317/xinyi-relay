@@ -10,7 +10,7 @@ buildscript {
             // not reach the plugin classpath). Deliberately outside the managed
             // block: the dependency-force workflow rewrites that block wholesale
             // and would drop the comment on its next run.
-            force("org.ow2.asm:asm:9.11")
+            force("org.ow2.asm:asm:9.11.1")
             force("org.ow2.asm:asm-analysis:9.11")
             force("org.ow2.asm:asm-commons:9.11")
             force("org.ow2.asm:asm-tree:9.11")
