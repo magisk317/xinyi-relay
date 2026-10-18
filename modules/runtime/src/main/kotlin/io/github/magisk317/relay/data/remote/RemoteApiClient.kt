@@ -6,6 +6,8 @@ import io.github.magisk317.relay.contract.remote.AgentConfigCommandsPullResponse
 import io.github.magisk317.relay.contract.remote.AgentConfigMirrorRequest
 import io.github.magisk317.relay.contract.remote.AgentRegisterRequest
 import io.github.magisk317.relay.contract.remote.AgentRegisterResponse
+import io.github.magisk317.relay.contract.remote.DeviceActionAckRequest
+import io.github.magisk317.relay.contract.remote.DeviceActionCommandResponse
 import io.github.magisk317.relay.contract.remote.DeviceConfigCommandResponse
 import io.github.magisk317.relay.contract.remote.DeviceConfigStateResponse
 import io.github.magisk317.relay.contract.remote.HeartbeatRequest
@@ -46,6 +48,12 @@ interface RemoteAgentApi {
         deviceToken: String,
         request: AgentConfigCommandsAckRequest,
     ): DeviceConfigCommandResponse
+
+    fun ackDeviceAction(
+        baseUrl: String,
+        deviceToken: String,
+        request: DeviceActionAckRequest,
+    ): DeviceActionCommandResponse
 
     fun uploadRelayRecords(
         baseUrl: String,
@@ -130,6 +138,22 @@ internal class RemoteApiClient(
                 .build(),
             deserializer = DeviceConfigCommandResponse.serializer(),
             failureLabel = "ack_command",
+        )
+    }
+
+    override fun ackDeviceAction(
+        baseUrl: String,
+        deviceToken: String,
+        request: DeviceActionAckRequest,
+    ): DeviceActionCommandResponse {
+        return executeJson(
+            request = Request.Builder()
+                .url("$baseUrl/api/v1/agent/actions:ack")
+                .bearer(deviceToken)
+                .post(jsonBody(DeviceActionAckRequest.serializer(), request))
+                .build(),
+            deserializer = DeviceActionCommandResponse.serializer(),
+            failureLabel = "ack_action",
         )
     }
 

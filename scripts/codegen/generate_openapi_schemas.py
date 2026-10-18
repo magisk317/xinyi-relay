@@ -60,6 +60,10 @@ ROOT_SCHEMAS = {
     "DeviceConfigCommandRequest": "DeviceConfigCommandRequest",
     "DeviceConfigAuditLogItem": "DeviceConfigAuditLogItem",
     "DeviceConfigAuditLogsResponse": "DeviceConfigAuditLogsResponse",
+    "DeviceActionRequest": "DeviceActionRequest",
+    "DeviceActionCommandItem": "DeviceActionCommandResponse",
+    "DeviceActionsResponse": "DeviceActionsResponse",
+    "DeviceActionAckRequest": "DeviceActionAckRequest",
     "RelayRecordWire": "RelayRecordWire",
     "RelayRecord": "RelayRecord",
     "RecordsResponse": "RecordsResponse",
@@ -71,6 +75,7 @@ ROOT_SCHEMAS = {
 REF_ALIASES = {
     "DeviceConfigCommandResponse": "DeviceConfigCommandItem",
     "DeviceConfigStateResponse": "DeviceConfigStateResponse",
+    "DeviceActionCommandResponse": "DeviceActionCommandItem",
 }
 
 REQUIRED_FIELD_OVERRIDES: dict[str, set[str]] = {
@@ -169,6 +174,26 @@ REQUIRED_FIELD_OVERRIDES: dict[str, set[str]] = {
         "logs",
         "limit",
         "offset",
+    },
+    "DeviceActionItem": {
+        "id",
+        "action",
+        "params",
+        "status",
+        "actorType",
+        "actorId",
+        "createdAt",
+    },
+    "DeviceActionRequest": {
+        "action",
+        "params",
+    },
+    "DeviceActionsResponse": {
+        "actions",
+    },
+    "DeviceActionAckRequest": {
+        "actionId",
+        "status",
     },
     "AgentConfigCommandsPullResponse": {
         "deviceId",

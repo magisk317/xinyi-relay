@@ -45,6 +45,8 @@ dependencies {
     implementation(project(":mobile:feature:common"))
     implementation(project(":smscode-core:runtime"))
     implementation(project(":smscode-core:db"))
+    implementation(project(":runtime"))
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.material.icons.core)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.koin.android)

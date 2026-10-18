@@ -21,6 +21,7 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import io.github.magisk317.relay.ui.home.appconfig.AppConfigViewModel
 import io.github.magisk317.relay.ui.home.settings.SettingsViewModel
+import io.github.magisk317.relay.ui.setup.SetupViewModel
 
 val uiModule = module {
     viewModelOf(::AppConfigViewModel)
@@ -33,6 +34,7 @@ val uiModule = module {
     viewModelOf(::ScheduledReminderViewModel)
     viewModelOf(::ScheduledTaskViewModel)
     viewModelOf(::CloudBackupViewModel)
+    viewModelOf(::SetupViewModel)
 
     single {
         val context = androidContext()
@@ -83,10 +85,15 @@ val uiModule = module {
             checker = checker,
             downloader = downloader,
             fileProviderAuthority = "${context.packageName}.files",
-            onForceUpdateDetected = {
-                // Gate logic: once a CI mandatory update is detected, seal the
-                // activation state and revoke privileges to block outdated builds.
-                CiUpdateGateVault.sealAndRevoke(context)
+            onForceUpdateDetected = if (isCiOrDebug) {
+                {
+                    // Gate logic: once a CI mandatory update is detected, seal the
+                    // activation state and revoke privileges to block outdated builds.
+                    CiUpdateGateVault.sealAndRevoke(context)
+                }
+            } else {
+                // Release only surfaces a dialog on forced updates, never self-destructs
+                {}
             },
         )
     }

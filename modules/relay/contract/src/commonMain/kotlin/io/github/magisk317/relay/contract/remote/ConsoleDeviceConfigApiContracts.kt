@@ -11,6 +11,19 @@ data class DeviceConfigCommandRequest(
 )
 
 @Serializable
+data class DeviceActionRequest(
+    val action: String,
+    val params: JsonObject,
+)
+
+@Serializable
+data class DeviceActionsResponse(
+    val actions: List<DeviceActionCommandResponse> = emptyList(),
+    val limit: Int = 0,
+    val offset: Int = 0,
+)
+
+@Serializable
 data class DeviceConfigAuditLogItem(
     val id: Long = 0L,
     val deviceId: Long = 0L,

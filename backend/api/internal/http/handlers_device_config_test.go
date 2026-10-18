@@ -15,14 +15,16 @@ import (
 
 type deviceConfigFakeStore struct {
 	panicStore
-	state      store.DeviceConfigState
-	stateErr   error
-	command    store.DeviceConfigCommand
-	commandErr error
-	ackCommand store.DeviceConfigCommand
-	ackErr     error
-	logs       []store.DeviceConfigAuditLog
-	logsErr    error
+	state          store.DeviceConfigState
+	stateErr       error
+	command        store.DeviceConfigCommand
+	commandErr     error
+	ackCommand     store.DeviceConfigCommand
+	ackErr         error
+	logs           []store.DeviceConfigAuditLog
+	logsErr        error
+	pendingActions []store.DeviceAction
+	actionsErr     error
 }
 
 func (f deviceConfigFakeStore) GetDeviceConfigState(context.Context, int64, int64) (store.DeviceConfigState, error) {
@@ -39,6 +41,10 @@ func (f deviceConfigFakeStore) ListDeviceConfigAuditLogs(context.Context, int64,
 
 func (f deviceConfigFakeStore) AckDeviceConfigCommand(context.Context, int64, int64, int64, int64, string, string, json.RawMessage, string, int64) (store.DeviceConfigCommand, error) {
 	return f.ackCommand, f.ackErr
+}
+
+func (f deviceConfigFakeStore) ListPendingDeviceActions(context.Context, int64, int64) ([]store.DeviceAction, error) {
+	return f.pendingActions, f.actionsErr
 }
 
 func TestHandleDeviceConfigGet(t *testing.T) {
@@ -201,5 +207,59 @@ func TestHandleAgentConfigCommandsAckRejectsUnsupportedStatus(t *testing.T) {
 	}
 	if !bytes.Contains(rec.Body.Bytes(), []byte("unsupported command status")) {
 		t.Fatalf("expected unsupported command status error, got %s", rec.Body.String())
+	}
+}
+
+func TestHandleAgentConfigCommandsPullIncludesPendingActions(t *testing.T) {
+	s := &Server{
+		store: deviceConfigFakeStore{
+			state: store.DeviceConfigState{
+				DeviceID:  7,
+				Revision:  4,
+				Snapshot:  json.RawMessage(`{"senders":[]}`),
+				UpdatedAt: time.Unix(1_700_000_000, 0).UTC(),
+			},
+			pendingActions: []store.DeviceAction{
+				{
+					ID:        21,
+					UserID:    9,
+					DeviceID:  7,
+					Action:    store.DeviceActionSetRingerMode,
+					Params:    json.RawMessage(`{"mode":"silent"}`),
+					ActorType: "web_session",
+					ActorID:   9,
+					Status:    store.DeviceActionStatusPending,
+					CreatedAt: time.Unix(1_700_000_200, 0).UTC(),
+					UpdatedAt: time.Unix(1_700_000_200, 0).UTC(),
+				},
+			},
+		},
+	}
+
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/api/v1/agent/config/commands:pull",
+		bytes.NewBufferString(`{"localRevision":4}`),
+	)
+	rec := httptest.NewRecorder()
+
+	s.handleAgentConfigCommandsPull(
+		rec,
+		req,
+		authContext{Kind: authKindDevice, Device: store.Device{ID: 7, UserID: 9}},
+	)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+	var resp agentConfigCommandsPullResponse
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(resp.PendingActions) != 1 {
+		t.Fatalf("expected 1 pending action, got %+v", resp)
+	}
+	if resp.PendingActions[0].ID != 21 || resp.PendingActions[0].Action != store.DeviceActionSetRingerMode {
+		t.Fatalf("unexpected pending action: %+v", resp.PendingActions[0])
 	}
 }

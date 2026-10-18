@@ -58,6 +58,12 @@
           }
         ]
       },
+      "pendingActions": {
+        "items": {
+          "$ref": "#/components/schemas/DeviceActionCommandItem"
+        },
+        "type": "array"
+      },
       "pendingCommands": {
         "items": {
           "$ref": "#/components/schemas/DeviceConfigCommandItem"
@@ -312,6 +318,103 @@
       "refreshExpiresAt",
       "refreshToken",
       "username"
+    ],
+    "type": "object"
+  },
+  "DeviceActionAckRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "actionId": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "failureReason": {
+        "type": "string"
+      },
+      "status": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "actionId",
+      "status"
+    ],
+    "type": "object"
+  },
+  "DeviceActionCommandItem": {
+    "additionalProperties": false,
+    "properties": {
+      "action": {
+        "type": "string"
+      },
+      "actorId": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "actorType": {
+        "type": "string"
+      },
+      "createdAt": {
+        "type": "string"
+      },
+      "failureReason": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "id": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "params": {
+        "$ref": "#/components/schemas/JsonObject"
+      },
+      "status": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "params"
+    ],
+    "type": "object"
+  },
+  "DeviceActionRequest": {
+    "additionalProperties": false,
+    "properties": {
+      "action": {
+        "type": "string"
+      },
+      "params": {
+        "$ref": "#/components/schemas/JsonObject"
+      }
+    },
+    "required": [
+      "action",
+      "params"
+    ],
+    "type": "object"
+  },
+  "DeviceActionsResponse": {
+    "additionalProperties": false,
+    "properties": {
+      "actions": {
+        "items": {
+          "$ref": "#/components/schemas/DeviceActionCommandItem"
+        },
+        "type": "array"
+      },
+      "limit": {
+        "format": "int64",
+        "type": "integer"
+      },
+      "offset": {
+        "format": "int64",
+        "type": "integer"
+      }
+    },
+    "required": [
+      "actions"
     ],
     "type": "object"
   },

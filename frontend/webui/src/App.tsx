@@ -5,6 +5,7 @@ import { AppLayout } from './layout'
 import { AdvancedPage } from './pages/AdvancedPage'
 import { AnalyticsPage } from './pages/AnalyticsPage'
 import { AppsPage } from './pages/AppsPage'
+import { DeviceControlPage } from './pages/DeviceControlPage'
 import { LoginPage } from './pages/LoginPage'
 import { ScheduledTasksPage } from './pages/ScheduledTasksPage'
 import { OverviewPage } from './pages/OverviewPage'
@@ -59,6 +60,7 @@ function AppRoutes() {
         <Route path="/senders" element={<SendersPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/advanced" element={<AdvancedPage />} />
+        <Route path="/device-control" element={<DeviceControlPage />} />
         <Route path="/scheduled-tasks" element={<ScheduledTasksPage />} />
         <Route path="/" element={<Navigate to="/overview" replace />} />
       </Route>

@@ -98,6 +98,7 @@ internal fun SettingsFeaturesSection(
     onVerificationEnabledChange: (Boolean) -> Unit,
     onOpenAdvancedRelay: () -> Unit,
     onRelayEnabledChange: (Boolean) -> Unit,
+    onOpenDeviceControl: () -> Unit,
 ) {
     SectionCard(
         title = stringResource(id = R.string.settings_group_features),
@@ -119,6 +120,11 @@ internal fun SettingsFeaturesSection(
             checked = relay.relayFeaturesEnabled,
             onClick = onOpenAdvancedRelay,
             onCheckedChange = onRelayEnabledChange,
+        )
+        AppArrowItem(
+            title = stringResource(id = R.string.device_control_entry_title),
+            summary = stringResource(id = R.string.device_control_entry_summary),
+            onClick = onOpenDeviceControl,
         )
     }
 }

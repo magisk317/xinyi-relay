@@ -74,6 +74,7 @@ func NewServer(ctx context.Context, cfg config.Config) (*Server, error) {
 	mux.HandleFunc("/api/v1/agent/config/mirror", s.withDevice(s.handleAgentConfigMirror))
 	mux.HandleFunc("/api/v1/agent/config/commands:pull", s.withDevice(s.handleAgentConfigCommandsPull))
 	mux.HandleFunc("/api/v1/agent/config/commands:ack", s.withDevice(s.handleAgentConfigCommandsAck))
+	mux.HandleFunc("/api/v1/agent/actions:ack", s.withDevice(s.handleAgentDeviceActionAck))
 	mux.HandleFunc("/api/v1/agent/records:batch", s.withDevice(s.handleAgentRecordsBatch))
 	mux.HandleFunc("/api/v1/devices", s.withConsoleAuth(s.handleDevices))
 	mux.HandleFunc("/api/v1/devices/", s.withConsoleAuth(s.handleDeviceByID))

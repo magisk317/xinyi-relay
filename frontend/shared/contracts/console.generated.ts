@@ -17,6 +17,7 @@ export interface AgentConfigCommandsPullRequest {
 export interface AgentConfigCommandsPullResponse {
   deviceId: number
   mirrorContent?: JsonObject | null
+  pendingActions?: Array<DeviceActionCommandItem>
   pendingCommands: Array<DeviceConfigCommandItem>
   revision: number
   updatedAt: string
@@ -90,6 +91,34 @@ export interface DesktopSessionResponse {
   refreshExpiresAt: string
   refreshToken: string
   username: string
+}
+
+export interface DeviceActionAckRequest {
+  actionId: number
+  failureReason?: string
+  status: string
+}
+
+export interface DeviceActionCommandItem {
+  action?: string
+  actorId?: number
+  actorType?: string
+  createdAt?: string
+  failureReason?: string | null
+  id?: number
+  params: JsonObject
+  status?: string
+}
+
+export interface DeviceActionRequest {
+  action: string
+  params: JsonObject
+}
+
+export interface DeviceActionsResponse {
+  actions: Array<DeviceActionCommandItem>
+  limit?: number
+  offset?: number
 }
 
 export interface DeviceConfigAuditLogItem {
