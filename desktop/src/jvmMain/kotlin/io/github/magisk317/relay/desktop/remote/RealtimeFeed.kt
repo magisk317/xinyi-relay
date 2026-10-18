@@ -4,7 +4,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import io.github.magisk317.relay.contract.remote.RealtimeEvent
-import io.github.magisk317.relay.net.RelayHttpClients
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,12 +27,27 @@ import okhttp3.WebSocketListener
 class DesktopRealtimeFeed(
     private val baseUrlProvider: () -> String?,
     private val tokenProvider: () -> String?,
+    /** Whether the active profile accepts a self-signed console certificate. */
+    private val allowSelfSignedProvider: () -> Boolean = { false },
 ) {
     private val json = Json { ignoreUnknownKeys = true }
 
-    private val client: OkHttpClient = RelayHttpClients.newBuilder()
-        .readTimeout(0, TimeUnit.MILLISECONDS)
-        .build()
+    // The feed outlives profile switches, so the client is rebuilt when the
+    // TLS override changes instead of pinning the flag read at construction.
+    private var clientAllowSelfSigned: Boolean? = null
+    private var client: OkHttpClient? = null
+
+    private fun currentClient(): OkHttpClient {
+        val allowSelfSigned = allowSelfSignedProvider()
+        client?.let { if (clientAllowSelfSigned == allowSelfSigned) return it }
+        return SelfSignedTls.newBuilder(allowSelfSigned)
+            .readTimeout(0, TimeUnit.MILLISECONDS)
+            .build()
+            .also {
+                client = it
+                clientAllowSelfSigned = allowSelfSigned
+            }
+    }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -70,7 +84,7 @@ class DesktopRealtimeFeed(
         } + REALTIME_PATH
         val builder = Request.Builder().url(wsUrl)
         tokenProvider()?.let { builder.header("Authorization", "Bearer $it") }
-        socket = client.newWebSocket(builder.build(), listener)
+        socket = currentClient().newWebSocket(builder.build(), listener)
     }
 
     private val listener = object : WebSocketListener() {

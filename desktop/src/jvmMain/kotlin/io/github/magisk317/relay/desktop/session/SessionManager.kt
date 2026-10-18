@@ -2,6 +2,7 @@ package io.github.magisk317.relay.desktop.session
 
 import io.github.magisk317.relay.contract.remote.DesktopSessionResponse
 import io.github.magisk317.relay.desktop.remote.ConsoleClient
+import io.github.magisk317.relay.desktop.remote.SelfSignedTls
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
@@ -9,7 +10,9 @@ import java.time.temporal.ChronoUnit
 class SessionManager(private val store: ProfileStore) {
 
     fun clientFor(profile: DesktopProfile): ConsoleClient {
-        val client = ConsoleClient(profile.baseUrl)
+        // The profile's TLS override rides the client built for it; a profile
+        // without the flag keeps the shared system-trust-store client.
+        val client = ConsoleClient(profile.baseUrl, SelfSignedTls.client(profile.allowSelfSigned))
         store.loadSession(profile.id)?.let { client.accessToken = it.accessToken }
         return client
     }

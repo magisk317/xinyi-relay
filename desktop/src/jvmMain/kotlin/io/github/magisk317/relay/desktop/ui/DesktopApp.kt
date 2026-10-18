@@ -34,6 +34,7 @@ import io.github.magisk317.relay.desktop.platform.AwtTray
 import io.github.magisk317.relay.desktop.platform.TrayAction
 import io.github.magisk317.relay.desktop.platform.TrayMenu
 import io.github.magisk317.relay.desktop.remote.DesktopRealtimeFeed
+import io.github.magisk317.relay.desktop.remote.SelfSignedTls
 import io.github.magisk317.relay.desktop.session.DesktopConsoleState
 import io.github.magisk317.relay.desktop.session.DesktopRunMode
 import io.github.magisk317.relay.desktop.session.collectDiagnostics
@@ -63,6 +64,7 @@ fun DesktopApp(window: java.awt.Window, windowState: WindowState, onQuit: () -> 
         DesktopRealtimeFeed(
             baseUrlProvider = { session.activeProfile?.baseUrl },
             tokenProvider = { session.currentClient()?.accessToken },
+            allowSelfSignedProvider = { session.activeProfile?.allowSelfSigned == true },
         )
     }
     LaunchedEffect(session.authenticated, session.runMode) {
@@ -127,7 +129,13 @@ fun DesktopApp(window: java.awt.Window, windowState: WindowState, onQuit: () -> 
             // user signs in again; bootstrap the shell from that mirror.
             if (session.runMode == DesktopRunMode.Local) console.bootstrap()
         } else if (session.runMode.usesLocalMirror && session.authenticated && mirrorProfile != null && client != null) {
-            val remote = OkHttpRemoteStore(baseUrl = mirrorProfile.baseUrl)
+            val remote = OkHttpRemoteStore(
+                baseUrl = mirrorProfile.baseUrl,
+                client = SelfSignedTls.client(
+                    mirrorProfile.allowSelfSigned,
+                    OkHttpRemoteStore.defaultClient(),
+                ),
+            )
             client.accessToken?.let { remote.setAccessToken(it) }
             localSync.start(remote)
             // Re-read once the mirror is live: the shell's first bootstrap
