@@ -4,7 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.xposed.logging.MagiskOtel
 
 object BatteryReminderForegroundMonitor {
@@ -51,7 +51,7 @@ object BatteryReminderForegroundMonitor {
         runCatching {
             receiver?.let { appContext.unregisterReceiver(it) }
         }.onFailure {
-            XLog.w("Battery reminder foreground monitor stop failed: %s", it.message ?: "unknown")
+            XLog.w(message = "Battery reminder foreground monitor stop failed: %s", it.message ?: "unknown")
         }
         receiver = null
         registered = false

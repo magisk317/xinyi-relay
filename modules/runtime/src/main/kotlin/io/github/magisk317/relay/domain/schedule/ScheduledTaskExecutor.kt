@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.domain.schedule
 
 import android.content.Context
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
@@ -123,7 +123,7 @@ object ScheduledTaskExecutor {
                             statusOk = true,
                         )
                     }.onFailure {
-                        XLog.e("ScheduledTask $taskId SMS failed", it)
+                        XLog.e(message = "ScheduledTask $taskId SMS failed", it)
                         val attrs = mutableMapOf(
                             "result" to "error",
                             "duration_ms" to "0",

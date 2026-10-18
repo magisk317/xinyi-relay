@@ -5,7 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.provider.CallLog
 import androidx.core.content.ContextCompat
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import kotlin.math.abs
 
 internal object CallLogQueryHelper {
@@ -34,7 +34,7 @@ internal object CallLogQueryHelper {
         return runCatching {
             queryRecentCall(context, expectedCallType, sessionStartedAt, startWindow, endWindow)
         }.onFailure { error ->
-            XLog.w("CallLog query failed: %s", error.message ?: error.javaClass.simpleName)
+            XLog.w(message = "CallLog query failed: %s", error.message ?: error.javaClass.simpleName)
         }.getOrNull()
     }
 

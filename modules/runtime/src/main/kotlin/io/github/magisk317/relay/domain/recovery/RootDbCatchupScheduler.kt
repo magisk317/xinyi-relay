@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.domain.recovery
 
 import android.content.Context
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
@@ -27,7 +27,7 @@ object RootDbCatchupScheduler {
             return
         }
         periodicJob = scope.launch {
-            XLog.i("Root DB catchup periodic started reason=%s", reason)
+            XLog.i(message = "Root DB catchup periodic started reason=%s", reason)
             MagiskOtel.event(
                 name = "app.recovery",
                 attributes = mapOf(
@@ -59,7 +59,7 @@ object RootDbCatchupScheduler {
         val job = periodicJob ?: return
         job.cancel()
         periodicJob = null
-        XLog.i("Root DB catchup periodic stopped reason=%s", reason)
+        XLog.i(message = "Root DB catchup periodic stopped reason=%s", reason)
         MagiskOtel.event(
             name = "app.recovery",
             attributes = mapOf(

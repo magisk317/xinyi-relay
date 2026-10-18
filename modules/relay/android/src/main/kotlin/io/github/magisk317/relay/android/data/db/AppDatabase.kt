@@ -27,7 +27,7 @@ import io.github.magisk317.smscode.db.entity.NotifyRouteRule
 import io.github.magisk317.smscode.db.entity.SmsCodeRule
 import io.github.magisk317.smscode.db.entity.SmsMsg
 import io.github.magisk317.relay.android.data.db.entity.SenderDispatchLog
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.db.entity.ScheduledTaskEntity
 import io.github.magisk317.relay.android.data.db.entity.SmsBlacklistHit
 
@@ -1061,9 +1061,9 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL(sql)
             } catch (e: SQLiteException) {
                 if (isIdempotent) {
-                    XLog.w("Room migration %s skipped idempotent SQL: %s (%s)", migration, sql, e.message ?: "unknown")
+                    XLog.w(message = "Room migration %s skipped idempotent SQL: %s (%s)", migration, sql, e.message ?: "unknown")
                 } else {
-                    XLog.e("Room migration %s failed on SQL: %s", e, migration, sql)
+                    XLog.e(message = "Room migration %s failed on SQL: %s", e, migration, sql)
                     throw e
                 }
             }
@@ -1138,7 +1138,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.deleteDatabase(DATABASE_NAME)
                 }
             }.onFailure { e ->
-                XLog.e("Database integrity check threw, deleting corrupted database", e)
+                XLog.e(message = "Database integrity check threw, deleting corrupted database", e)
                 context.deleteDatabase(DATABASE_NAME)
             }
         }
@@ -1171,14 +1171,14 @@ abstract class AppDatabase : RoomDatabase() {
                     source.delete()
                 }.onFailure {
                     XLog.w(
-                        "Failed to migrate previous db file %s -> %s (%s)",
+                        message = "Failed to migrate previous db file %s -> %s (%s)",
                         source.absolutePath,
                         target.absolutePath,
                         it.message ?: "unknown",
                     )
                 }
             } else {
-                XLog.i("Migrated previous db file: %s -> %s", previousName, targetName)
+                XLog.i(message = "Migrated previous db file: %s -> %s", previousName, targetName)
             }
         }
 

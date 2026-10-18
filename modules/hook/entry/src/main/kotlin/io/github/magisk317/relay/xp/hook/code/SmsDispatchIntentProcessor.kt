@@ -10,7 +10,7 @@ import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xpbridge.XpSmsBlacklist
 import io.github.magisk317.smscode.runtime.verification.SmsDispatchIntentProcessor as SharedSmsDispatchIntentProcessor
 import io.github.magisk317.smscode.runtime.verification.SmsHandlerDispatchDecision
-import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.smscode.verification.BlacklistMatchResult
 
 internal class SmsDispatchIntentProcessor(
@@ -42,20 +42,20 @@ internal class SmsDispatchIntentProcessor(
             )
             if (!dispatchResult.dispatched) {
                 XLog.e(
-                    "SmsDispatchIntentProcessor: IPC token empty, skip direct sms forward. event_id=%s",
+                    message = "SmsDispatchIntentProcessor: IPC token empty, skip direct sms forward. event_id=%s",
                     eventId,
                 )
                 false
             } else {
                 if (dispatchResult.bypassUsed) {
                     XLog.w(
-                        "SmsDispatchIntentProcessor: IPC token empty, continue with receiver-side bypass. event_id=%s uid=%d",
+                        message = "SmsDispatchIntentProcessor: IPC token empty, continue with receiver-side bypass. event_id=%s uid=%d",
                         eventId,
                         Process.myUid(),
                     )
                 }
                 XLog.i(
-                    "SmsDispatchIntentProcessor dispatched parsed sms forward: event_id=%s code_present=%s tokenPresent=%s",
+                    message = "SmsDispatchIntentProcessor dispatched parsed sms forward: event_id=%s code_present=%s tokenPresent=%s",
                     eventId,
                     prepared.smsMsg.smsCode?.isNotBlank() == true,
                     dispatchResult.tokenPresent,

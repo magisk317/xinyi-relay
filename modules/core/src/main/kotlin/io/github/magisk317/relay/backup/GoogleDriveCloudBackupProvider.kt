@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.backup
 
 import android.content.Context
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.auth.AuthManager
 import io.github.magisk317.relay.backup.drive.GoogleDriveBackupConfig
 import kotlinx.coroutines.Dispatchers
@@ -73,7 +73,7 @@ class GoogleDriveCloudBackupProvider(
     private fun <T> Result<T>.logFailure(operation: String): Result<T> {
         return onFailure { throwable ->
             XLog.e(
-                "Google Drive %s backup failed: %s",
+                message = "Google Drive %s backup failed: %s",
                 operation,
                 throwable.message ?: throwable.javaClass.simpleName,
             )

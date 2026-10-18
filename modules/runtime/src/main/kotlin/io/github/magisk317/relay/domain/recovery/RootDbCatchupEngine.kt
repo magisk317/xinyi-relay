@@ -5,7 +5,7 @@ import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.sms.SmsCodeUtils
 import io.github.magisk317.relay.android.common.utils.CallSessionTracker
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.dao.SmsMsgDao
 import io.github.magisk317.smscode.db.entity.SmsMsg
@@ -15,6 +15,7 @@ import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
 import io.github.magisk317.xposed.logging.MagiskOtel
+import android.util.Log
 
 // Recovery runtime for Root DB catchup. Emits RelayEvent into the main pipeline.
 internal object RootDbCatchupEngine {
@@ -77,9 +78,8 @@ internal object RootDbCatchupEngine {
     suspend fun runOnce(context: Context, reason: String) {
         val appContext = context.applicationContext ?: context
         if (!running.compareAndSet(false, true)) {
-            XLog.d(
-                LogRoute.ROOT_DB,
-                "Root DB catchup skipped: previous run still active reason=%s",
+            XLog.log(
+                Log.DEBUG, LogRoute.ROOT_DB.id, false, true, "Root DB catchup skipped: previous run still active reason=%s",
                 reason,
             )
             MagiskOtel.event(
@@ -101,9 +101,8 @@ internal object RootDbCatchupEngine {
             val outcome = runCatching { runCatchup(appContext, reason) }
             val durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L)
             outcome.onFailure { throwable ->
-                XLog.w(
-                    LogRoute.ROOT_DB,
-                    "Root DB catchup failed: reason=%s err=%s",
+                XLog.log(
+                    Log.WARN, LogRoute.ROOT_DB.id, true, true, "Root DB catchup failed: reason=%s err=%s",
                     reason,
                     throwable.message ?: throwable.javaClass.simpleName,
                 )
@@ -143,17 +142,15 @@ internal object RootDbCatchupEngine {
             return
         }
         if (!RootShellExecutor.canUseRoot()) {
-            XLog.d(
-                LogRoute.ROOT_DB,
-                "Root DB catchup disabled for this run: su unavailable reason=%s",
+            XLog.log(
+                Log.DEBUG, LogRoute.ROOT_DB.id, false, true, "Root DB catchup disabled for this run: su unavailable reason=%s",
                 reason,
             )
             return
         }
         if (!RootShellExecutor.hasSqlite3()) {
-            XLog.d(
-                LogRoute.ROOT_DB,
-                "Root DB catchup disabled for this run: sqlite3 unavailable reason=%s",
+            XLog.log(
+                Log.DEBUG, LogRoute.ROOT_DB.id, false, true, "Root DB catchup disabled for this run: sqlite3 unavailable reason=%s",
                 reason,
             )
             return
@@ -188,9 +185,8 @@ internal object RootDbCatchupEngine {
                     relayKeywords = relayKeywords,
                 )
             }.onFailure {
-                XLog.w(
-                    LogRoute.ROOT_DB,
-                    "Root DB catchup sms row failed: id=%d err=%s",
+                XLog.log(
+                    Log.WARN, LogRoute.ROOT_DB.id, true, true, "Root DB catchup sms row failed: id=%d err=%s",
                     row.id,
                     it.message ?: it.javaClass.simpleName,
                 )
@@ -211,9 +207,8 @@ internal object RootDbCatchupEngine {
                     writeback = writeback,
                 )
             }.onFailure {
-                XLog.w(
-                    LogRoute.ROOT_DB,
-                    "Root DB catchup call row failed: id=%d err=%s",
+                XLog.log(
+                    Log.WARN, LogRoute.ROOT_DB.id, true, true, "Root DB catchup call row failed: id=%d err=%s",
                     row.id,
                     it.message ?: it.javaClass.simpleName,
                 )
@@ -222,9 +217,8 @@ internal object RootDbCatchupEngine {
         stateStore.writeWatermark(PrefConst.KEY_INTERNAL_ROOT_DB_LAST_CALL_ID, lastCallId)
 
         if (smsRows.isNotEmpty() || callRows.isNotEmpty()) {
-            XLog.i(
-                LogRoute.ROOT_DB,
-                "Root DB catchup done reason=%s sms=%d call=%d lastSms=%d lastCall=%d",
+            XLog.log(
+                Log.INFO, LogRoute.ROOT_DB.id, false, true, "Root DB catchup done reason=%s sms=%d call=%d lastSms=%d lastCall=%d",
                 reason,
                 smsRows.size,
                 callRows.size,
@@ -240,9 +234,8 @@ internal object RootDbCatchupEngine {
         stateStore.writeWatermark(PrefConst.KEY_INTERNAL_ROOT_DB_LAST_SMS_ID, smsMaxId)
         stateStore.writeWatermark(PrefConst.KEY_INTERNAL_ROOT_DB_LAST_CALL_ID, callMaxId)
         stateStore.markBaselineInitialized()
-        XLog.i(
-            LogRoute.ROOT_DB,
-            "Root DB catchup baseline initialized reason=%s sms=%d call=%d",
+        XLog.log(
+            Log.INFO, LogRoute.ROOT_DB.id, false, true, "Root DB catchup baseline initialized reason=%s sms=%d call=%d",
             reason,
             smsMaxId,
             callMaxId,
@@ -437,9 +430,8 @@ internal object RootDbCatchupEngine {
         val result = RootShellExecutor.run(command)
         if (!result.success) {
             if (result.exitCode != SQLITE_DB_NOT_FOUND_EXIT_CODE) {
-                XLog.w(
-                    LogRoute.ROOT_DB,
-                    "Root DB catchup sqlite query failed exit=%d sql=%s",
+                XLog.log(
+                    Log.WARN, LogRoute.ROOT_DB.id, true, true, "Root DB catchup sqlite query failed exit=%d sql=%s",
                     result.exitCode,
                     sql.take(SQL_LOG_SNIPPET_LENGTH),
                 )
@@ -467,9 +459,8 @@ internal object RootDbCatchupEngine {
         val command = buildSqliteCommand(dbCandidates, sql, readonly = false)
         val result = RootShellExecutor.run(command)
         if (!result.success && result.exitCode != SQLITE_DB_NOT_FOUND_EXIT_CODE) {
-            XLog.w(
-                LogRoute.ROOT_DB,
-                "Root DB catchup sqlite write failed exit=%d sql=%s",
+            XLog.log(
+                Log.WARN, LogRoute.ROOT_DB.id, true, true, "Root DB catchup sqlite write failed exit=%d sql=%s",
                 result.exitCode,
                 sql.take(SQL_LOG_SNIPPET_LENGTH),
             )

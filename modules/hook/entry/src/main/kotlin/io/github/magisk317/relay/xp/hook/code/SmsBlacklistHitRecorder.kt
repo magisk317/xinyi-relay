@@ -6,7 +6,7 @@ import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpRecordFacade
 import io.github.magisk317.smscode.verification.BlacklistMatchResult
 import io.github.magisk317.smscode.runtime.verification.SmsHandlerDispatchDecision
-import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import kotlinx.coroutines.runBlocking
 
 internal object SmsBlacklistHitRecorder {
@@ -36,7 +36,7 @@ internal object SmsBlacklistHitRecorder {
                 XpRecordFacade(pluginContext).insertSmsBlacklistHit(hit)
             }
         }.onFailure {
-            XLog.w("Diag sms blacklist hit record failed: event_id=%s error=%s", eventId, it.message ?: "unknown")
+            XLog.w(message = "Diag sms blacklist hit record failed: event_id=%s error=%s", eventId, it.message ?: "unknown")
         }
     }
 }

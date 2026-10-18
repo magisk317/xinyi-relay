@@ -6,7 +6,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.ContactsContract
 import androidx.core.content.ContextCompat
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.contract.json.RelayJson
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
@@ -51,7 +51,7 @@ object SourceMetadataResolver {
                 }
             } ?: ""
         }.onFailure {
-            XLog.w("Contact lookup failed: %s", it.message ?: "unknown")
+            XLog.w(message = "Contact lookup failed: %s", it.message ?: "unknown")
         }.getOrDefault("")
     }
 
@@ -70,7 +70,7 @@ object SourceMetadataResolver {
                 parsePhoneArea(body)
             }
         }.onFailure {
-            XLog.d("Phone area lookup failed for %s: %s", normalized, it.message ?: "unknown")
+            XLog.d(message = "Phone area lookup failed for %s: %s", normalized, it.message ?: "unknown")
         }.getOrDefault("")
 
         if (area.isNotBlank()) {

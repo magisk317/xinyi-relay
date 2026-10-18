@@ -6,7 +6,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.smscode.runtime.contract.ipc.RuntimeStateProviderContract
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
 import io.github.magisk317.relay.contract.xpbridge.XpDiagnosticsRuntimeBridge
@@ -63,13 +63,13 @@ object AndroidXpDiagnosticsBridge : XpDiagnosticsRuntimeBridge {
             )?.getBoolean(RuntimeStateProviderContract.RESULT_OK, false) == true
         }.onFailure { error ->
             XLog.w(
-                "Hook heartbeat provider call failed: source=%s err=%s",
+                message = "Hook heartbeat provider call failed: source=%s err=%s",
                 source,
                 error.message ?: error.javaClass.simpleName,
             )
         }.getOrDefault(false)
         if (!acknowledged) {
-            XLog.w("Hook heartbeat provider call was not acknowledged: source=%s", source)
+            XLog.w(message = "Hook heartbeat provider call was not acknowledged: source=%s", source)
         }
     }
 }

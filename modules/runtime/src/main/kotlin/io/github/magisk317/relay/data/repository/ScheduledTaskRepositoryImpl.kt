@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.data.repository
 
 import android.content.Context
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.data.db.entity.ScheduledTaskEntity
 import io.github.magisk317.relay.bootstrap.RuntimeDependencies
@@ -107,6 +107,6 @@ class ScheduledTaskRepositoryImpl(
 
     private fun noteMutation(source: String) {
         runCatching { RuntimeDependencies.get().autoBackupTrigger.scheduleAutoBackup(source) }
-            .onFailure { XLog.e("scheduleAutoBackup failed: %s", it.message ?: it.javaClass.simpleName) }
+            .onFailure { XLog.e(message = "scheduleAutoBackup failed: %s", it.message ?: it.javaClass.simpleName) }
     }
 }

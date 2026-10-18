@@ -51,7 +51,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.platform.notification.AndroidNotificationPlatformBridge as NotificationUtils
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
@@ -299,14 +299,14 @@ fun VerificationSettingsScreen(
                 os.flush()
                 process.waitFor() == 0
             } catch (error: SecurityException) {
-                XLog.w("Toggle accessibility service via root failed: %s", error.message ?: error.javaClass.simpleName)
+                XLog.w(message = "Toggle accessibility service via root failed: %s", error.message ?: error.javaClass.simpleName)
                 false
             } catch (error: IOException) {
-                XLog.w("Toggle accessibility service via root failed: %s", error.message ?: error.javaClass.simpleName)
+                XLog.w(message = "Toggle accessibility service via root failed: %s", error.message ?: error.javaClass.simpleName)
                 false
             } catch (error: InterruptedException) {
                 Thread.currentThread().interrupt()
-                XLog.w("Toggle accessibility service via root interrupted: %s", error.message ?: error.javaClass.simpleName)
+                XLog.w(message = "Toggle accessibility service via root interrupted: %s", error.message ?: error.javaClass.simpleName)
                 false
             }
         }

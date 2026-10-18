@@ -2,7 +2,7 @@ package io.github.magisk317.relay.backup.webdav
 
 import android.content.Context
 import android.content.SharedPreferences
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import java.util.Base64
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow

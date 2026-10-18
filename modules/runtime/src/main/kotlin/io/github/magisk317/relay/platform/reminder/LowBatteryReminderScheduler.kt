@@ -6,7 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.xposed.logging.MagiskOtel
@@ -43,10 +43,10 @@ object LowBatteryReminderScheduler {
             }
         } catch (e: SecurityException) {
             alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, pendingIntent)
-            XLog.w("LowBattery reminder fallback inexact: %s", e.message ?: "unknown")
+            XLog.w(message = "LowBattery reminder fallback inexact: %s", e.message ?: "unknown")
         }
         XLog.i(
-            "LowBattery reminder scheduled: triggerAt=%d delayMs=%d reason=%s",
+            message = "LowBattery reminder scheduled: triggerAt=%d delayMs=%d reason=%s",
             triggerAt,
             delayMs,
             reason,
@@ -69,7 +69,7 @@ object LowBatteryReminderScheduler {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager? ?: return
         val pendingIntent = buildPendingIntent(context)
         alarmManager.cancel(pendingIntent)
-        XLog.i("LowBattery reminder cancelled reason=%s", reason)
+        XLog.i(message = "LowBattery reminder cancelled reason=%s", reason)
         MagiskOtel.event(
             name = "battery.reminder",
             attributes = mapOf(

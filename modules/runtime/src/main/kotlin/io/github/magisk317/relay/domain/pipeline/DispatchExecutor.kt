@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.domain.pipeline
 
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
 import io.github.magisk317.relay.engine.model.MsgInfo
 import io.github.magisk317.relay.engine.model.Sender
@@ -19,7 +19,7 @@ class DispatchExecutor(
     ): SenderDispatchResult {
         val startedAt = System.nanoTime()
         val senderName = SenderType.displayName(sender.type, sender.name)
-        XLog.d("Dispatching to sender: id=%d, type=%d, name=%s", sender.id, sender.type, sender.name)
+        XLog.d(message = "Dispatching to sender: id=%d, type=%d, name=%s", sender.id, sender.type, sender.name)
         ForwardFlowLog.d(traceId, "Dispatch sender start name=$senderName type=${sender.type}")
         return runCatching {
             val delegate = delegateProvider()

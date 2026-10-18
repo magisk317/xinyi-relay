@@ -8,7 +8,7 @@ import io.github.magisk317.xposed.MethodHook
 import io.github.magisk317.xposed.MethodHookParam
 import io.github.magisk317.xposed.logging.MagiskOtel
 import io.github.magisk317.smscode.xposed.prefs.CorePrefs
-import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.xposed.runNonFatalCatching
 import io.github.magisk317.xposed.runNonFatalOrNull
 import java.lang.reflect.Method
@@ -61,7 +61,7 @@ class KeepAliveHook : BaseHook() {
                 return
             }
 
-            XLog.i("KeepAliveHook: hooking %s#%s", oomAdjusterClass.name, targetMethod.name)
+            XLog.i(message = "KeepAliveHook: hooking %s#%s", oomAdjusterClass.name, targetMethod.name)
 
             HookEnv.api.hookMethod(
                 targetMethod,
@@ -71,14 +71,14 @@ class KeepAliveHook : BaseHook() {
                             if (!readPrefEnabled(KeepAliveHookConst.KEY_KEEPALIVE_OOM_ADJ)) return
                             adjustOomAdjForTarget(param)
                         }.onFailure { t ->
-                            XLog.e("KeepAliveHook: OomAdjuster hook error", t)
+                            XLog.e(message = "KeepAliveHook: OomAdjuster hook error", t)
                         }
                     }
                 },
             )
             XLog.w("KeepAliveHook: successfully hooked OomAdjuster")
         }.onFailure { t ->
-            XLog.e("KeepAliveHook: failed to hook OomAdjuster", t)
+            XLog.e(message = "KeepAliveHook: failed to hook OomAdjuster", t)
         }
     }
 
@@ -100,7 +100,7 @@ class KeepAliveHook : BaseHook() {
                             f.isAccessible = true
                             f.setInt(arg, FOREGROUND_APP_ADJ)
                             XLog.d(
-                                "KeepAliveHook: set adj=%d for %s (field=%s, was=%d)",
+                                message = "KeepAliveHook: set adj=%d for %s (field=%s, was=%d)",
                                 FOREGROUND_APP_ADJ, processName, field, currentAdj,
                             )
                         }
@@ -134,7 +134,7 @@ class KeepAliveHook : BaseHook() {
                 return
             }
 
-            XLog.i("KeepAliveHook: hooking AMS %s", killMethod.name)
+            XLog.i(message = "KeepAliveHook: hooking AMS %s", killMethod.name)
 
             HookEnv.api.hookMethod(
                 killMethod,
@@ -144,7 +144,7 @@ class KeepAliveHook : BaseHook() {
                             if (!readPrefEnabled(KeepAliveHookConst.KEY_KEEPALIVE_ANTI_KILL)) return
                             if (shouldSkipKill(param)) {
                                 param.result = null
-                                XLog.w("KeepAliveHook: intercepted kill for %s", KeepAliveHookConst.TARGET_PACKAGE)
+                                XLog.w(message = "KeepAliveHook: intercepted kill for %s", KeepAliveHookConst.TARGET_PACKAGE)
                                 MagiskOtel.event(
                                     name = "push.keepalive",
                                     attributes = mapOf(
@@ -159,14 +159,14 @@ class KeepAliveHook : BaseHook() {
                                 )
                             }
                         }.onFailure { t ->
-                            XLog.e("KeepAliveHook: kill hook error", t)
+                            XLog.e(message = "KeepAliveHook: kill hook error", t)
                         }
                     }
                 },
             )
             XLog.w("KeepAliveHook: successfully hooked AMS kill")
         }.onFailure { t ->
-            XLog.e("KeepAliveHook: failed to hook AMS kill", t)
+            XLog.e(message = "KeepAliveHook: failed to hook AMS kill", t)
         }
     }
 
@@ -210,7 +210,7 @@ class KeepAliveHook : BaseHook() {
                 return
             }
 
-            XLog.i("KeepAliveHook: hooking AppStandbyController %s", bucketMethod.name)
+            XLog.i(message = "KeepAliveHook: hooking AppStandbyController %s", bucketMethod.name)
 
             HookEnv.api.hookMethod(
                 bucketMethod,
@@ -220,14 +220,14 @@ class KeepAliveHook : BaseHook() {
                             if (!readPrefEnabled(KeepAliveHookConst.KEY_KEEPALIVE_STANDBY_BYPASS)) return
                             overrideStandbyBucket(param)
                         }.onFailure { t ->
-                            XLog.e("KeepAliveHook: standby hook error", t)
+                            XLog.e(message = "KeepAliveHook: standby hook error", t)
                         }
                     }
                 },
             )
             XLog.w("KeepAliveHook: successfully hooked AppStandbyController")
         }.onFailure { t ->
-            XLog.e("KeepAliveHook: failed to hook AppStandbyController", t)
+            XLog.e(message = "KeepAliveHook: failed to hook AppStandbyController", t)
         }
     }
 
@@ -277,7 +277,7 @@ class KeepAliveHook : BaseHook() {
                 return
             }
 
-            XLog.i("KeepAliveHook: hooking DeviceIdleController %s", idleMethod.name)
+            XLog.i(message = "KeepAliveHook: hooking DeviceIdleController %s", idleMethod.name)
 
             HookEnv.api.hookMethod(
                 idleMethod,
@@ -287,14 +287,14 @@ class KeepAliveHook : BaseHook() {
                             if (!readPrefEnabled(KeepAliveHookConst.KEY_KEEPALIVE_DOZE_BYPASS)) return
                             bypassDozeForTarget(param)
                         }.onFailure { t ->
-                            XLog.e("KeepAliveHook: doze hook error", t)
+                            XLog.e(message = "KeepAliveHook: doze hook error", t)
                         }
                     }
                 },
             )
             XLog.w("KeepAliveHook: successfully hooked DeviceIdleController")
         }.onFailure { t ->
-            XLog.e("KeepAliveHook: failed to hook DeviceIdleController", t)
+            XLog.e(message = "KeepAliveHook: failed to hook DeviceIdleController", t)
         }
     }
 
@@ -302,7 +302,7 @@ class KeepAliveHook : BaseHook() {
         for (arg in param.args) {
             if (arg is String && arg == KeepAliveHookConst.TARGET_PACKAGE) {
                 param.result = null
-                XLog.d("KeepAliveHook: bypassed doze for %s", KeepAliveHookConst.TARGET_PACKAGE)
+                XLog.d(message = "KeepAliveHook: bypassed doze for %s", KeepAliveHookConst.TARGET_PACKAGE)
                 return
             }
         }
@@ -314,7 +314,7 @@ class KeepAliveHook : BaseHook() {
         return runNonFatalCatching {
             CorePrefs.getBoolean(key, false)
         }.getOrElse { t ->
-            XLog.w("KeepAliveHook: pref read failed key=%s err=%s", key, t.message)
+            XLog.w(message = "KeepAliveHook: pref read failed key=%s err=%s", key, t.message)
             false
         }
     }

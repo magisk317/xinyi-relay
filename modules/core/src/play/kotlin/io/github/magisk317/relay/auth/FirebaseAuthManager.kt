@@ -9,7 +9,7 @@ import com.google.android.gms.common.api.Scope
 import com.google.firebase.FirebaseException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.secret.InternalSecretStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -75,10 +75,10 @@ class FirebaseAuthManager(
             _session.value = session
             Result.success(session)
         } catch (error: FirebaseException) {
-            XLog.e("Google sign-in failed: %s", error.message ?: error.javaClass.simpleName)
+            XLog.e(message = "Google sign-in failed: %s", error.message ?: error.javaClass.simpleName)
             Result.failure(error)
         } catch (error: IllegalArgumentException) {
-            XLog.e("Google sign-in failed: %s", error.message ?: error.javaClass.simpleName)
+            XLog.e(message = "Google sign-in failed: %s", error.message ?: error.javaClass.simpleName)
             Result.failure(error)
         }
     }

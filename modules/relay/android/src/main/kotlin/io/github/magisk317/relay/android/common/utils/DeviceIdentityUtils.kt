@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.android.common.utils
 
 import android.os.Build
+import io.github.magisk317.xposed.logging.XLog
 
 object DeviceIdentityUtils {
     private val propertyKeys = listOf(

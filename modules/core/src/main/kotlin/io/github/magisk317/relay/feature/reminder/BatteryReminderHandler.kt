@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.BatteryManager
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.relay.engine.event.RelayEvent
@@ -153,7 +153,7 @@ class BatteryReminderHandler(
             traceId = "low_battery_${System.currentTimeMillis()}",
         )
         emitBattery(stage = "low", result = "ok", reason = "sent")
-        XLog.i("LowBattery reminder routed through EventPipeline: pct=%d threshold=%d", percent, threshold)
+        XLog.i(message = "LowBattery reminder routed through EventPipeline: pct=%d threshold=%d", percent, threshold)
     }
 
     private suspend fun sendFullReminder(percent: Int) {
@@ -189,7 +189,7 @@ class BatteryReminderHandler(
             traceId = "full_battery_${System.currentTimeMillis()}",
         )
         emitBattery(stage = "full", result = "ok", reason = "sent")
-        XLog.i("FullBattery reminder routed through EventPipeline: pct=%d", percent)
+        XLog.i(message = "FullBattery reminder routed through EventPipeline: pct=%d", percent)
     }
 
     private suspend fun sendChargingChangeReminder(percent: Int, isPluggedIn: Boolean) {
@@ -229,7 +229,7 @@ class BatteryReminderHandler(
             traceId = "charging_change_${System.currentTimeMillis()}",
         )
         emitBattery(stage = "charging_change", result = "ok", reason = "sent")
-        XLog.i("ChargingChange reminder routed through EventPipeline: pct=%d plugged=%s", percent, isPluggedIn)
+        XLog.i(message = "ChargingChange reminder routed through EventPipeline: pct=%d plugged=%s", percent, isPluggedIn)
     }
 
 
@@ -266,7 +266,7 @@ class BatteryReminderHandler(
                         reason = reason,
                     )
                 }.onFailure {
-                    XLog.e("Battery reminder handling failed", it)
+                    XLog.e(message = "Battery reminder handling failed", it)
                 }
                 onComplete?.invoke()
             }

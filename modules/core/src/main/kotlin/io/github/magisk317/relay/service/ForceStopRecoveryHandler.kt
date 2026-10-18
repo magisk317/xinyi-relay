@@ -6,7 +6,7 @@ import android.content.Intent
 import android.os.SystemClock
 import android.util.Log
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.domain.recovery.RootDbCatchupScheduler
@@ -28,7 +28,7 @@ object ForceStopRecoveryHandler {
 
     fun handle(context: Context, intent: Intent, tag: String) {
         if (!wakeupThrottle.tryAcquire()) {
-            XLog.w(LogRoute.ROOT_DB, "ForceStopRecoveryService wakeup throttled")
+            XLog.log(android.util.Log.WARN, LogRoute.ROOT_DB.id, true, true, "ForceStopRecoveryService wakeup throttled")
             MagiskOtel.event(
                 name = "app.recovery",
                 attributes = mapOf(
@@ -56,9 +56,8 @@ object ForceStopRecoveryHandler {
             receivedToken = receivedToken,
         )
         if (!tokenAccepted) {
-            XLog.w(
-                LogRoute.ROOT_DB,
-                "ForceStopRecoveryService rejected token. expectedEmpty=%s receivedEmpty=%s",
+            XLog.log(
+                Log.WARN, LogRoute.ROOT_DB.id, true, true, "ForceStopRecoveryService rejected token. expectedEmpty=%s receivedEmpty=%s",
                 expectedToken.isBlank(),
                 receivedToken.isNullOrBlank(),
             )
@@ -78,9 +77,8 @@ object ForceStopRecoveryHandler {
         }
         val reason = intent.getStringExtra(ForceStopRecoveryContract.EXTRA_REASON).orEmpty()
         val eventId = intent.getStringExtra(ForceStopRecoveryContract.EXTRA_EVENT_ID).orEmpty()
-        XLog.w(
-            LogRoute.ROOT_DB,
-            "ForceStopRecoveryService started. reason=%s event=%s",
+        XLog.log(
+            Log.WARN, LogRoute.ROOT_DB.id, true, true, "ForceStopRecoveryService started. reason=%s event=%s",
             reason.ifBlank { "<none>" },
             eventId.ifBlank { "<none>" },
         )

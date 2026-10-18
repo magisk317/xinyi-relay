@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.backup.webdav
 
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import okhttp3.Credentials
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -45,7 +45,7 @@ class WebDavClient(private val config: WebDavConfig) {
                 if (!response.isSuccessful && response.code != HTTP_METHOD_NOT_ALLOWED) {
                     val body = response.body.string()
                     XLog.e(
-                        "WebDAV MKCOL failed: code=%d path=%s body=%s",
+                        message = "WebDAV MKCOL failed: code=%d path=%s body=%s",
                         response.code,
                         currentPath,
                         body.take(MAX_LOG_BODY_LENGTH),
@@ -72,7 +72,7 @@ class WebDavClient(private val config: WebDavConfig) {
             if (!response.isSuccessful) {
                 val body = response.body.string()
                 XLog.e(
-                    "WebDAV upload failed: code=%d name=%s body=%s",
+                    message = "WebDAV upload failed: code=%d name=%s body=%s",
                     response.code,
                     fileName,
                     body.take(MAX_LOG_BODY_LENGTH),
@@ -174,7 +174,7 @@ class WebDavClient(private val config: WebDavConfig) {
             }
             files
         }.getOrElse {
-            XLog.w("WebDAV PROPFIND DOM parse failed: %s", it.message ?: it.javaClass.simpleName)
+            XLog.w(message = "WebDAV PROPFIND DOM parse failed: %s", it.message ?: it.javaClass.simpleName)
             emptyList()
         }
     }

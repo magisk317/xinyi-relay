@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.backup
 
 import android.content.Context
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.backup.webdav.WebDavConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -53,7 +53,7 @@ class WebDavCloudBackupProvider(
     private fun <T> Result<T>.logFailure(operation: String): Result<T> {
         return onFailure { throwable ->
             XLog.e(
-                "WebDAV %s backup failed: %s",
+                message = "WebDAV %s backup failed: %s",
                 operation,
                 throwable.message ?: throwable.javaClass.simpleName,
             )

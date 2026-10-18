@@ -8,7 +8,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.os.Build
 import android.os.UserManager
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -54,7 +54,7 @@ object AppInitExecution {
         scope.launch {
             XLog.i("$taskName executing")
             runCatching { block() }.onFailure { error ->
-                XLog.e("$taskName failed", error)
+                XLog.e(message = "$taskName failed", error)
             }
         }
     }

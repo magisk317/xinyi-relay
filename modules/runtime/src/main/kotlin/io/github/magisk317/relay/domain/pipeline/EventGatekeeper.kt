@@ -3,7 +3,7 @@ package io.github.magisk317.relay.domain.pipeline
 import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.engine.event.RelayEvent
@@ -57,7 +57,7 @@ class EventGatekeeper(
                 }
             }.getOrElse { error ->
                 ForwardFlowLog.e(traceId, "App notify gate query failed pkg=$pkg final_decision=drop", error)
-                XLog.e("App notify gate query failed for pkg=$pkg", error)
+                XLog.e(message = "App notify gate query failed for pkg=$pkg", error)
                 return GateDecision(false, "app_gate_query_failed")
             }
             val enabled = appInfo?.forwarding == true

@@ -48,7 +48,7 @@ import androidx.compose.ui.input.pointer.positionChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.core.R
 import io.github.magisk317.uikit.surface.AppBottomSheet
 import io.github.magisk317.uikit.surface.AppCard
@@ -138,7 +138,7 @@ internal fun HomeCardContainer(
                             if (!editModeState) {
                                 onLongPressState()
                             }
-                            XLog.i("Overview drag longPress key=%s editMode=%s", wiggleKey, editModeState)
+                            XLog.i(message = "Overview drag longPress key=%s editMode=%s", wiggleKey, editModeState)
                             onDragStartState?.invoke()
                             var loggedMove = false
                             try {
@@ -147,14 +147,14 @@ internal fun HomeCardContainer(
                                     if (delta.y != 0f) {
                                         if (!loggedMove) {
                                             loggedMove = true
-                                            XLog.i("Overview drag move key=%s dy=%.2f", wiggleKey, delta.y)
+                                            XLog.i(message = "Overview drag move key=%s dy=%.2f", wiggleKey, delta.y)
                                         }
                                         onDragState?.invoke(delta.y)
                                         change.consume()
                                     }
                                 }
                             } finally {
-                                XLog.i("Overview drag end key=%s moved=%s", wiggleKey, loggedMove)
+                                XLog.i(message = "Overview drag end key=%s moved=%s", wiggleKey, loggedMove)
                                 onDragEndState?.invoke()
                             }
                         }

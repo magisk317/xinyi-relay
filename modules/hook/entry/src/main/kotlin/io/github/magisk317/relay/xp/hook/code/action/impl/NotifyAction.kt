@@ -15,7 +15,7 @@ import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.smscode.runtime.verification.CodeNotificationDeliveryHelper
 import io.github.magisk317.smscode.runtime.verification.NotifyActionHelper
 import io.github.magisk317.smscode.runtime.verification.PhoneOwnedNotificationDispatcher
-import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 
 /**
  * 显示验证码通知
@@ -84,7 +84,7 @@ class NotifyAction(
             return CodeNotificationPayload.DeliveryResult(success = true, reason = outcome.id)
         }
         XLog.w(
-            "Phone-owned notification not accepted (reason=%s), falling back to app-owned",
+            message = "Phone-owned notification not accepted (reason=%s), falling back to app-owned",
             outcome.id,
         )
 
@@ -101,12 +101,12 @@ class NotifyAction(
             )
             if (appResult.success) return appResult
             XLog.w(
-                "App-owned code notification also failed (reason=%s)",
+                message = "App-owned code notification also failed (reason=%s)",
                 appResult.reason,
             )
         } else {
             XLog.w(
-                "Skipping app-owned fallback: POST_NOTIFICATIONS is not granted to %s",
+                message = "Skipping app-owned fallback: POST_NOTIFICATIONS is not granted to %s",
                 modulePackageName(),
             )
         }

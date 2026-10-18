@@ -5,7 +5,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import io.github.magisk317.relay.BuildConfig
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.feature.mode.XposedRuntimeState
 import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsStore
 import io.github.magisk317.relay.android.otel.MagiskOtelBootstrap
@@ -73,7 +73,7 @@ class InfrastructureInitializer : AppInitializer {
             val xposedActive = XposedRuntimeState.refresh(application)
             environmentSettled.set(true)
             XLog.i(
-                "Xposed runtime settle complete: active=%s reason=%s activated=%s",
+                message = "Xposed runtime settle complete: active=%s reason=%s activated=%s",
                 xposedActive,
                 reason,
                 ActivationDiagnosticsStore.isModuleActivated(application),
@@ -88,7 +88,7 @@ class InfrastructureInitializer : AppInitializer {
             XposedRuntimeState.refresh(application)
             val xposedActive = XposedRuntimeState.xposedActive.value
             if (!environmentSettled.get() && !xposedActive) {
-                XLog.i("Xposed runtime reconcile deferred until settle: reason=%s active=%s", reason, xposedActive)
+                XLog.i(message = "Xposed runtime reconcile deferred until settle: reason=%s active=%s", reason, xposedActive)
                 return
             }
         }

@@ -17,7 +17,7 @@ import io.github.magisk317.smscode.runtime.verification.NotificationDispatchGuar
 import io.github.magisk317.smscode.runtime.verification.SmsCodeActionScheduler
 import io.github.magisk317.smscode.runtime.verification.SmsCodePostParseCoordinator
 import io.github.magisk317.smscode.runtime.verification.SmsCodeActionDispatcher as SharedSmsCodeActionDispatcher
-import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import java.util.concurrent.ScheduledExecutorService
 
 internal object SmsCodeActionDispatcher {

@@ -3,7 +3,7 @@ package io.github.magisk317.relay.receiver
 import io.github.magisk317.relay.android.otel.MagiskOtelBootstrap
 import android.content.Context
 import android.content.Intent
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.analytics.AnalyticsTracker
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
@@ -76,7 +76,7 @@ object AutoInputResultHandler {
             }
             is AutoInputResultProcessor.ValidationResult.RejectedToken -> {
                 XLog.w(
-                    "Diag AutoInputResultReceiver rejected token: expectedEmpty=%s receivedEmpty=%s",
+                    message = "Diag AutoInputResultReceiver rejected token: expectedEmpty=%s receivedEmpty=%s",
                     validation.expectedTokenEmpty,
                     validation.receivedTokenEmpty,
                 )
@@ -99,7 +99,7 @@ object AutoInputResultHandler {
         val success = result.success
         val reason = result.reason
         XLog.w(
-            "Diag AutoInputResultReceiver onReceive: attemptId=%d success=%s reason=%s",
+            message = "Diag AutoInputResultReceiver onReceive: attemptId=%d success=%s reason=%s",
             attemptId,
             success,
             reason ?: "<none>",
@@ -111,7 +111,7 @@ object AutoInputResultHandler {
             deps.preferenceDataSource.getBoolean(key, defaultValue)
         }
         if (!MagiskOtelBootstrap.isEffectivelyEnabled(analyticsEnabled)) {
-            XLog.w("Diag AutoInputResultReceiver analytics disabled: attemptId=%d", attemptId)
+            XLog.w(message = "Diag AutoInputResultReceiver analytics disabled: attemptId=%d", attemptId)
             MagiskOtel.event(
                 name = "auto.input",
                 attributes = mapOf(
@@ -162,7 +162,7 @@ object AutoInputResultHandler {
                 }
                 AutoInputResultProcessor.PersistenceOutcome.UPSERTED -> {
                     XLog.i(
-                        "Diag AutoInputResultReceiver recovered stale result via upsert: attemptId=%d success=%s",
+                        message = "Diag AutoInputResultReceiver recovered stale result via upsert: attemptId=%d success=%s",
                         attemptId,
                         success,
                     )
@@ -180,7 +180,7 @@ object AutoInputResultHandler {
                 }
                 AutoInputResultProcessor.PersistenceOutcome.STALE -> {
                     XLog.w(
-                        "Diag AutoInputResultReceiver skipped stale result: attemptId=%d success=%s reason=%s",
+                        message = "Diag AutoInputResultReceiver skipped stale result: attemptId=%d success=%s reason=%s",
                         attemptId,
                         success,
                         reason ?: "<none>",
@@ -209,7 +209,7 @@ object AutoInputResultHandler {
             }
         }.onFailure { error ->
             XLog.w(
-                "AutoInput result persist failed: %s",
+                message = "AutoInput result persist failed: %s",
                 error.message ?: error.javaClass.simpleName,
             )
             MagiskOtel.event(

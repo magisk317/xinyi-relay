@@ -4,7 +4,7 @@ import android.app.Notification
 import android.content.Context
 import android.content.pm.PackageManager
 import android.service.notification.StatusBarNotification
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.sms.SmsCodeUtils
 import io.github.magisk317.smscode.rule.model.SmsCodeParseSource
 import io.github.magisk317.smscode.rule.model.SmsCodeParseSourceKind
@@ -64,7 +64,7 @@ object AppNotificationIngressAdapter {
         )
         if (skipReason != null) {
             XLog.d(
-                "Notification ingress skipped: pkg=%s reason=%s channel=%s",
+                message = "Notification ingress skipped: pkg=%s reason=%s channel=%s",
                 packageName,
                 skipReason,
                 notifyChannelId.ifBlank { "<empty>" },
@@ -82,7 +82,7 @@ object AppNotificationIngressAdapter {
             val info = context.packageManager.getApplicationInfo(packageName, 0)
             context.packageManager.getApplicationLabel(info).toString()
         } catch (e: PackageManager.NameNotFoundException) {
-            XLog.w("Notification app label not found for pkg=%s err=%s", packageName, e.message ?: "unknown")
+            XLog.w(message = "Notification app label not found for pkg=%s err=%s", packageName, e.message ?: "unknown")
             packageName
         }
 
@@ -296,7 +296,7 @@ object AppNotificationIngressAdapter {
             ).code.trim().takeIf { it.isNotEmpty() }
         }.onFailure { error ->
             XLog.w(
-                "Notification smsCode parse failed: pkg=%s err=%s",
+                message = "Notification smsCode parse failed: pkg=%s err=%s",
                 packageName.ifBlank { "<empty>" },
                 error.message ?: error.javaClass.simpleName,
             )

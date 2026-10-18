@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.data.repository
 
 import android.content.Context
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.data.db.dao.AppInfoDao
@@ -260,16 +260,16 @@ class ConfigRepository(
 
     private suspend fun noteMutation(source: String) {
         runCatching { RuntimeDependencies.get().localConfigRepository.noteLocalMutation(source) }
-            .onFailure { XLog.e("noteLocalMutation failed: %s", it.message ?: it.javaClass.simpleName) }
+            .onFailure { XLog.e(message = "noteLocalMutation failed: %s", it.message ?: it.javaClass.simpleName) }
         runCatching { RuntimeDependencies.get().autoBackupTrigger.scheduleAutoBackup(source) }
-            .onFailure { XLog.e("scheduleAutoBackup failed: %s", it.message ?: it.javaClass.simpleName) }
+            .onFailure { XLog.e(message = "scheduleAutoBackup failed: %s", it.message ?: it.javaClass.simpleName) }
     }
 
     private suspend fun sanitizeAndPersistSenderRepair(sender: Sender): Sender {
         val safeSender = sanitizeSender(sender)
         if (safeSender != sender) {
             senderDao.update(safeSender.toEntity())
-            XLog.i("Sender config repaired id=%d type=%d", safeSender.id, safeSender.type)
+            XLog.i(message = "Sender config repaired id=%d type=%d", safeSender.id, safeSender.type)
             noteMutation("config.sender_repair")
         }
         return safeSender

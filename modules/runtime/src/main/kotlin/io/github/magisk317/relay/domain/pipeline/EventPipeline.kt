@@ -4,7 +4,7 @@ import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.android.platform.icon.AppIconEncoder
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.smscode.db.entity.SmsMsg
@@ -199,7 +199,7 @@ class EventPipeline(
                             }
                             cached
                         } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-                            XLog.e("Failed to render custom template for sender: %s", sender.name, e)
+                            XLog.e(message = "Failed to render custom template for sender: %s", sender.name, e)
                             val resId = context.resources.getIdentifier("sender_custom_template_render_error", "string", context.packageName)
                             val errorMsg = if (resId != 0) {
                                 context.getString(resId, e.message ?: e.javaClass.simpleName)
@@ -226,7 +226,7 @@ class EventPipeline(
                 emit(result = "ok", reason = "dispatched")
                 EventPipelineResult(dispatched = true)
             }.getOrElse { error ->
-                XLog.e("Event pipeline failed", error)
+                XLog.e(message = "Event pipeline failed", error)
                 dispatchResultWriter.persistForwardResult(
                     recordId = recordContext.recordId,
                     results = emptyList(),

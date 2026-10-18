@@ -5,7 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.engine.service.SenderRuntimeServiceRegistry
 import io.github.magisk317.relay.runtime.BuildConfig
@@ -236,7 +236,7 @@ object BackupManager {
                     if (sanitized == defaultJson && rawCanonical != defaultJson) {
                         degradedSenderConfigs += 1
                         XLog.w(
-                            "Backup inspect sender degraded to defaults: type=%d name=%s raw=%s",
+                            message = "Backup inspect sender degraded to defaults: type=%d name=%s raw=%s",
                             type,
                             name,
                             trimmed.take(256),

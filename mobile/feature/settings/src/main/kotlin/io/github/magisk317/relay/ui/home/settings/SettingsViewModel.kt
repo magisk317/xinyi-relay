@@ -14,7 +14,7 @@ import io.github.magisk317.relay.contract.constant.PrefRestoreTypeRegistry
 import io.github.magisk317.relay.contract.constant.PrefValueType
 import io.github.magisk317.smscode.runtime.common.utils.StorageUtils
 import io.github.magisk317.smscode.runtime.common.utils.BrowserUtils
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import androidx.core.content.pm.ShortcutInfoCompat
 import androidx.core.content.pm.ShortcutManagerCompat
 import androidx.core.graphics.drawable.IconCompat
@@ -396,7 +396,7 @@ class SettingsViewModel(
             )
             true
         }.onFailure {
-            XLog.e("Failed to set launcher icon visible=$visible", it)
+            XLog.e(message = "Failed to set launcher icon visible=$visible", it)
         }.getOrElse { false }
     }
 
@@ -445,7 +445,7 @@ class SettingsViewModel(
             val context = getApplication<Application>()
             try {
                 XLog.i(
-                    "Backup start: uri=%s includeConfig=%s includeRules=%s includeRecords=%s includeDatabase=%s",
+                    message = "Backup start: uri=%s includeConfig=%s includeRules=%s includeRecords=%s includeDatabase=%s",
                     uri.toString(),
                     includeConfig,
                     includeRules,
@@ -495,7 +495,7 @@ class SettingsViewModel(
                 }
 
                 XLog.i(
-                    "Backup payload prepared: rules=%d records=%d prefs=%d",
+                    message = "Backup payload prepared: rules=%d records=%d prefs=%d",
                     rules.size,
                     records?.size ?: 0,
                     prefs?.size ?: 0,
@@ -511,7 +511,7 @@ class SettingsViewModel(
                         includeDatabase = includeDatabase,
                     )
                 }
-                XLog.i("Backup finished: result=%s", result.name)
+                XLog.i(message = "Backup finished: result=%s", result.name)
                 var backupInspection: RelayBackupManager.BackupInspection? = null
                 if (result == ExportResult.SUCCESS) {
                     try {
@@ -519,11 +519,11 @@ class SettingsViewModel(
                             RelayBackupManager.inspectBackup(context, uri)
                         }
                         backupInspection = inspected
-                        XLog.i("Backup inspect: %s", inspected.toLogString())
+                        XLog.i(message = "Backup inspect: %s", inspected.toLogString())
                     } catch (cancelled: CancellationException) {
                         throw cancelled
                     } catch (t: Throwable) {
-                        XLog.w("Backup inspect failed: %s", t.message ?: t.javaClass.simpleName)
+                        XLog.w(message = "Backup inspect failed: %s", t.message ?: t.javaClass.simpleName)
                     }
                 }
                 backupEventQueue.emit(
@@ -535,7 +535,7 @@ class SettingsViewModel(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (e: Exception) {
-                XLog.e("Backup failed", e)
+                XLog.e(message = "Backup failed", e)
                 backupEventQueue.emit(SettingsBackupEvent.BackupResult(false))
             }
         }
@@ -552,7 +552,7 @@ class SettingsViewModel(
             val context = getApplication<Application>()
             try {
                 XLog.i(
-                    "Restore start: uri=%s restoreConfig=%s restoreRules=%s restoreRecords=%s restoreDatabase=%s",
+                    message = "Restore start: uri=%s restoreConfig=%s restoreRules=%s restoreRecords=%s restoreDatabase=%s",
                     uri.toString(),
                     restoreConfig,
                     restoreRules,
@@ -566,14 +566,14 @@ class SettingsViewModel(
                     val inspection = withContext(Dispatchers.IO) {
                         RelayBackupManager.inspectBackup(context, uri)
                     }
-                    XLog.i("Restore inspect: %s", inspection.toLogString())
+                    XLog.i(message = "Restore inspect: %s", inspection.toLogString())
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (t: Throwable) {
-                    XLog.w("Restore inspect failed: %s", t.message ?: t.javaClass.simpleName)
+                    XLog.w(message = "Restore inspect failed: %s", t.message ?: t.javaClass.simpleName)
                 }
                 XLog.i(
-                    "Restore import result=%s rules=%d records=%d prefs=%d warning=%s",
+                    message = "Restore import result=%s rules=%d records=%d prefs=%d warning=%s",
                     importResult.result.name,
                     importResult.rules.size,
                     importResult.records?.size ?: 0,
@@ -607,7 +607,7 @@ class SettingsViewModel(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (e: Exception) {
-                XLog.e("Restore failed", e)
+                XLog.e(message = "Restore failed", e)
                 backupEventQueue.emit(
                     SettingsBackupEvent.RestoreResult(
                         BackupImportResult(io.github.magisk317.smscode.runtime.contract.backup.ImportResult.READ_FAILED),
@@ -651,7 +651,7 @@ class SettingsViewModel(
         recordRepository.insertList(entities.map { it.toRecordData() })
         val afterCount = recordRepository.queryAll().size
         XLog.i(
-            "Restore records finished: requested=%d before=%d after=%d delta=%d",
+            message = "Restore records finished: requested=%d before=%d after=%d delta=%d",
             records.size,
             beforeCount,
             afterCount,
@@ -673,7 +673,7 @@ class SettingsViewModel(
             val coerced = coerceRestoreValue(k, strV)
             if (!coerced.shouldWrite) {
                 XLog.w(
-                    "Restore preference skipped: key=%s raw=%s expectedType=%s",
+                    message = "Restore preference skipped: key=%s raw=%s expectedType=%s",
                     k,
                     strV,
                     coerced.type.name,
@@ -715,7 +715,7 @@ class SettingsViewModel(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (failure: Throwable) {
-                XLog.w("Inspect backup failed: %s", failure.message ?: failure.javaClass.simpleName)
+                XLog.w(message = "Inspect backup failed: %s", failure.message ?: failure.javaClass.simpleName)
                 null
             }
         }

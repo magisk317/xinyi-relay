@@ -3,7 +3,7 @@ package io.github.magisk317.relay.android.prefs
 import android.content.Context
 import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
-import io.github.magisk317.relay.android.common.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.contract.prefs.NoopXpRuntimeBridge
 import io.github.magisk317.relay.contract.prefs.XpCapabilities
 import io.github.magisk317.relay.contract.prefs.PrefReadResult
@@ -357,7 +357,7 @@ object PrefsReader {
         val defaultValue = false
         val trace = readBooleanWithTrace(context, PrefConst.KEY_COPY_TO_CLIPBOARD, defaultValue)
         XLog.w(
-            "Diag pref copy_to_clipboard: value=%s source=%s default=%s",
+            message = "Diag pref copy_to_clipboard: value=%s source=%s default=%s",
             trace.value,
             trace.source,
             defaultValue,
@@ -715,7 +715,7 @@ object PrefsReader {
         val trace = readStringWithTrace(context, PrefConst.KEY_IPC_TOKEN, "")
         if (trace.value.isBlank() || trace.source != "remote_libxposed") {
             XLog.w(
-                "Diag pref ipc_token: blank=%s source=%s",
+                message = "Diag pref ipc_token: blank=%s source=%s",
                 trace.value.isBlank(),
                 trace.source,
             )

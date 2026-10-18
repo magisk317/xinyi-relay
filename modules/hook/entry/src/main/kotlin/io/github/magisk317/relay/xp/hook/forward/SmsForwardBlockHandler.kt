@@ -6,7 +6,7 @@ import io.github.magisk317.relay.xp.hook.code.SmsBlacklistHitRecorder
 import io.github.magisk317.relay.xp.hook.code.SmsBlockEvaluator
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.smscode.runtime.verification.SmsIntentHookSupport
-import io.github.magisk317.smscode.xposed.utils.XLog
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.xposed.logging.MagiskOtel
 
 internal class SmsForwardBlockHandler(
@@ -84,18 +84,18 @@ internal class SmsForwardBlockHandler(
             emit(result = "skip", reason = "delete_only")
             return Outcome()
         }
-        XLog.w("SmsForwardHook block start: reason=%s event_id=%s", reason, request.eventId)
+        XLog.w(message = "SmsForwardHook block start: reason=%s event_id=%s", reason, request.eventId)
         val inbound = request.inboundSmsHandler
         val receiver = receiverResolver(request.hookArgs)
         if (inbound == null || receiver == null) {
-            XLog.w("SmsForwardHook block fallback: receiver unavailable event_id=%s", request.eventId)
+            XLog.w(message = "SmsForwardHook block fallback: receiver unavailable event_id=%s", request.eventId)
             emit(result = "error", statusOk = false, reason = "receiver_unavailable")
             return Outcome(suppressForward = true)
         }
 
         val blocked = inboundBlocker(inbound, receiver, reason, request.eventId)
         if (!blocked) {
-            XLog.w("SmsForwardHook block aborted: cleanup incomplete event_id=%s", request.eventId)
+            XLog.w(message = "SmsForwardHook block aborted: cleanup incomplete event_id=%s", request.eventId)
             emit(result = "error", statusOk = false, reason = "cleanup_incomplete")
             return Outcome(suppressForward = true)
         }
