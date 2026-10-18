@@ -521,6 +521,7 @@ private fun OverviewCardItem(
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val snackbarHostState = io.github.magisk317.uikit.foundation.LocalSnackbarHostState.current
     val dragEnabled = editMode
+    val updateController = koinInject<io.github.magisk317.uikit.update.AppUpdateController>()
     HomeCardContainer(
         editMode = editMode,
         wiggleKey = spec.id,
@@ -609,6 +610,11 @@ private fun OverviewCardItem(
                     frameworkType = frameworkType,
                     frameworkVersion = frameworkVersion,
                     interactive = !editMode,
+                    onVersionClick = if (editMode) {
+                        null
+                    } else {
+                        { updateController.check(userInitiated = true) }
+                    },
                     onRootHint = if (hasRootAccess) {
                         null
                     } else {

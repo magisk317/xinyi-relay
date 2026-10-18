@@ -68,7 +68,6 @@ interface SettingsPreferencesRepository {
 
     // Auto Update
     suspend fun getAutoUpdateSettings(): AutoUpdateSettingsSnapshot
-    suspend fun setIgnoredGithubVersion(versionName: String)
 
     // Theme / UI Kit / Language / Privacy
     suspend fun getThemeMode(): Int

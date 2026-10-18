@@ -32,7 +32,7 @@ android {
 
     sourceSets {
         getByName("github") {
-            setRoot("src/github")
+            kotlin.directories.add("src/nonPlay/kotlin")
         }
     }
 
@@ -58,6 +58,8 @@ dependencies {
     implementation(project(":relay:sender:api"))
     implementation(project(":relay:contract"))
     implementation(project(":magisk-ui-kit"))
+    implementation(project(":magisk-ui-kit:update"))
+    implementation(libs.mobile.entitlement.android)
     implementation(project(":smscode-core:domain"))
     implementation(project(":smscode-core:db"))
     implementation(project(":smscode-core:runtime"))
@@ -75,7 +77,6 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
-    add("playImplementation", libs.play.app.update)
     add("playImplementation", libs.play.services.auth)
     add("githubImplementation", libs.play.services.auth)
 }

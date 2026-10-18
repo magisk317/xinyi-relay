@@ -658,14 +658,9 @@ class SettingsRepository(
         return AutoUpdateSettingsSnapshot(
             enabled = preferenceDataSource.getBoolean(PrefConst.KEY_AUTO_UPDATE_ON_START, true),
             wifiOnly = preferenceDataSource.getBoolean(PrefConst.KEY_AUTO_UPDATE_WIFI_ONLY, false),
-            ignoredGithubVersion = preferenceDataSource.getString(PrefConst.KEY_GITHUB_IGNORED_VERSION, ""),
         )
     }
 
-    override suspend fun setIgnoredGithubVersion(versionName: String) {
-        preferenceDataSource.setString(PrefConst.KEY_GITHUB_IGNORED_VERSION, versionName)
-        publishHookPrefsOnly()
-    }
 
     override suspend fun getThemeMode(): Int {
         return preferenceDataSource.getInt(PrefConst.KEY_CHOOSE_THEME, 0)

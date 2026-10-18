@@ -180,7 +180,6 @@ private class FakeOverviewSettingsRepository(
     override suspend fun getUserSettingsSnapshot(): UserSettingsSnapshot = unsupported()
     override suspend fun updateUserSettings(update: UserSettingsUpdate): UserSettingsSnapshot = unsupported()
     override suspend fun getAutoUpdateSettings(): AutoUpdateSettingsSnapshot = unsupported()
-    override suspend fun setIgnoredGithubVersion(versionName: String) = unsupported<Unit>()
     override suspend fun getThemeMode(): Int = unsupported()
     override suspend fun setThemeMode(mode: Int) = unsupported<Unit>()
     override suspend fun getUiKitStyle(): Int = unsupported()
