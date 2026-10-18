@@ -16,7 +16,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import io.github.magisk317.smscode.runtime.common.diagnostics.LogBundleExporter
-import io.github.magisk317.xposed.logging.VerboseLogEnableTracker
 import io.github.magisk317.xposed.diagnostics.DiagnosticExportMode
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsSnapshot
@@ -54,9 +53,7 @@ internal fun rememberSettingsRuntimeLogActions(
                 RuntimeDiagnosticsBridge.ensureInstalled()
                 val bundle = LogBundleExporter.buildLogBundle(
                     context = context,
-                    mode = DiagnosticExportMode.fromDebugLogging(
-                        repository.getDiagnosticsSettings().verboseLogMode,
-                    ),
+                    mode = DiagnosticExportMode.FULL,
                 )
                 val file = bundle.file ?: return@withContext bundle.details
                 context.contentResolver.openOutputStream(destination, "wt")?.use { output ->
@@ -77,14 +74,6 @@ internal fun rememberSettingsRuntimeLogActions(
     }
 
     fun saveLog() {
-        val blockReason = LogBundleExporter.checkPreExport(
-            kotlinx.coroutines.runBlocking { repository.getDiagnosticsSettings().verboseLogMode }
-        )
-        if (blockReason != null) {
-            val message = io.github.magisk317.uikit.preference.resolveLogExportBlockMessage(context, blockReason)
-            scope.launch { snackbarHostState.showLatestSnackbar(message) }
-            return
-        }
         val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", java.util.Locale.US)
             .format(java.util.Date())
         saveRuntimeLogLauncher.launch("xinyi_logs_$timestamp.zip")

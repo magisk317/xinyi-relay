@@ -33,10 +33,7 @@ import io.github.magisk317.uikit.surface.AppPrimaryButton
 import org.koin.compose.koinInject
 
 private val isCiOrDebugBuild: Boolean =
-    BuildConfig.DEBUG ||
-        BuildConfig.VERSION_NAME.contains("-202") ||
-        BuildConfig.VERSION_NAME.contains("-test") ||
-        BuildConfig.VERSION_NAME.contains("-ci")
+    BuildConfig.DEBUG || BuildConfig.IS_CI_BUILD
 
 @Composable
 internal fun SettingsGeneralSection(
@@ -207,7 +204,7 @@ internal fun SettingsDiagnosticsSection(
                 onRetentionClick = onRuntimeLogRetentionClick,
                 onClearLogClick = onClearLog,
                 onSensitiveLogEnabledChange = onSensitiveDebugLogModeChange,
-                onAnalyticsEnabledChange = if (!BuildConfig.DEBUG) onAnalyticsEnabledChange else null,
+                onAnalyticsEnabledChange = if (!BuildConfig.DEBUG && !BuildConfig.IS_CI_BUILD) onAnalyticsEnabledChange else null,
             ),
             layout = RuntimeLogDiagnosticsLayout(
                 shareEntryMode = RuntimeLogShareEntryMode.SEPARATE_ITEM,

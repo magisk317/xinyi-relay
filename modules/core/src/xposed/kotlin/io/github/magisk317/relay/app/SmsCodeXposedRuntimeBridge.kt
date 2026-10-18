@@ -39,7 +39,8 @@ object SmsCodeXposedRuntimeBridge {
                 serviceCommit = io.github.magisk317.relay.core.BuildConfig.COMMIT_HASH,
                 projectId = "84113188",
                 projectName = "xinyi-relay",
-                environment = if (io.github.magisk317.relay.runtime.BuildConfig.DEBUG) "debug" else "release",
+                environment = if (io.github.magisk317.relay.runtime.BuildConfig.DEBUG) "debug"
+        else if (io.github.magisk317.relay.runtime.BuildConfig.IS_CI_BUILD) "ci" else "release",
                 serviceInstanceId = hookContext?.let {
                     io.github.magisk317.relay.android.prefs.PrefsReader.installationId(it)
                 }.orEmpty(),

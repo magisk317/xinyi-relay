@@ -21,10 +21,10 @@ object MagiskOtelBootstrap {
     private const val PROJECT_ID = "84113188"
     private const val PROJECT_NAME = "xinyi-relay"
 
-    fun shouldShowToggle(): Boolean = !BuildConfig.DEBUG
+    fun shouldShowToggle(): Boolean = !BuildConfig.DEBUG && !BuildConfig.IS_CI_BUILD
 
     fun isEffectivelyEnabled(userPrefEnabled: Boolean): Boolean =
-        BuildConfig.DEBUG || userPrefEnabled
+        BuildConfig.DEBUG || BuildConfig.IS_CI_BUILD || userPrefEnabled
 
     fun isEnabled(context: Context): Boolean = runBlocking(Dispatchers.IO) {
         isEffectivelyEnabled(
@@ -82,7 +82,7 @@ object MagiskOtelBootstrap {
                 serviceCommit = serviceCommit,
                 projectId = PROJECT_ID,
                 projectName = PROJECT_NAME,
-                environment = if (BuildConfig.DEBUG) "debug" else "release",
+                environment = if (BuildConfig.DEBUG) "debug" else if (BuildConfig.IS_CI_BUILD) "ci" else "release",
                 deviceAttributes =
                     mapOf(
                         "device.manufacturer" to Build.MANUFACTURER,
