@@ -17,6 +17,8 @@ import io.github.magisk317.relay.desktop.core.model.SystemInfo
 import kotlinx.serialization.json.JsonElement
 import java.net.InetSocketAddress
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import io.github.magisk317.relay.desktop.data.DesktopDatabase
 
 /**
@@ -33,6 +35,8 @@ data class LocalSyncStatus(
     val records: Int = 0,
     val syncing: Boolean = false,
     val error: String? = null,
+    /** Non-null when the embedded agent server could not bind its loopback port. */
+    val serverError: String? = null,
 ) {
     /** True once a round has completed and touched at least one row. */
     val established: Boolean get() = error == null && (devices > 0 || records > 0)
@@ -59,6 +63,17 @@ class DesktopLocalSyncController(
     private var runtime: DesktopLocalRuntime? = null
     private var localServer: DesktopLocalServer? = null
 
+    /**
+     * Serializes the suspend entry points that open, close or drive the
+     * runtime, so a caller-driven [push] and a tick [sync] cannot overlap.
+     * Two rounds at once used to collide in the sync engine's single-flight
+     * guard (the second one surfaced "Sync already in progress" instead of
+     * running) and raced on [lastReport], the result card of both directions.
+     * [stop] stays lock-free: the composition root calls it from
+     * `DisposableEffect` teardown, where suspending is not an option.
+     */
+    private val runLock = Mutex()
+
     /** Loopback URL advertised to the Android agent in Local mode. */
     var localServerUrl by mutableStateOf<String?>(null)
         private set
@@ -84,7 +99,7 @@ class DesktopLocalSyncController(
      * [remote] and runs the forced first pull. A failure to open surfaces as an
      * error status instead of crashing the caller.
      */
-    suspend fun start(remote: RemoteStore) {
+    suspend fun start(remote: RemoteStore) = runLock.withLock {
         stop()
         status = LocalSyncStatus(syncing = true)
         val opened = try {
@@ -93,7 +108,7 @@ class DesktopLocalSyncController(
             throw cancel
         } catch (failure: Exception) {
             status = LocalSyncStatus(error = failure.message ?: "cannot open the local store")
-            return
+            return@withLock
         }
         runtime = opened
         startLocalServer(opened.store)
@@ -105,7 +120,7 @@ class DesktopLocalSyncController(
      * serve existing data and the embedded agent server before login; no sync
      * round is attempted until a profile is authenticated.
      */
-    suspend fun startLocalOnly() {
+    suspend fun startLocalOnly() = runLock.withLock {
         stop()
         val opened = try {
             openRuntime(OFFLINE_REMOTE)
@@ -113,11 +128,11 @@ class DesktopLocalSyncController(
             throw cancel
         } catch (failure: Exception) {
             status = LocalSyncStatus(error = failure.message ?: "cannot open the local store")
-            return
+            return@withLock
         }
         runtime = opened
         startLocalServer(opened.store)
-        status = LocalSyncStatus()
+        status = LocalSyncStatus(serverError = status.serverError)
     }
 
     /**
@@ -125,8 +140,8 @@ class DesktopLocalSyncController(
      * the controller's own tick is the cadence gate, and forcing keeps the
      * status counts tied to the round that just ran.
      */
-    suspend fun sync() {
-        val opened = runtime ?: return
+    suspend fun sync() = runLock.withLock {
+        val opened = runtime ?: return@withLock
         round(opened)
     }
 
@@ -142,11 +157,11 @@ class DesktopLocalSyncController(
      * mirror is still open and readable, so a failed push must not blank the
      * footer read-out the way a failed mirror open does.
      */
-    suspend fun push(): SyncReport? {
-        val opened = runtime ?: return null
+    suspend fun push(): SyncReport? = runLock.withLock {
+        val opened = runtime ?: return@withLock null
         val report = opened.sync.push()
         lastReport = report
-        return report
+        report
     }
 
     /**
@@ -179,6 +194,7 @@ class DesktopLocalSyncController(
         status = LocalSyncStatus(
             devices = report.devicesSynced,
             records = report.recordsSynced,
+            serverError = status.serverError,
         )
         lastReport = report
     }
@@ -188,10 +204,14 @@ class DesktopLocalSyncController(
         val address = runCatching { next.start() }.getOrNull()
         if (address == null) {
             next.close()
+            // The mirror is still usable, but no Android agent can reach this
+            // machine; surface it instead of failing silently.
+            status = status.copy(serverError = "local agent server unavailable")
             return
         }
         localServer = next
         localServerUrl = loopbackUrl(address)
+        status = status.copy(serverError = null)
     }
 
     private fun loopbackUrl(address: InetSocketAddress): String =

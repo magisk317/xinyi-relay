@@ -7,8 +7,10 @@ import io.github.magisk317.relay.contract.remote.MeResponse
 import io.github.magisk317.relay.desktop.auth.DesktopAuthFlow
 import io.github.magisk317.relay.desktop.core.store.DesktopLocalStore
 import io.github.magisk317.relay.desktop.local.DesktopReadRouter
+import io.github.magisk317.relay.desktop.remote.ConsoleApiException
 import io.github.magisk317.relay.desktop.remote.ConsoleClient
 import io.github.magisk317.relay.desktop.remote.ConsoleDataClient
+import io.github.magisk317.relay.desktop.remote.SelfSignedTls
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -74,6 +76,13 @@ class DesktopSessionState(private val store: ProfileStore = ProfileStore()) {
     private var client: ConsoleClient? = null
 
     /**
+     * The profile [client] was built from. The client carries its TLS
+     * setting, so a profile whose override changed must not keep answering
+     * with the client built for the old one.
+     */
+    private var clientProfile: DesktopProfile? = null
+
+    /**
      * Provider for the open local mirror store, injected by the composition
      * root (the sync controller owns the runtime). Only the Local run mode's
      * read path consults it; null before wiring and whenever the mirror is
@@ -122,6 +131,7 @@ class DesktopSessionState(private val store: ProfileStore = ProfileStore()) {
             }
             val consoleClient = sessionManager.clientFor(profile)
             client = consoleClient
+            clientProfile = profile
             activeProfile = profile
             val probe = runCatching {
                 sessionManager.refreshIfExpiring(profile, consoleClient)
@@ -129,11 +139,17 @@ class DesktopSessionState(private val store: ProfileStore = ProfileStore()) {
             }
             probe
                 .onSuccess { applyMe(it) }
-                .onFailure {
+                .onFailure { failure ->
                     connected = false
                     authenticated = false
                     username = ""
-                    store.clearSession(profile.id)
+                    // Only a rejected token means the stored session is dead. A
+                    // network failure (backend down, offline, timeout) must keep
+                    // it so the next launch reuses it instead of forcing a fresh
+                    // browser handoff.
+                    if (failure is ConsoleApiException && failure.status == 401) {
+                        store.clearSession(profile.id)
+                    }
                 }
             loading = false
             probeAdmin()
@@ -149,7 +165,7 @@ class DesktopSessionState(private val store: ProfileStore = ProfileStore()) {
     fun switchRunMode(mode: DesktopRunMode) {
         if (runMode == mode) return
         runMode = mode
-        store.saveState(store.loadState().copy(runMode = mode))
+        store.updateState { it.copy(runMode = mode) }
     }
 
     /**
@@ -177,26 +193,61 @@ class DesktopSessionState(private val store: ProfileStore = ProfileStore()) {
     }
 
     private suspend fun probeAdmin() {
-        val baseUrl = activeProfile?.baseUrl ?: return
-        val info = runCatching { ConsoleClient(baseUrl).systemInfo() }.getOrNull() ?: return
+        val profile = activeProfile ?: return
+        val info = runCatching {
+            ConsoleClient(profile.baseUrl, SelfSignedTls.client(profile.allowSelfSigned)).systemInfo()
+        }.getOrNull() ?: return
         adminInitialized = info.userCount > 0
     }
 
     /** Creates or updates the active backend profile; returns it. */
-    fun saveProfile(baseUrl: String, name: String = DEFAULT_PROFILE_NAME): DesktopProfile {
+    fun saveProfile(
+        baseUrl: String,
+        name: String = DEFAULT_PROFILE_NAME,
+        allowSelfSigned: Boolean = false,
+    ): DesktopProfile {
         val normalized = baseUrl.trim().trimEnd('/')
-        val state = store.loadState()
-        val existing = state.profiles.firstOrNull { it.baseUrl == normalized }
-        val profile = existing?.copy(name = name) ?: DesktopProfile(
-            id = "profile-${state.profiles.size + 1}",
-            name = name,
-            baseUrl = normalized,
-        )
-        val profiles = if (existing == null) state.profiles + profile else state.profiles.map { if (it.id == profile.id) profile else it }
-        store.saveState(state.copy(profiles = profiles, activeProfileId = profile.id))
-        loadedProfiles = profiles
-        activeProfile = profile
-        return profile
+        lateinit var saved: DesktopProfile
+        lateinit var savedProfiles: List<DesktopProfile>
+        // Lookup and write share one lock, so a concurrent profile edit cannot
+        // be lost between the read and the write.
+        store.updateState { state ->
+            val existing = state.profiles.firstOrNull { it.baseUrl == normalized }
+            val profile = existing?.copy(name = name, allowSelfSigned = allowSelfSigned) ?: DesktopProfile(
+                id = nextProfileId(state.profiles),
+                name = name,
+                baseUrl = normalized,
+                allowSelfSigned = allowSelfSigned,
+            )
+            val profiles =
+                if (existing == null) {
+                    state.profiles + profile
+                } else {
+                    state.profiles.map { if (it.id == profile.id) profile else it }
+                }
+            saved = profile
+            savedProfiles = profiles
+            state.copy(profiles = profiles, activeProfileId = profile.id)
+        }
+        loadedProfiles = savedProfiles
+        activeProfile = saved
+        // The cached client was built for the profile as it was; rebuild it
+        // so the next request uses the override as saved.
+        if (client != null && clientProfile != saved) {
+            client = sessionManager.clientFor(saved)
+            clientProfile = saved
+        }
+        return saved
+    }
+
+    /**
+     * Persists the active profile's self-signed certificate override. The
+     * flag is what lets a backend behind a self-signed certificate be
+     * reached at all, so it is saved as soon as the user flips the switch.
+     */
+    fun setActiveProfileAllowSelfSigned(allowSelfSigned: Boolean) {
+        val profile = activeProfile ?: return
+        saveProfile(profile.baseUrl, profile.name, allowSelfSigned)
     }
 
     /**
@@ -210,7 +261,10 @@ class DesktopSessionState(private val store: ProfileStore = ProfileStore()) {
         scope.launch {
             val result = runCatching {
                 val profile = activeProfile ?: error("no active profile")
-                val consoleClient = client ?: sessionManager.clientFor(profile).also { client = it }
+                val consoleClient = client ?: sessionManager.clientFor(profile).also {
+                    client = it
+                    clientProfile = profile
+                }
                 val flow = DesktopAuthFlow()
                 try {
                     flow.authUrl(profile.baseUrl).let { url ->
@@ -241,6 +295,17 @@ class DesktopSessionState(private val store: ProfileStore = ProfileStore()) {
             authenticated = false
             username = ""
         }
+    }
+
+    /**
+     * Smallest "profile-N" id that is not in use yet. Deriving it from the
+     * profile count would reuse a live id after a profile is removed.
+     */
+    private fun nextProfileId(profiles: List<DesktopProfile>): String {
+        val used = profiles.mapNotNull { it.id.removePrefix("profile-").toIntOrNull() }.toSet()
+        var next = 1
+        while (next in used) next++
+        return "profile-${next}"
     }
 
     private companion object {

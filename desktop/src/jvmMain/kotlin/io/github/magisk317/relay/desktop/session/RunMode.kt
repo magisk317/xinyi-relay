@@ -4,14 +4,14 @@ import kotlinx.serialization.Serializable
 
 /**
  * Which backend the app talks to, mirroring the Rust desktop's `RunMode`
- * (persisted camelCase, default `Remote`):
+ * (persisted camelCase, default `Local`):
  *
- * - [Remote] — the mode the shell has always run in: every page reads through
- *   ConsoleClient against the profile's backend and the local SQLite mirror
- *   stays closed. The default, so a fresh install (and a `profiles.json`
- *   predating the field) behaves exactly as before.
+ * - [Remote] — every page reads through ConsoleClient against the profile's
+ *   backend and the local SQLite mirror stays closed.
  * - [Local] — reads are served from the local mirror, writes queue against it,
- *   and the agent-facing local server answers heartbeats/reports.
+ *   and the agent-facing local server answers heartbeats/reports. The default,
+ *   so a fresh install (and a `profiles.json` predating the field) behaves
+ *   exactly as before.
  * - [Hybrid] — the remote client stays primary while the local mirror keeps
  *   pulling in the background and the local server stays up.
  *

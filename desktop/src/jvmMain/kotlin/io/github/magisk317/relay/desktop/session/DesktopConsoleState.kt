@@ -16,6 +16,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonObject
 
 /**
@@ -28,6 +30,14 @@ class DesktopConsoleState(private val session: DesktopSessionState) {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val prefs = Preferences.userNodeForPackage(DesktopConsoleState::class.java)
+
+    /**
+     * Serializes the refresh paths. A bootstrap and a manual refresh used to
+     * run concurrently and interleave the device list, the selected device and
+     * the config derived from it, so the page could end up showing one round's
+     * device with another round's config.
+     */
+    private val refreshMutex = Mutex()
 
     var devices by mutableStateOf<List<DeviceItem>>(emptyList())
         private set
@@ -57,13 +67,15 @@ class DesktopConsoleState(private val session: DesktopSessionState) {
 
     fun bootstrap() {
         scope.launch {
-            runCatching { refreshDevicesInternal() }
+            runCatching { refreshDevices() }
         }
     }
 
     suspend fun refreshDevices() {
-        loading = true
-        refreshDevicesInternal()
+        refreshMutex.withLock {
+            loading = true
+            refreshDevicesInternal()
+        }
     }
 
     private suspend fun refreshDevicesInternal() {
@@ -89,12 +101,17 @@ class DesktopConsoleState(private val session: DesktopSessionState) {
     }
 
     suspend fun refreshConfig() {
-        try {
-            refreshConfigInternal()
-            error = ""
-        } catch (failure: Exception) {
-            error = failure.message ?: "Failed to load device config."
-            throw failure
+        // Same lock as the device refresh: a device switch while a bootstrap
+        // round is between its device list and its config would otherwise load
+        // the config of a device the round picked.
+        refreshMutex.withLock {
+            try {
+                refreshConfigInternal()
+                error = ""
+            } catch (failure: Exception) {
+                error = failure.message ?: "Failed to load device config."
+                throw failure
+            }
         }
     }
 
