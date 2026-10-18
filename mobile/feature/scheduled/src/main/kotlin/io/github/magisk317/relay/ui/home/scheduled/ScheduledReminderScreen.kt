@@ -46,7 +46,7 @@ import io.github.magisk317.uikit.theme.currentUiKitStyle
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.SpecialAlertSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.SpecialAlertSettingsUpdate
-import io.github.magisk317.relay.feature.reminder.BatteryReminderSchedulerFacade
+import io.github.magisk317.relay.platform.reminder.LowBatteryReminderScheduler
 import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
 import io.github.magisk317.relay.ui.common.parseIntInRangeInput
 import io.github.magisk317.uikit.surface.AppDropdownField
@@ -217,9 +217,9 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                             SpecialAlertSettingsUpdate(lowBatteryReminderEnabled = enabled),
                         )
                         if (enabled) {
-                            BatteryReminderSchedulerFacade.scheduleNext(context, reason = "ui_toggle", immediate = true)
+                            LowBatteryReminderScheduler.scheduleNext(context, reason = "ui_toggle", immediate = true)
                         } else {
-                            BatteryReminderSchedulerFacade.syncFromPrefs(context, reason = "ui_toggle")
+                            LowBatteryReminderScheduler.syncFromPrefs(context, reason = "ui_toggle")
                             repository.clearBatteryReminderRuntimeFlags(clearLowBatteryBelow = true)
                         }
                         notifySaved()
@@ -256,9 +256,9 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                             SpecialAlertSettingsUpdate(fullBatteryReminderEnabled = enabled),
                         )
                         if (enabled) {
-                            BatteryReminderSchedulerFacade.scheduleNext(context, reason = "ui_toggle_full", immediate = true)
+                            LowBatteryReminderScheduler.scheduleNext(context, reason = "ui_toggle_full", immediate = true)
                         } else {
-                            BatteryReminderSchedulerFacade.syncFromPrefs(context, reason = "ui_toggle_full")
+                            LowBatteryReminderScheduler.syncFromPrefs(context, reason = "ui_toggle_full")
                             repository.clearBatteryReminderRuntimeFlags(clearFullBatteryAbove = true)
                         }
                         notifySaved()
@@ -288,9 +288,9 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                             SpecialAlertSettingsUpdate(chargingChangeReminderEnabled = enabled),
                         )
                         if (enabled) {
-                            BatteryReminderSchedulerFacade.scheduleNext(context, reason = "ui_toggle_charging", immediate = true)
+                            LowBatteryReminderScheduler.scheduleNext(context, reason = "ui_toggle_charging", immediate = true)
                         } else {
-                            BatteryReminderSchedulerFacade.syncFromPrefs(context, reason = "ui_toggle_charging")
+                            LowBatteryReminderScheduler.syncFromPrefs(context, reason = "ui_toggle_charging")
                             repository.clearBatteryReminderRuntimeFlags(clearChargingState = true)
                         }
                         notifySaved()
@@ -532,7 +532,7 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
                     SpecialAlertSettingsUpdate(lowBatteryThreshold = bounded),
                 )
                 if (current.lowBatteryReminderEnabled) {
-                    BatteryReminderSchedulerFacade.scheduleNext(context, reason = "threshold_update", immediate = true)
+                    LowBatteryReminderScheduler.scheduleNext(context, reason = "threshold_update", immediate = true)
                 }
             }
         }

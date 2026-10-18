@@ -866,7 +866,7 @@
     <string name="settings_group_background_keepalive">Background Keep-alive</string>
     <string name="settings_group_experimental">Experimental</string>
     <string name="settings_group_others">Others</string>
-    <string name="settings_group_others_summary">Device activation, logs, updates, and diagnostics</string>
+    <string name="settings_group_others_summary">Logs, analytics, and updates</string>
     <string name="mobile_entitlement_settings_title">Device activation status</string>
     <string name="mobile_entitlement_settings_summary">Check status or activate this device</string>
     <string name="mobile_entitlement_expires">Expires: %1$s</string>

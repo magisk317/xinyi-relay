@@ -8,9 +8,9 @@ import io.github.magisk317.relay.xp.hook.code.CodeWorker
 import io.github.magisk317.relay.xp.hook.code.SmsBlacklistHitRecorder
 import io.github.magisk317.relay.xp.hook.code.SmsBlockEvaluator
 import io.github.magisk317.relay.xp.hook.code.action.impl.OperateSmsAction
+import io.github.magisk317.relay.xp.hook.helper.XinyiHookHostCapabilities
 import io.github.magisk317.relay.xpbridge.SmsMsg
-import io.github.magisk317.relay.xpbridge.XpHookDiagnostics
-import io.github.magisk317.relay.xpbridge.XpPrefs
+import io.github.magisk317.smscode.xposed.hook.HookHostCapabilities
 import io.github.magisk317.smscode.xposed.hook.telephony.BlockEvaluation
 import io.github.magisk317.smscode.xposed.hook.telephony.MmsEntryPointHook
 import io.github.magisk317.smscode.xposed.hook.telephony.MmsEntryPointHookHost
@@ -19,32 +19,30 @@ import io.github.magisk317.smscode.xposed.hook.telephony.MmsEntryPointHookHost
  * relay wiring for the shared MMS entry-point hook.
  *
  * relay owns an outbound forward pipeline, so unlike XSC it persists a blacklist-hit
- * row per blocked SMS and force-deletes blacklisted SMS from the inbox.
+ * row per blocked SMS and force-deletes blacklisted SMS from the inbox. Prefs,
+ * escaping, parsing and heartbeat all come from the unified
+ * [HookHostCapabilities] adapter instead of per-file xpbridge calls.
  */
 private object XinyiMmsEntryPointHost : MmsEntryPointHookHost {
     override val applicationId: String = BuildConfig.APPLICATION_ID
 
+    override val capabilities: HookHostCapabilities = XinyiHookHostCapabilities
+
     override fun shouldSuppressByRelay(context: Context, tag: String): Boolean =
         ModuleConflictArbiter.shouldSuppressByRelay(context, tag)
-
-    override fun isVerboseLogMode(pluginContext: Context): Boolean =
-        XpPrefs.isVerboseLogMode(pluginContext)
 
     override fun onPluginContextReady(
         pluginContext: Context,
         phoneContext: Context,
         source: String,
     ) {
-        XpHookDiagnostics.bindRuntimeLogContext(
-            context = pluginContext,
-            verboseLogging = XpPrefs.isVerboseLogMode(pluginContext),
-        )
-        XpHookDiagnostics.recordSmsHookHeartbeat(
+        capabilities.onProcessInit(pluginContext)
+        capabilities.recordHookHeartbeat(
             context = pluginContext,
             packageName = "com.android.mms",
             processName = phoneContext.applicationInfo?.processName ?: "com.android.mms",
             source = "mms_${source.substringAfterLast('.')}",
-            verboseLogging = XpPrefs.isVerboseLogMode(pluginContext),
+            verboseLogging = capabilities.isVerboseLogMode(pluginContext),
         )
     }
 

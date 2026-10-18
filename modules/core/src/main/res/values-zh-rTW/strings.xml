@@ -868,7 +868,7 @@
     <string name="settings_group_notification">通知設定</string>
     <string name="settings_group_experimental">實驗性功能</string>
     <string name="settings_group_others">其他</string>
-    <string name="settings_group_others_summary">裝置啟用、日誌、更新與診斷</string>
+    <string name="settings_group_others_summary">日誌、統計與更新</string>
     <string name="settings_group_background_keepalive">背景保活</string>
     <string name="pref_msg_type_sms_code_title">驗證碼簡訊</string>
     <string name="pref_msg_type_sms_code_summary">控制驗證碼簡訊是否進入主處理流程</string>

@@ -2,13 +2,13 @@ package io.github.magisk317.relay.xp.helper
 
 import android.content.Context
 import io.github.magisk317.relay.hookentry.BuildConfig
-import io.github.magisk317.relay.xpbridge.XpRelayTarget
+import io.github.magisk317.relay.contract.constant.RelayAppConst
 import io.github.magisk317.smscode.runtime.verification.ModuleConflictArbiterCore
 
 object ModuleConflictArbiter {
     val SUPPRESSION_REASON: String = ModuleConflictArbiterCore.SUPPRESSION_REASON
     val BYPASS_REASON_BUILD_FLAG: String = ModuleConflictArbiterCore.BYPASS_REASON_BUILD_FLAG
-    const val TARGET_RELAY_PACKAGE = XpRelayTarget.TARGET_RELAY_PACKAGE
+    const val TARGET_RELAY_PACKAGE = RelayAppConst.TARGET_RELAY_PACKAGE
 
     private val arbiter = ModuleConflictArbiterCore(
         targetPackage = TARGET_RELAY_PACKAGE,
