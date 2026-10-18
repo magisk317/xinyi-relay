@@ -16,20 +16,9 @@ val allowConflictBypass = findProperty("allowConflictBypass")
 android {
     namespace = "io.github.magisk317.relay.core"
 
-    val gitCommitHash = providers.environmentVariable("CI_COMMIT_SHORT_SHA")
-        .orElse(providers.environmentVariable("GIT_COMMIT"))
-        .orElse(providers.gradleProperty("gitCommitHash"))
-        .orNull
-        ?: runCatching {
-            providers.exec {
-                commandLine("git", "-C", projectDir, "rev-parse", "--short", "HEAD")
-            }.standardOutput.asText.get().trim()
-        }.getOrElse { "unknown" }
-
     defaultConfig {
         buildConfigField("int", "VERSION_CODE", libs.versions.versionCode.get())
         buildConfigField("String", "VERSION_NAME", "\"${libs.versions.versionName.get()}\"")
-        buildConfigField("String", "COMMIT_HASH", "\"$gitCommitHash\"")
         buildConfigField("boolean", "ALLOW_CONFLICT_BYPASS", allowConflictBypass.toString())
     }
 
