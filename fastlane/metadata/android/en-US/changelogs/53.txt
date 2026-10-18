@@ -1,3 +1,5 @@
 - Updated to 0.4.0 (53).
-- Development build; release notes will be updated before publishing.
+- In-app updates support OTA with distribution channel split.
+- Added device remote control and the first-run setup wizard.
+- Fixed incorrect summaries on the settings page.
 - https://gitlab.com/magisk3171/xinyi-relay/-/releases
