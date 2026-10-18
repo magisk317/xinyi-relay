@@ -68,6 +68,7 @@
 - 遗产目录（`src/main/`、`src/test/`）在 KMP 模块里**不参与编译**，文件必须放进带源集名的子目录，否则静默失效（曾造成 `WorkModeResolverPropertyTest` 变成永不执行的死测试）。
 - 跨包调用 commonMain 里的**顶层扩展函数**必须在调用点显式 `import`（object 成员则不需要）；`Type::extFun` 的方法引用同样需要导入。
 - 平台专属入口不要塞进 commonMain 再把调用方改成反射/判空，留在对应 sourceSet 做薄封装，commonMain 只保留可共享的纯逻辑。
+- `jvm()` + `android()` 双目标模块（如 `relay/net`）两边都是 JVM 字节码，纯 JDK API（`java.net.Proxy` 等）与 JVM 库（OkHttp、协程）可直接进 commonMain，不必拆 `expect/actual`；手写 dependsOn 接线反而会触发默认层级模板 fallback 警告。
 
 `:desktop` 与 `:desktop:core`/`:desktop:data` 只有 `jvm()` 目标，因此它们的 `commonMain` 与 `jvmMain` 在编译产物上等价，但仍按上述布局分层，方便后续追加 `androidMain` 复用同一份 store/sync 逻辑。
 
@@ -102,6 +103,17 @@ Xposed/runtime 之间的 Android API 边界，当前拥有 `XpSmsDispatchRuntime
 - 允许：Android SDK、`relay/contract`
 - 禁止：`runtime`、`xpbridge/core`、`relay/android` 及 data/domain/platform 实现包
 
+### `smscode-core:hook` 宿主契约
+
+`HookHostCapabilities`（`io.github.magisk317.smscode.xposed.hook`，smscode-core 0273466）是共享
+短信 hook 层消费的唯一宿主能力契约；域 hooks（转发主链、保活、验证偏好）不进入契约。本仓为参考
+实现：`modules/hook/entry` 的 `XinyiHookHostCapabilities`
+（`io.github.magisk317.relay.xp.hook.helper`）经 `xpbridge` 接线实现契约，
+`SmsHookRuntimeSession` 负责生命周期（`@Volatile` + `synchronized` resolve/heartbeat 注入）；
+XposedSmsCode 以 `XscHookHostCapabilities` + 同名 session 对等落地。派发标记
+`SmsIntentHookSupport.markDispatchHandled(intent, action, handlerKey)` 为三参，两仓保持同一
+arity。契约变更必须同批同步两仓适配器并 bump 全部父仓 gitlink。
+
 ### `relay/contract`
 
 项目级稳定 contract：常量、设置模型、repository 接口、远程同步接口、JSON codec、设备 mirror DTO、sender active schedule 真源。`RelayJson` 是业务 JSON 首选入口。Android 图标编码等平台实现归 `relay/android`；Xposed Android runtime bridge API 归 `xpbridge/android/api`。
@@ -117,6 +129,14 @@ Xposed/runtime 之间的 Android API 边界，当前拥有 `XpSmsDispatchRuntime
 ### `relay/net`
 
 共享 HTTP client。`RelayHttpClients.default` 配置 `callTimeout(30s)` 上限。
+
+### `relay/security`
+
+共享密码学原语模块，当前持有 `AesGcmEnvelopeCipher`（AES-GCM 信封加密）与对应测试。模块自身
+不依赖 relay 其他模块，由 `relay/sender` 与 `core` 两个消费方使用。
+
+- 允许：密码学/编码标准库能力（不引入 relay 内部依赖）
+- 禁止：Compose、网络、sender/engine 业务策略
 
 ### `relay/sender`
 
@@ -242,6 +262,13 @@ Room KMP 本地库与旧库导入。schema 逐列对齐 Rust/Tauri 现役端，�
 - 允许：Room、androidx.sqlite、KSP room 编译器
 - 禁止：网络、Compose、业务策略（规则与同步语义归 `desktop/core`）
 
+## relay 拓扑与共享子模块注记（2026-10-15）
+
+- relay 九模块（`contract`/`engine:api`/`engine`/`sender:api`/`sender`/`net`/`security`/`matrix-e2ee`/`android`）经消费方盘点粒度合理，全部保留；api/impl 成对为刻意分层，不是重复实现。
+- `settings.gradle.kts` 中 `:hook`/`:relay`/`:xpbridge`/`:xpbridge:android` 的 projectDir 伞形映射是 `:hook:entry`、`:relay:*`、`:xpbridge:*` 等嵌套子项目的父目录必要声明，删除会导致配置失败（`Configuring project ':xpbridge:android' without an existing directory is not allowed`）。
+- `features/*` 为运行时插件入口（Play 动态下发 / 独立插件 APK），不属于 relay 依赖图本体。
+- 跨仓共享子模块 pin 矩阵（build-logic `a7e25b2` / magisk-ui-kit `dc8ebf9` / magisk-xposed-kit `409cf36` / smscode-core `0273466` / smscode-rules `efec615`）以 AGENTS.md「Cross-Repo Submodule Pin Matrix」为唯一真源。
+
 ## 边界守护
 
 ```bash
@@ -323,6 +350,7 @@ KMP 模块里的 contract 源文件，因此 contract 源在 `commonMain`/`andro
 | 设备配置镜像（device_config_mirrors） | 按设备 | Backend 只保存每台设备最新 mirror 与 revision，用于 Web/Desktop 读取和命令基线校验。 |
 | 设备配置命令（device_config_commands） | 按设备 | Web/Desktop 写入的是排队命令；设备上线后按 revision 顺序拉取、应用并 ack。 |
 | 设备配置审计（device_config_audit_logs） | 按设备 | 记录谁对哪台设备发了什么 mutation、设备何时应用、结果如何。 |
+| 设备动作指令（device_actions） | 按设备 | WebUI/App 排队一次性动作（白名单 SET_RINGER_MODE / SET_INTERRUPTION_FILTER，params 单键取值校验），无 revision 语义；设备随配置周期 pull 下发、执行一次并经 `agent/actions:ack` 回执 done/failed，失败带 failureReason，actor_type/actor_id 审计字段齐全。 |
 | 设备信息（devices） | 按设备 | 每台设备独立注册，独立 token。 |
 
 ## 后续演进

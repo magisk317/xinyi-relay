@@ -1,6 +1,6 @@
 # Privacy Policy / 隐私政策
 
-**Effective Date / 生效日期:** 2026-04-07
+**Effective Date / 生效日期:** 2026-10-18
 
 [English Version](#privacy-policy-for-信驿-relay) | [中文版本](#信驿-relay-隐私政策)
 
@@ -55,18 +55,33 @@ To support migration, 信驿 Relay may read export data from compatible local so
 - The project provides self-hosted backend software and container images, but you decide whether to deploy it and where it runs.
 - In the current implementation, synced records and configuration may be stored in plaintext on the backend for management and synchronization.
 
-### 5. Security
+### 5. Technical Diagnostics
+
+信驿 Relay collects limited technical diagnostic data to understand feature usage, keep the app reliable, and diagnose failures. This is enabled by default and can be turned off in the app settings. When turned off, the app stops sending new diagnostic data, and features that rely on it (such as the overview statistics cards) stop displaying it.
+
+When enabled, two kinds of technical diagnostic data may be sent:
+
+- Product-level usage diagnostics (Firebase services provided by Google): a randomly generated per-installation identifier; app version and build environment; device model; operating system version; language and region; coarse activity markers; feature and screen usage; and technical result fields of core operations (for example, relay outcome fields such as sender type, message type, and success/failure).
+- Runtime diagnostics (OpenTelemetry spans sent to the project self-hosted observability service): module and hook runtime states, operation stages, and success/failure or reason fields, used for stability and failure diagnosis.
+
+The random installation identifier is not the Android advertising ID and is not intentionally linked to an account, name, phone number, or email address, but its transmission is still data collection.
+
+Technical diagnostic data must not contain SMS or notification content, incoming call numbers, relay rules, relay target addresses or credentials, or any token or secret. The complete installed-app list and usage-history records are not included.
+
+Diagnostic data already transmitted is retained according to the respective service settings and cannot currently be deleted through an in-app control. The local installation identifier remains in private app storage until app data is cleared or the app is uninstalled.
+
+### 6. Security
 - Sensitive permissions are used only for declared features.
 - Network communication uses standard encrypted transport when supported by your configured endpoints.
 - Migration import uses local app-to-app interfaces with restricted permissions.
 
-### 6. Children’s Privacy
+### 7. Children’s Privacy
 This app is not directed to children under 13. We do not knowingly collect personal data from children.
 
-### 7. Policy Updates
+### 8. Policy Updates
 This policy may be updated over time. Updated versions will be published in the repository/app resources.
 
-### 8. Contact
+### 9. Contact
 If you have questions about this policy, contact:
 
 **Email:** play@usdt.edu.kg
@@ -118,22 +133,38 @@ If you have questions about this policy, contact:
 - 若你主动启用自建或云端 Backend，后端可能保存：
   - 设备元数据
   - 每台设备的配置 mirror 与配置审计
+  - 设备动作指令（铃声/勿扰模式等一次性控制指令）与执行回执、操作方审计
   - 你选择同步的转发/记录数据
 - 项目提供自建 Backend 程序与容器镜像，但是否部署、部署到哪里由你自行决定。
 - 当前实现下，后端会以明文形式保存你选择同步的记录与配置，用于管理与同步。
 
-### 5. 安全
+### 5. 技术诊断数据
+
+信驿 Relay 会收集有限的技术诊断数据，用于了解功能使用情况、保持应用可靠性和诊断失败原因。该功能默认开启，你可以在应用设置中关闭；关闭后，应用不再发送新的诊断数据，依赖该数据的功能（如总览页统计卡片）也将停止展示。
+
+开启时，可能发送两类技术诊断数据：
+
+- 产品级使用诊断（Google 提供的 Firebase 服务）：随机生成的、按安装区分的标识符；应用版本与构建环境；设备型号；操作系统版本；语言与地区；粗粒度活跃标记；功能与页面使用情况；核心操作的技术结果字段（例如转发结果的发送方类型、消息类型、成功/失败等）。
+- 运行时诊断（OpenTelemetry 链路数据，发送至项目自建的可观测性服务）：模块与 hook 的运行时状态、操作阶段、成功/失败与原因字段，用于稳定性与失败诊断。
+
+随机安装标识符不是 Android 广告 ID，也不会被有意关联到账号、姓名、手机号或邮箱，但发送该标识符仍属于数据收集。
+
+技术诊断数据不得包含短信或通知内容、来电号码、转发规则、转发目标地址或凭据，也不包含任何 token 或密钥；不包含完整的已安装应用列表和使用记录。
+
+已经发送的诊断数据按照相应服务的设置保留，目前无法通过应用内入口删除。本地安装标识符会保留在应用私有存储中，直到清除应用数据或卸载应用。
+
+### 6. 安全
 - 敏感权限仅用于声明功能；
 - 网络通信在目标端支持时使用标准加密传输；
 - 迁移导入使用受权限保护的本地应用间接口。
 
-### 6. 儿童隐私
+### 7. 儿童隐私
 本应用不面向 13 岁以下儿童。我们不会有意收集儿童个人信息。
 
-### 7. 政策更新
+### 8. 政策更新
 本政策可能更新，更新后将发布在仓库和应用资源中。
 
-### 8. 联系方式
+### 9. 联系方式
 如对本政策有疑问，请联系：
 
 **邮箱：** play@usdt.edu.kg
