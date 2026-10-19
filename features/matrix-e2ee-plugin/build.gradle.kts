@@ -12,7 +12,7 @@ import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
 import javax.inject.Inject
 
-// NOTE: deliberately NOT applying relay.android.common -- the plugin is a
+// NOTE: deliberately NOT applying magisk.android.distribution -- the plugin is a
 // standalone APK outside the app's distribution flavor matrix, and inheriting
 // the play/github flavors would rename every task (assemblePlayRelease etc.)
 // and split outputs per flavor.

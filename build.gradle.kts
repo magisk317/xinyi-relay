@@ -34,7 +34,47 @@ plugins {
     alias(libs.plugins.detekt) apply false
     alias(libs.plugins.kover) apply false
     id("magisk.maintenance")
+    id("magisk.distribution.policy")
 }
+
+// Which distributions this app ships as and what each one compiles in. This is
+// product data, so it belongs here rather than in the shared convention: the
+// convention owns only the mechanism that turns this table into AGP flavors.
+//
+// Play and GitHub are the active channels. F-Droid is paused - the commented
+// flavor in each channel block is the single resume point, so a paused
+// distribution stays a documented state instead of becoming a flavor that was
+// quietly dropped.
+magiskDistribution {
+    flavor("play") {
+        buildConfigBoolean("ENABLE_SMS_CHANNEL", false)
+        buildConfigBoolean("ALLOW_HTTP_WEBHOOK", true)
+        buildConfigBoolean("ENABLE_ACCESSIBILITY_AUTO_INPUT", false)
+        buildConfigBoolean("HAS_BILLING", true)
+        buildConfigBoolean("HAS_CLOUD_BACKUP", true)
+        buildConfigBoolean("HAS_MATRIX_E2EE", true)
+    }
+    flavor("github") {
+        buildConfigBoolean("ENABLE_SMS_CHANNEL", true)
+        buildConfigBoolean("ALLOW_HTTP_WEBHOOK", true)
+        buildConfigBoolean("ENABLE_ACCESSIBILITY_AUTO_INPUT", true)
+        buildConfigBoolean("HAS_BILLING", false)
+        buildConfigBoolean("HAS_CLOUD_BACKUP", false)
+        // The GitHub flavor ships no E2EE code: the matrix-rust-sdk runtime arrives
+        // as a separately versioned plugin APK (features/matrix-e2ee-plugin) that
+        // is downloaded and DexClassLoader-loaded at runtime. The app only pins
+        // the upstream SDK version it expects the plugin to carry.
+        buildConfigBoolean("HAS_MATRIX_E2EE", false)
+        buildConfigVersion("MATRIX_PLUGIN_SDK_VERSION", "matrix-sdk-android")
+    }
+    // Play Feature Delivery is a store capability, so only the Play flavor builds
+    // dynamic-feature variants. The others stay disabled: a plain root assembleDebug
+    // would otherwise schedule their manifest merge, which fails on the empty feature
+    // metadata.
+    dynamicFeatureFlavors.add("play")
+    preferInjectedCommitHash = true
+}
+
 
 val catalog = libs
 val enableKover = providers.gradleProperty("enableKover")

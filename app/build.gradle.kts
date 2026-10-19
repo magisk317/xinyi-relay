@@ -1,6 +1,6 @@
 plugins {
     id("magisk.android.application")
-    id("relay.android.common")
+    id("magisk.android.distribution")
     alias(libs.plugins.google.services)
     id("magisk.app.signing")
     id("magisk.app.packaging")

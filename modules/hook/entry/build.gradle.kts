@@ -1,6 +1,6 @@
 plugins {
     id("magisk.android.library")
-    id("relay.android.common")
+    id("magisk.android.distribution")
 }
 
 val allowConflictBypass = findProperty("allowConflictBypass")

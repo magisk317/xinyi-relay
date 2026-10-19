@@ -3,7 +3,7 @@ plugins {
     id(libs.plugins.kotlin.serialization.get().pluginId)
     id(libs.plugins.kotlin.parcelize.get().pluginId)
     id("magisk.android.room")
-    id("relay.android.common")
+    id("magisk.android.distribution")
 }
 
 android {
