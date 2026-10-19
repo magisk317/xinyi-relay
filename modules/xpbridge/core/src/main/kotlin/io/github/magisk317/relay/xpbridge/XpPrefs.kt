@@ -95,9 +95,6 @@ object XpPrefs {
         val bridge = this
         return object : CorePrefsAccess {
             override fun getBoolean(key: String, defaultValue: Boolean): Boolean {
-                if (key == PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE && !prefsBridge.isSensitiveDebugLogSupported()) {
-                    return false
-                }
                 return bridge.getBooleanPref(key, defaultValue)
             }
 

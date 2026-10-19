@@ -38,8 +38,6 @@ object PrefRestoreTypeRegistry {
         RelayPrefConst.KEY_DELETE_SMS,
         RelayPrefConst.KEY_FORCE_STOP_RECOVERY,
         RelayPrefConst.KEY_FORCE_STOP_RECOVERY_RELAUNCH_ONCE,
-        RelayPrefConst.KEY_VERBOSE_LOG_MODE,
-        RelayPrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE,
         RelayPrefConst.KEY_ENABLE_ANALYTICS,
         RelayPrefConst.KEY_AUTO_UPDATE_ON_START,
         RelayPrefConst.KEY_AUTO_UPDATE_WIFI_ONLY,

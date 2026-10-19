@@ -12,16 +12,10 @@ import io.github.magisk317.xposed.logging.XLog
  * xinyi-relay's extension points for the shared preference store.
  *
  * The mirror list is the set of keys a non-app process must observe; it is the
- * only part of the store that is repository specific. Boolean coercion gates
- * the sensitive debug log switch on builds that cannot support it.
+ * only part of the store that is repository specific.
  */
 object RelayPreferenceHooks : AppPreferencesHooks {
-    override fun coerceBoolean(key: String, value: Boolean): Boolean {
-        if (key == PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE && !PrefsReader.isSensitiveDebugLogSupported()) {
-            return false
-        }
-        return value
-    }
+    override fun coerceBoolean(key: String, value: Boolean): Boolean = value
 
     override suspend fun publishRemoteEntries(context: Context, editor: SharedPreferences.Editor) {
             editor.putBoolean(PrefConst.KEY_ENABLE, AppPreferencesDataStore.getBoolean(context, PrefConst.KEY_ENABLE, true))
@@ -40,11 +34,6 @@ object RelayPreferenceHooks : AppPreferencesHooks {
             editor.putBoolean(
                 PrefConst.KEY_SETTINGS_ACCORDION_MODE,
                 AppPreferencesDataStore.getBoolean(context, PrefConst.KEY_SETTINGS_ACCORDION_MODE, true),
-            )
-            editor.putBoolean(PrefConst.KEY_VERBOSE_LOG_MODE, AppPreferencesDataStore.getBoolean(context, PrefConst.KEY_VERBOSE_LOG_MODE, false))
-            editor.putBoolean(
-                PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE,
-                AppPreferencesDataStore.getBoolean(context, PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE, false),
             )
             editor.putInt(
                 PrefConst.KEY_RUNTIME_LOG_RETENTION_DAYS,

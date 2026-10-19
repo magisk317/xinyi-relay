@@ -166,8 +166,6 @@ internal fun SettingsDiagnosticsSection(
     expanded: Boolean,
     onExpandedChange: () -> Unit,
     onRuntimeLogTitleClick: () -> Unit,
-    onVerboseLogModeChange: (Boolean) -> Unit,
-    onSensitiveDebugLogModeChange: (Boolean) -> Unit = {},
     onRuntimeLogRetentionClick: () -> Unit,
     onClearLog: () -> Unit,
     onAnalyticsEnabledChange: (Boolean) -> Unit,
@@ -184,8 +182,6 @@ internal fun SettingsDiagnosticsSection(
             labels = RuntimeLogDiagnosticsLabels(
                 shareLogTitle = stringResource(id = R.string.pref_share_log_title),
                 shareLogSummary = stringResource(id = R.string.pref_share_log_summary),
-                verboseLogTitle = stringResource(id = R.string.pref_verbose_log_mode_title),
-                verboseLogSummary = stringResource(id = R.string.pref_verbose_log_mode_summary),
                 retentionTitle = stringResource(id = R.string.pref_runtime_log_retention_days_title),
                 retentionSummary = stringResource(
                     id = R.string.pref_runtime_log_retention_days_summary,
@@ -195,22 +191,18 @@ internal fun SettingsDiagnosticsSection(
                 clearLogSummary = stringResource(id = R.string.runtime_log_clear_summary),
             ),
             state = RuntimeLogDiagnosticsState(
-                verboseLogEnabled = diagnostics.verboseLogMode,
                 analyticsEnabled = diagnostics.analyticsEnabled,
             ),
             callbacks = RuntimeLogDiagnosticsCallbacks(
                 onShareLog = onRuntimeLogTitleClick,
-                onVerboseLogEnabledChange = onVerboseLogModeChange,
                 onRetentionClick = onRuntimeLogRetentionClick,
                 onClearLogClick = onClearLog,
-                onSensitiveLogEnabledChange = onSensitiveDebugLogModeChange,
                 onAnalyticsEnabledChange = if (!BuildConfig.DEBUG && !BuildConfig.IS_CI_BUILD) onAnalyticsEnabledChange else null,
             ),
             layout = RuntimeLogDiagnosticsLayout(
                 shareEntryMode = RuntimeLogShareEntryMode.SEPARATE_ITEM,
                 itemOrder = listOf(
                     RuntimeLogDiagnosticsItem.SHARE_LOG,
-                    RuntimeLogDiagnosticsItem.SENSITIVE_LOG,
                     RuntimeLogDiagnosticsItem.RETENTION,
                     RuntimeLogDiagnosticsItem.CLEAR_LOG,
                     RuntimeLogDiagnosticsItem.ANALYTICS,

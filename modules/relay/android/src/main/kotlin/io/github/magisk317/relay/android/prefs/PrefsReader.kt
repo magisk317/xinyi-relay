@@ -226,19 +226,12 @@ object PrefsReader {
     }
 
     @JvmStatic
-    fun isVerboseLogMode(context: Context): Boolean {
-        val defaultValue = false
-        return getBooleanViaProvider(context, PrefConst.KEY_VERBOSE_LOG_MODE, defaultValue)
-    }
+    fun isVerboseLogMode(context: Context): Boolean =
+        BuildConfig.DEBUG || BuildConfig.IS_CI_BUILD
 
     @JvmStatic
-    fun isSensitiveDebugLogSupported(): Boolean = true
-
-    @JvmStatic
-    fun isSensitiveDebugLogMode(context: Context): Boolean {
-        if (!isSensitiveDebugLogSupported()) return false
-        return getBooleanViaProvider(context, PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE, false)
-    }
+    fun isSensitiveDebugLogMode(context: Context): Boolean =
+        BuildConfig.DEBUG || BuildConfig.IS_CI_BUILD
 
     @JvmStatic
     fun verificationFeaturesEnabled(context: Context): Boolean {

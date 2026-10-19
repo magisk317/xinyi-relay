@@ -8,7 +8,6 @@ interface XpPrefsRuntimeBridge {
     fun installRuntimeBridge(bridge: XpRuntimeBridge?)
     fun isEnabled(context: Context): Boolean
     fun isVerboseLogMode(context: Context): Boolean
-    fun isSensitiveDebugLogSupported(): Boolean
     fun isSensitiveDebugLogMode(context: Context): Boolean
     fun relayFeaturesEnabled(context: Context): Boolean
     fun mobileAutomationAllowed(context: Context): Boolean
@@ -34,7 +33,6 @@ object NoopXpPrefsRuntimeBridge : XpPrefsRuntimeBridge {
     override fun installRuntimeBridge(bridge: XpRuntimeBridge?) = Unit
     override fun isEnabled(context: Context): Boolean = true
     override fun isVerboseLogMode(context: Context): Boolean = false
-    override fun isSensitiveDebugLogSupported(): Boolean = false
     override fun isSensitiveDebugLogMode(context: Context): Boolean = false
     override fun relayFeaturesEnabled(context: Context): Boolean = true
     override fun mobileAutomationAllowed(context: Context): Boolean = true
