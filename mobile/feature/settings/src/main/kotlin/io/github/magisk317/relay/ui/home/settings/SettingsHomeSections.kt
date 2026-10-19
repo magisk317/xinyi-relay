@@ -210,7 +210,6 @@ internal fun SettingsDiagnosticsSection(
                 shareEntryMode = RuntimeLogShareEntryMode.SEPARATE_ITEM,
                 itemOrder = listOf(
                     RuntimeLogDiagnosticsItem.SHARE_LOG,
-                    RuntimeLogDiagnosticsItem.VERBOSE_LOG,
                     RuntimeLogDiagnosticsItem.SENSITIVE_LOG,
                     RuntimeLogDiagnosticsItem.RETENTION,
                     RuntimeLogDiagnosticsItem.CLEAR_LOG,
