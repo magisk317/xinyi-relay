@@ -1,0 +1,7 @@
+{
+  "track_m_suffixes": ["Material.kt", "Expressive.kt"],
+  "track_x_suffix": "Miuix.kt",
+  "skip_dirs": ["build", ".git", ".gradle", ".idea", "magisk-ui-kit", "magisk-xposed-kit", "build-logic", "node_modules"],
+  "submodule_prefixes": ["smscode/core", "smscode/rules", "smscode-core"],
+  "exempt_prefixes": ["desktop/", "modules/desktop/"]
+}

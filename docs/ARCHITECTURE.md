@@ -16,7 +16,7 @@
 桌面端是 Kotlin Multiplatform + Compose Multiplatform 的**单轨**应用（原先的 Rust/Tauri 轨已于 2026-10-04 退役删除，恢复点见 tag `tauri-retirement`）：
 
 - `:desktop`（Compose Desktop 应用壳）+ `:desktop:core`（store/sync 领域逻辑）+ `:desktop:data`（Room KMP 本地库与旧库导入）。
-- 它不并入 Android 的 M3/miuix 双轨门禁，`scripts/checks/dual_track_check.py` 已按 `desktop/`、`modules/desktop/` 路径前缀豁免；也不经 `:magisk-ui-kit`（见 `docs/DESKTOP.md`「UI 组件语言的取舍」）。
+- 它不并入 Android 的 M3/miuix 双轨门禁，`magisk-ci-toolkit/checks/dual_track_check.py` 通过 `scripts/config/dual-track.json` 按 `desktop/`、`modules/desktop/` 路径前缀豁免；也不经 `:magisk-ui-kit`（见 `docs/DESKTOP.md`「UI 组件语言的取舍」）。
 - 与 Web 端共用同一套 Console API（`docs/DESKTOP.md` 记录移植来源与 parity 状态）。
 
 ## Gradle 坐标与物理路径
@@ -273,7 +273,7 @@ Room KMP 本地库与旧库导入。schema 逐列对齐 Rust/Tauri 现役端，�
 
 ```bash
 ./gradlew check  # 聚合 verifyModuleBoundaries + verifyStructureBoundaries + verifyEmbeddedSubmodules + verifyDependencyGovernance
-bash scripts/checks/verify_shared_submodule_compat.sh  # 共享子模块兼容面
+bash "$MAGISK_CI_TOOLKIT_DIR/gradle/verify_consumer_compat.sh" --root "$PWD" --config scripts/config/compat-check.json --toolkit "$MAGISK_CI_TOOLKIT_DIR"  # 共享子模块兼容面
 ```
 
 完整边界规则表见上文各模块的"允许/禁止"列表。守护脚本：`scripts/checks/verify_module_boundaries.sh`。
@@ -421,4 +421,4 @@ KMP 模块里的 contract 源文件，因此 contract 源在 `commonMain`/`andro
 10. KMP 模块源码必须放 `src/<源集>/kotlin/`，不放 `src/main`、`src/test`（遗产目录不参与编译）。
 11. 平台专属入口放对应 sourceSet 并复用 commonMain 实现，commonMain 只保留可共享纯逻辑。
 12. 桌面新轨不引入 `:magisk-ui-kit`，直接使用 Compose Multiplatform Material 3 叶子组件。
-13. KMP 模块的测试一律放 `src/jvmTest/kotlin/`，并把对应 `:<模块>:jvmTest` 加进 `scripts/ci/select_android_test_tasks.sh` 的 `kmp_library_test_tasks` 与该模块的路径分支——否则测试不进 CI（`relay/engine` 的两个引擎测试就曾在 `runtime` 的 `src/test` 里长期无人执行）。
+13. KMP 模块的测试一律放 `src/jvmTest/kotlin/`，并把对应 `:<模块>:jvmTest` 写入 `scripts/config/android-test-tasks.json` 的路径规则；否则测试不进 CI（`relay/engine` 的两个引擎测试就曾在 `runtime` 的 `src/test` 里长期无人执行）。

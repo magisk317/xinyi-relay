@@ -25,6 +25,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
+TOOLKIT_DIR="${MAGISK_CI_TOOLKIT_DIR:-$(bash scripts/resolve_ci_toolkit.sh)}"
+source "$TOOLKIT_DIR/ci/gitlab_api.sh"
 
 CATALOG="gradle/libs.versions.toml"
 PATCH_FILE="scripts/ci/rustls_pv_toolchain.patch"
@@ -34,7 +36,6 @@ ARTIFACT_ID="rustls-platform-verifier"
 MODULE="rustls-platform-verifier"
 AAR_NAME="rustls-platform-verifier-release.aar"
 
-API_BASE="${CI_API_V4_URL:-https://gitlab.com/api/v4}"
 PROJECT_ID="${CI_PROJECT_ID:-84113188}"
 DRY_RUN="${RUSTLS_PV_DRY_RUN:-0}"
 FORCE="${RUSTLS_PV_FORCE:-0}"
@@ -45,18 +46,6 @@ die() {
   exit 1
 }
 
-gitlab_curl_args() {
-  if [[ -n "${CI_JOB_TOKEN:-}" ]]; then
-    printf '%s\n' --header "JOB-TOKEN: $CI_JOB_TOKEN"
-  elif [[ -n "${GITLAB_TOKEN:-}" ]]; then
-    printf '%s\n' --header "PRIVATE-TOKEN: $GITLAB_TOKEN"
-  elif [[ -n "${GITLAB_DEPLOY_TOKEN:-}" ]]; then
-    printf '%s\n' --header "DEPLOY-TOKEN: $GITLAB_DEPLOY_TOKEN"
-  else
-    echo "ERROR: set CI_JOB_TOKEN, GITLAB_TOKEN, or GITLAB_DEPLOY_TOKEN" >&2
-    exit 2
-  fi
-}
 
 catalog_version() {
   sed -nE "s/^$1[[:space:]]*=[[:space:]]*\"([^\"]+)\".*/\1/p" "$CATALOG" | head -n 1
@@ -94,8 +83,7 @@ echo "    toolchain: kotlin=$KOTLIN agp=$AGP buildTools=$BUILD_TOOLS targetSdk=$
 # Skip the build when the registry already serves this exact version; a manual
 # run must always rebuild from the current sources.
 if [[ "$DRY_RUN" != "1" && "$FORCE" != "1" ]]; then
-  status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
-    "$MAVEN_URL/$POM_NAME" || true)"
+  status="$(gitlab_api_curl "projects/$PROJECT_ID/packages/maven/$GROUP_ID/$ARTIFACT_ID/$VERSION/$POM_NAME" --output /dev/null --write-out '%{http_code}' || true)"
   if [[ "$status" == "200" ]]; then
     echo "==> $GROUP_ID:$ARTIFACT_ID:$VERSION already published; nothing to do (RUSTLS_PV_FORCE=1 to republish)"
     exit 0
@@ -172,14 +160,12 @@ if [[ "$DRY_RUN" == "1" ]]; then
   exit 0
 fi
 
-auth_args=()
-while IFS= read -r line; do auth_args+=("$line"); done < <(gitlab_curl_args)
 
 for asset in "$WORK_DIR/$ARTIFACT_ID-$VERSION.aar" "$WORK_DIR/$POM_NAME"; do
   name="$(basename "$asset")"
   echo "==> PUT $name"
-  status="$(curl --silent --output "$WORK_DIR/upload.json" --write-out '%{http_code}' \
-    --request PUT --upload-file "$asset" "${auth_args[@]}" "$MAVEN_URL/$name" || true)"
+  status="$(gitlab_api_curl "projects/$PROJECT_ID/packages/maven/$GROUP_ID/$ARTIFACT_ID/$VERSION/$name" --output "$WORK_DIR/upload.json" --write-out '%{http_code}' \
+    --request PUT --upload-file "$asset" || true)"
   case "$status" in
     200|201|409) ;;
     400)
@@ -193,8 +179,7 @@ for asset in "$WORK_DIR/$ARTIFACT_ID-$VERSION.aar" "$WORK_DIR/$POM_NAME"; do
   esac
 done
 
-verify_status="$(curl --silent --output /dev/null --write-out '%{http_code}' \
-  "$MAVEN_URL/$POM_NAME" || true)"
+verify_status="$(gitlab_api_curl "projects/$PROJECT_ID/packages/maven/$GROUP_ID/$ARTIFACT_ID/$VERSION/$POM_NAME" --output /dev/null --write-out '%{http_code}' || true)"
 [[ "$verify_status" == "200" ]] || die "post-publish verification failed (HTTP $verify_status)"
 
 echo "==> Published $GROUP_ID:$ARTIFACT_ID:$VERSION"

@@ -32,6 +32,8 @@ jobs:
           submodules: recursive
           fetch-depth: 0
       - uses: ./.github/actions/resolve-ci-toolkit
+        with:
+          ref: a7b6ec3b80c7708e8ce0f18a24a3e3ce36a35cb8
       - name: Setup Android CI
         uses: ./.magisk-ci-toolkit/.github/actions/setup-android-ci
         with:
@@ -48,4 +50,7 @@ jobs:
           echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/github/google-services.json
           echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/play/google-services.json
       - name: Verify shared submodule compatibility
-        run: bash scripts/checks/verify_shared_submodule_compat.sh
+        run: bash "${MAGISK_CI_TOOLKIT_DIR:-.magisk-ci-toolkit}/gradle/verify_consumer_compat.sh" \
+          --root "$PWD" \
+          --config scripts/config/compat-check.json \
+          --toolkit "${MAGISK_CI_TOOLKIT_DIR:-.magisk-ci-toolkit}"

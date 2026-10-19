@@ -1,0 +1,35 @@
+{
+  "gradle_args": ["--no-configuration-cache"],
+  "groups": [
+    {
+      "tasks": [
+        "verifyEmbeddedSubmodules",
+        "verifyModuleBoundaries",
+        "verifyStructureBoundaries",
+        ":app:verifyBundledSmsCodeRules",
+        ":smscode-core:contract:test",
+        ":smscode-core:domain:test",
+        ":smscode-core:verification:test",
+        ":smscode-core:rule:test",
+        ":smscode-core:verification:detekt",
+        ":smscode-core:hook:lintDebug",
+        ":smscode-core:runtime:lintDebug",
+        ":magisk-ui-kit:compileAndroidMain",
+        ":magisk-ui-kit:compileKotlinJvm",
+        ":magisk-xposed-kit:testDebugUnitTest",
+        ":magisk-xposed-kit:logging:testDebugUnitTest",
+        ":magisk-xposed-kit:diagnostics:testDebugUnitTest",
+        ":xpbridge:core:compileGithubDebugKotlin",
+        ":hook:entry:testGithubDebugUnitTest",
+        ":runtime:testGithubDebugUnitTest",
+        ":relay:sender:testGithubDebugUnitTest",
+        ":core:testGithubDebugUnitTest",
+        ":core:koverHtmlReportGithubDebug",
+        ":core:compileGithubDebugKotlin",
+        ":app:detekt"
+      ]
+    },
+    {"tasks": [":app:testGithubDebugUnitTest"]},
+    {"tasks": [":app:lintReportGithubDebug"]}
+  ]
+}
