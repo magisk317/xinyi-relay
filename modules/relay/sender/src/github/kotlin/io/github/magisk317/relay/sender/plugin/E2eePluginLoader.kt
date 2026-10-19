@@ -253,7 +253,7 @@ internal class E2eePluginLoader {
                     SLog.e(TAG, "Plugin download HTTP ${response.code}: $url")
                     return@use false
                 }
-                val body = response.body ?: return@use false
+                val body = response.body
                 val total = body.contentLength()
                 var downloaded = 0L
                 var lastPercent = -1
@@ -324,10 +324,10 @@ internal class E2eePluginLoader {
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun verifySignature(context: Context, apk: File) {
         val hostSignatures = hostSignatures(context)
         if (hostSignatures.isEmpty()) error("host signatures unavailable")
-        @Suppress("DEPRECATION")
         val info: PackageInfo? = context.packageManager.getPackageArchiveInfo(
             apk.absolutePath,
             PackageManager.GET_SIGNATURES,
