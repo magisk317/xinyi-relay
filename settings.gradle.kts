@@ -10,8 +10,8 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-google()
-mavenCentral()
+        google()
+        mavenCentral()
         maven("https://jitpack.io") {
             name = "JitPack"
             content {
@@ -25,8 +25,6 @@ mavenCentral()
                     ?: System.getenv("GITLAB_MAVEN_URL")
                     ?: "https://gitlab.com/api/v4/projects/84113188/packages/maven",
             )
-
-
             content {
                 includeGroup("rustls")
             }
