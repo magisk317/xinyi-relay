@@ -75,7 +75,7 @@ if [[ "$COMPILE_SDK_MINOR" == "$COMPILE_SDK" ]]; then
 fi
 
 POM_NAME="rustls-platform-verifier-$VERSION.pom"
-MAVEN_URL="$API_BASE/projects/$PROJECT_ID/packages/maven/$GROUP_ID/$ARTIFACT_ID/$VERSION"
+MAVEN_URL="$(gitlab_api_base_url)/projects/$PROJECT_ID/packages/maven/$GROUP_ID/$ARTIFACT_ID/$VERSION"
 
 echo "==> rustls-platform-verifier $VERSION (dry_run=$DRY_RUN force=$FORCE)"
 echo "    toolchain: kotlin=$KOTLIN agp=$AGP buildTools=$BUILD_TOOLS targetSdk=$TARGET_SDK java=$JAVA_BYTECODE compileSdk=$COMPILE_SDK_MAJOR.$COMPILE_SDK_MINOR"
