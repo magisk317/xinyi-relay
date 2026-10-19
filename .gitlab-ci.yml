@@ -1,27 +1,27 @@
 include:
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "ec132da451c0da763fd6b401bfb1b06359d5fb96"
+    ref: "174d78104f79bb2073e7175125a0e0dbb989edb5"
     file: /.gitlab/ci/android.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "ec132da451c0da763fd6b401bfb1b06359d5fb96"
+    ref: "174d78104f79bb2073e7175125a0e0dbb989edb5"
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "ec132da451c0da763fd6b401bfb1b06359d5fb96"
+    ref: "174d78104f79bb2073e7175125a0e0dbb989edb5"
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "ec132da451c0da763fd6b401bfb1b06359d5fb96"
+    ref: "174d78104f79bb2073e7175125a0e0dbb989edb5"
     file: /.gitlab/ci/renovate.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "ec132da451c0da763fd6b401bfb1b06359d5fb96"
+    ref: "174d78104f79bb2073e7175125a0e0dbb989edb5"
     file: /.gitlab/ci/cancel-mr-pipelines.yml
   # Utility-job anchor (alpine, pinned): sync:github extends it instead of
   # pinning its own image. Language-tool jobs (backend:go, webui:check, the
   # docker/node jobs) keep their own pinned tool images by design.
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "ec132da451c0da763fd6b401bfb1b06359d5fb96"
+    ref: "174d78104f79bb2073e7175125a0e0dbb989edb5"
     file: /.gitlab/ci/utility.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "ec132da451c0da763fd6b401bfb1b06359d5fb96"
+    ref: "174d78104f79bb2073e7175125a0e0dbb989edb5"
     file: /.gitlab/ci/readme-badges.yml
 
 workflow:
@@ -47,7 +47,7 @@ stages:
 
 variables:
   MAGISK_CI_TOOLKIT_REPOSITORY: "https://gitlab.com/magisk3171/shared/magisk-ci-toolkit.git"
-  MAGISK_CI_TOOLKIT_REF: "ec132da451c0da763fd6b401bfb1b06359d5fb96"
+  MAGISK_CI_TOOLKIT_REF: "174d78104f79bb2073e7175125a0e0dbb989edb5"
   MAGISK_CANCEL_OLDER_MR_PIPELINES: "true"
   # Cancel the merged MR's own merge_request_event pipeline from the push
   # pipeline that lands the merge. GitLab has no cancel-on-merge hook and
