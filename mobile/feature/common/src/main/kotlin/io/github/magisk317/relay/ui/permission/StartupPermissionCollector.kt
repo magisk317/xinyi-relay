@@ -265,6 +265,53 @@ object StartupPromptStore {
     }
 }
 
+enum class SetupProgress(val completed: Boolean, val rootSelected: Boolean) {
+    ROOT_PENDING(false, false),
+    GRANT_ROOT(false, true),
+    GRANT_MANUAL(false, false),
+    COMPLETE_ROOT(true, true),
+    COMPLETE_MANUAL(true, false),
+}
+
+object SetupProgressPolicy {
+    fun shouldShowWizard(privacyAccepted: Boolean, progress: SetupProgress?): Boolean =
+        !privacyAccepted || progress?.completed != true
+}
+
+object SetupProgressStore {
+
+    fun current(context: Context): SetupProgress? {
+        val preferences = context.getSharedPreferences(STARTUP_PERMISSION_PREFS, Context.MODE_PRIVATE)
+        if (preferences.getLong(SETUP_VERSION_CODE, Long.MIN_VALUE) != context.currentVersionCode()) {
+            return null
+        }
+        return preferences.getString(SETUP_PROGRESS, null)
+            ?.let { value -> runCatching { SetupProgress.valueOf(value) }.getOrNull() }
+    }
+
+    fun isComplete(context: Context): Boolean = current(context)?.completed == true
+
+    fun mark(context: Context, progress: SetupProgress) {
+        context.getSharedPreferences(STARTUP_PERMISSION_PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putLong(SETUP_VERSION_CODE, context.currentVersionCode())
+            .putString(SETUP_PROGRESS, progress.name)
+            .apply()
+    }
+
+    fun markComplete(context: Context) {
+        val completed = if (current(context)?.rootSelected == true) {
+            SetupProgress.COMPLETE_ROOT
+        } else {
+            SetupProgress.COMPLETE_MANUAL
+        }
+        mark(context, completed)
+    }
+
+    private const val SETUP_PROGRESS = "setup_progress"
+    private const val SETUP_VERSION_CODE = "setup_progress_version_code"
+}
+
 private enum class StartupSpecialPermission(
     val key: String,
     @param:StringRes val labelRes: Int,

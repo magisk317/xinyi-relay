@@ -11,6 +11,8 @@ import io.github.magisk317.relay.ui.permission.PermissionStatus
 import io.github.magisk317.relay.ui.permission.StartupPermissionCollector
 import io.github.magisk317.relay.ui.permission.StartupPermissionConfig
 import io.github.magisk317.relay.ui.permission.StartupPromptStore
+import io.github.magisk317.relay.ui.permission.SetupProgress
+import io.github.magisk317.relay.ui.permission.SetupProgressStore
 import io.github.magisk317.relay.ui.permission.runRootGrants
 import io.github.magisk317.relay.ui.permission.startupPermissionConfig
 import io.github.magisk317.xposed.logging.XLog
@@ -91,23 +93,31 @@ class SetupViewModel(
     fun acceptPrivacyPolicy() {
         viewModelScope.launch {
             settingsRepository.setPrivacyPolicyAccepted(true)
+            SetupProgressStore.mark(context(), SetupProgress.ROOT_PENDING)
             probeRootAndContinue()
         }
     }
-    /** Resumes an accepted-but-incomplete setup after Activity recreation. */
+
     fun resumeAfterPrivacyPolicy() {
         if (_uiState.value.step != SetupStep.WELCOME) return
-        viewModelScope.launch { probeRootAndContinue() }
+        when (SetupProgressStore.current(context())) {
+            SetupProgress.GRANT_ROOT -> resumeGrantPhase(forceManual = false)
+            SetupProgress.GRANT_MANUAL -> resumeGrantPhase(forceManual = true)
+            SetupProgress.COMPLETE_ROOT, SetupProgress.COMPLETE_MANUAL ->
+                _uiState.update { it.copy(step = SetupStep.DONE) }
+            SetupProgress.ROOT_PENDING, null -> viewModelScope.launch { probeRootAndContinue() }
+        }
     }
 
     private suspend fun probeRootAndContinue() {
+        SetupProgressStore.mark(context(), SetupProgress.ROOT_PENDING)
         _uiState.update { it.copy(step = SetupStep.ROOT, rootProbing = true) }
         val rootAvailable = withContext(Dispatchers.IO) {
             runCatching { RootShell.canUseRoot() }.getOrDefault(false)
         }
         _uiState.update { it.copy(rootProbing = false, rootAvailable = rootAvailable) }
         if (!rootAvailable) {
-            proceedToGrants()
+            proceedToGrants(forceManual = true)
         }
     }
 
@@ -123,19 +133,18 @@ class SetupViewModel(
     fun proceedToGrants(forceManual: Boolean = false) {
         viewModelScope.launch {
             publishPermissions()
+            val rootSelected = _uiState.value.rootAvailable && !forceManual
+            SetupProgressStore.mark(
+                context(),
+                if (rootSelected) SetupProgress.GRANT_ROOT else SetupProgress.GRANT_MANUAL,
+            )
             val missing = _uiState.value.missing
             if (missing.isEmpty()) {
                 completeSetup()
                 return@launch
             }
             _uiState.update {
-                it.copy(
-                    step = if (it.rootAvailable && !forceManual) {
-                        SetupStep.GRANT_ROOT
-                    } else {
-                        SetupStep.GRANT_MANUAL
-                    },
-                )
+                it.copy(step = if (rootSelected) SetupStep.GRANT_ROOT else SetupStep.GRANT_MANUAL)
             }
         }
     }
@@ -148,6 +157,7 @@ class SetupViewModel(
     /** One-tap grant through the root bridge, then re-collect what is left. */
     fun grantViaRoot() {
         viewModelScope.launch {
+            SetupProgressStore.mark(context(), SetupProgress.GRANT_ROOT)
             _uiState.update { it.copy(granting = true, grantLog = emptyList()) }
             val cfg = ensureConfig()
             withContext(Dispatchers.IO) {
@@ -166,6 +176,7 @@ class SetupViewModel(
             if (_uiState.value.missing.isEmpty()) {
                 completeSetup()
             } else {
+                SetupProgressStore.mark(context(), SetupProgress.GRANT_MANUAL)
                 _uiState.update { it.copy(step = SetupStep.GRANT_MANUAL) }
             }
         }
@@ -207,6 +218,30 @@ class SetupViewModel(
         _uiState.update { it.copy(missing = missing, allStatuses = statuses) }
     }
 
+    private fun resumeGrantPhase(forceManual: Boolean) {
+        viewModelScope.launch {
+            val rootAvailable = withContext(Dispatchers.IO) {
+                runCatching { RootShell.canUseRoot() }.getOrDefault(false)
+            }
+            publishPermissions()
+            if (_uiState.value.missing.isEmpty()) {
+                completeSetup()
+                return@launch
+            }
+            val rootSelected = rootAvailable && !forceManual
+            SetupProgressStore.mark(
+                context(),
+                if (rootSelected) SetupProgress.GRANT_ROOT else SetupProgress.GRANT_MANUAL,
+            )
+            _uiState.update {
+                it.copy(
+                    rootAvailable = rootAvailable,
+                    step = if (rootSelected) SetupStep.GRANT_ROOT else SetupStep.GRANT_MANUAL,
+                )
+            }
+        }
+    }
+
     private suspend fun completeSetup() {
         val statuses = withContext(Dispatchers.IO) {
             runCatching {
@@ -215,6 +250,7 @@ class SetupViewModel(
         }
         withContext(Dispatchers.IO) {
             StartupPromptStore.markPromptedForCurrentVersion(context())
+            SetupProgressStore.markComplete(context())
         }
         _uiState.update {
             it.copy(
