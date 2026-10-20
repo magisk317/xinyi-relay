@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,10 +58,16 @@ fun SetupScreen(
     onDecline: () -> Unit,
     onFinished: () -> Unit,
     modifier: Modifier = Modifier,
+    privacyAlreadyAccepted: Boolean = false,
     viewModel: SetupViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var showPolicyPage by remember { mutableStateOf(false) }
+    LaunchedEffect(privacyAlreadyAccepted) {
+        if (privacyAlreadyAccepted) {
+            viewModel.resumeAfterPrivacyPolicy()
+        }
+    }
     // The welcome step is the only exit: back there is a decline, which the
     // wizard refuses to guess, so the gesture is swallowed instead.
     BackHandler(enabled = state.step != SetupStep.WELCOME && !showPolicyPage) { viewModel.backStep() }

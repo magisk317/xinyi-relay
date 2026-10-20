@@ -75,6 +75,7 @@ import io.github.magisk317.relay.ui.home.settings.SettingsViewModel
 import io.github.magisk317.relay.ui.home.settings.SettingsEvent
 import io.github.magisk317.relay.ui.setup.SetupScreen
 import io.github.magisk317.relay.ui.setup.SetupViewModel
+import io.github.magisk317.relay.ui.permission.StartupPromptStore
 
 class MainActivity : ComponentActivity() {
 
@@ -197,9 +198,7 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(Unit) {
                 val accepted = settingsRepository.isPrivacyPolicyAccepted()
                 privacyAccepted = accepted
-                if (!accepted) {
-                    showSetup = true
-                }
+                showSetup = !accepted || !StartupPromptStore.hasPrompted(context)
             }
             LaunchedEffect(Unit) {
                 try {
@@ -318,6 +317,7 @@ class MainActivity : ComponentActivity() {
 
                             if (blockingStartupDialog == null &&
                                 privacyAccepted == true &&
+                                StartupPromptStore.hasPrompted(context) &&
                                 !showPrivacyPolicyDialog &&
                                 !showPrivacyPolicyPage &&
                                 !showSetup
@@ -386,6 +386,7 @@ class MainActivity : ComponentActivity() {
                                     privacyAccepted = true
                                     showSetup = false
                                 },
+                                privacyAlreadyAccepted = privacyAccepted == true,
                             )
                         }
 

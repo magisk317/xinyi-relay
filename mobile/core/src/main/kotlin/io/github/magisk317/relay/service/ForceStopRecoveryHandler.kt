@@ -27,28 +27,14 @@ object ForceStopRecoveryHandler {
     )
 
     fun handle(context: Context, intent: Intent, tag: String) {
-        if (!wakeupThrottle.tryAcquire()) {
-            XLog.log(android.util.Log.WARN, LogRoute.ROOT_DB.id, true, true, "ForceStopRecoveryService wakeup throttled")
-            MagiskOtel.event(
-                name = "app.recovery",
-                attributes = mapOf(
-                    "result" to "skip",
-                    "duration_ms" to "0",
-                    "process" to "app",
-                    "stage" to "force_stop",
-                    "reason" to "throttled",
-                    "source" to tag,
-                ),
-                statusOk = true,
-            )
-            return
-        }
         scope.launch {
-            handleInternal(context, intent, tag)
+            if (admit(context, intent, tag)) {
+                handleInternal(context, intent, tag)
+            }
         }
     }
 
-    private suspend fun handleInternal(context: Context, intent: Intent, tag: String) {
+    private suspend fun admit(context: Context, intent: Intent, tag: String): Boolean {
         val expectedToken = loadExpectedToken(context)
         val receivedToken = intent.getStringExtra(ForceStopRecoveryContract.EXTRA_IPC_TOKEN)
         val tokenAccepted = IpcTokenGate.isAccepted(
@@ -73,8 +59,28 @@ object ForceStopRecoveryHandler {
                 ),
                 statusOk = false,
             )
-            return
+            return false
         }
+        if (!wakeupThrottle.tryAcquire()) {
+            XLog.log(android.util.Log.WARN, LogRoute.ROOT_DB.id, true, true, "ForceStopRecoveryService wakeup throttled")
+            MagiskOtel.event(
+                name = "app.recovery",
+                attributes = mapOf(
+                    "result" to "skip",
+                    "duration_ms" to "0",
+                    "process" to "app",
+                    "stage" to "force_stop",
+                    "reason" to "throttled",
+                    "source" to tag,
+                ),
+                statusOk = true,
+            )
+            return false
+        }
+        return true
+    }
+
+    private suspend fun handleInternal(context: Context, intent: Intent, tag: String) {
         val reason = intent.getStringExtra(ForceStopRecoveryContract.EXTRA_REASON).orEmpty()
         val eventId = intent.getStringExtra(ForceStopRecoveryContract.EXTRA_EVENT_ID).orEmpty()
         XLog.log(

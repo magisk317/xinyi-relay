@@ -91,14 +91,23 @@ class SetupViewModel(
     fun acceptPrivacyPolicy() {
         viewModelScope.launch {
             settingsRepository.setPrivacyPolicyAccepted(true)
-            _uiState.update { it.copy(step = SetupStep.ROOT, rootProbing = true) }
-            val rootAvailable = withContext(Dispatchers.IO) {
-                runCatching { RootShell.canUseRoot() }.getOrDefault(false)
-            }
-            _uiState.update { it.copy(rootProbing = false, rootAvailable = rootAvailable) }
-            if (!rootAvailable) {
-                proceedToGrants()
-            }
+            probeRootAndContinue()
+        }
+    }
+    /** Resumes an accepted-but-incomplete setup after Activity recreation. */
+    fun resumeAfterPrivacyPolicy() {
+        if (_uiState.value.step != SetupStep.WELCOME) return
+        viewModelScope.launch { probeRootAndContinue() }
+    }
+
+    private suspend fun probeRootAndContinue() {
+        _uiState.update { it.copy(step = SetupStep.ROOT, rootProbing = true) }
+        val rootAvailable = withContext(Dispatchers.IO) {
+            runCatching { RootShell.canUseRoot() }.getOrDefault(false)
+        }
+        _uiState.update { it.copy(rootProbing = false, rootAvailable = rootAvailable) }
+        if (!rootAvailable) {
+            proceedToGrants()
         }
     }
 
