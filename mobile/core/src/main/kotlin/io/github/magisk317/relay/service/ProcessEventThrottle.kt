@@ -2,6 +2,18 @@ package io.github.magisk317.relay.service
 
 import java.util.concurrent.atomic.AtomicLong
 
+internal enum class RecoveryAdmission {
+    TOKEN_REJECTED,
+    THROTTLED,
+    ADMITTED,
+}
+
+internal fun recoveryAdmission(tokenAccepted: Boolean, throttle: ProcessEventThrottle): RecoveryAdmission = when {
+    !tokenAccepted -> RecoveryAdmission.TOKEN_REJECTED
+    !throttle.tryAcquire() -> RecoveryAdmission.THROTTLED
+    else -> RecoveryAdmission.ADMITTED
+}
+
 internal class ProcessEventThrottle(
     private val minIntervalMillis: Long,
     private val elapsedRealtime: () -> Long,

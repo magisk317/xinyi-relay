@@ -25,11 +25,17 @@ object ForceStopRecoveryHandler {
         minIntervalMillis = WAKEUP_MIN_INTERVAL_MILLIS,
         elapsedRealtime = SystemClock::elapsedRealtime,
     )
+    private val admissionGate = ProcessEventAdmissionGate()
 
     fun handle(context: Context, intent: Intent, tag: String) {
+        if (!admissionGate.tryEnter()) return
         scope.launch {
-            if (admit(context, intent, tag)) {
-                handleInternal(context, intent, tag)
+            try {
+                if (admit(context, intent, tag)) {
+                    handleInternal(context, intent, tag)
+                }
+            } finally {
+                admissionGate.leave()
             }
         }
     }
@@ -41,43 +47,46 @@ object ForceStopRecoveryHandler {
             expectedToken = expectedToken,
             receivedToken = receivedToken,
         )
-        if (!tokenAccepted) {
-            XLog.log(
-                Log.WARN, LogRoute.ROOT_DB.id, true, true, "ForceStopRecoveryService rejected token. expectedEmpty=%s receivedEmpty=%s",
-                expectedToken.isBlank(),
-                receivedToken.isNullOrBlank(),
-            )
-            MagiskOtel.event(
-                name = "app.recovery",
-                attributes = mapOf(
-                    "result" to "error",
-                    "duration_ms" to "0",
-                    "process" to "app",
-                    "stage" to "force_stop",
-                    "reason" to "token_rejected",
-                    "source" to tag,
-                ),
-                statusOk = false,
-            )
-            return false
+        return when (recoveryAdmission(tokenAccepted, wakeupThrottle)) {
+            RecoveryAdmission.TOKEN_REJECTED -> {
+                XLog.log(
+                    Log.WARN, LogRoute.ROOT_DB.id, true, true,
+                    "ForceStopRecoveryService rejected token. expectedEmpty=%s receivedEmpty=%s",
+                    expectedToken.isBlank(),
+                    receivedToken.isNullOrBlank(),
+                )
+                MagiskOtel.event(
+                    name = "app.recovery",
+                    attributes = mapOf(
+                        "result" to "error",
+                        "duration_ms" to "0",
+                        "process" to "app",
+                        "stage" to "force_stop",
+                        "reason" to "token_rejected",
+                        "source" to tag,
+                    ),
+                    statusOk = false,
+                )
+                false
+            }
+            RecoveryAdmission.THROTTLED -> {
+                XLog.log(android.util.Log.WARN, LogRoute.ROOT_DB.id, true, true, "ForceStopRecoveryService wakeup throttled")
+                MagiskOtel.event(
+                    name = "app.recovery",
+                    attributes = mapOf(
+                        "result" to "skip",
+                        "duration_ms" to "0",
+                        "process" to "app",
+                        "stage" to "force_stop",
+                        "reason" to "throttled",
+                        "source" to tag,
+                    ),
+                    statusOk = true,
+                )
+                false
+            }
+            RecoveryAdmission.ADMITTED -> true
         }
-        if (!wakeupThrottle.tryAcquire()) {
-            XLog.log(android.util.Log.WARN, LogRoute.ROOT_DB.id, true, true, "ForceStopRecoveryService wakeup throttled")
-            MagiskOtel.event(
-                name = "app.recovery",
-                attributes = mapOf(
-                    "result" to "skip",
-                    "duration_ms" to "0",
-                    "process" to "app",
-                    "stage" to "force_stop",
-                    "reason" to "throttled",
-                    "source" to tag,
-                ),
-                statusOk = true,
-            )
-            return false
-        }
-        return true
     }
 
     private suspend fun handleInternal(context: Context, intent: Intent, tag: String) {
