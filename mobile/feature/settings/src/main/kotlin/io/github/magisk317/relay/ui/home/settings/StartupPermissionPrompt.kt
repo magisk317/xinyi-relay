@@ -16,7 +16,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.relay.mobilefeature.settings.BuildConfig
 import io.github.magisk317.relay.ui.permission.PermissionRequirement
 import io.github.magisk317.relay.ui.permission.StartupPermissionCollector

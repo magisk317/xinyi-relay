@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.uikit.surface.PageScaffoldMiuix
 import io.github.magisk317.uikit.preview.MagiskMultiPreview
 import top.yukonga.miuix.kmp.basic.Text as MiuixText

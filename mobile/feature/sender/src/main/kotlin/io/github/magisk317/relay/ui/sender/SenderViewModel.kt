@@ -246,7 +246,7 @@ class SenderViewModel(
             senderDenyPackagesFlow(senderId),
         ) { allowPkgs, denyPkgs ->
             getApplication<Application>().getString(
-                io.github.magisk317.relay.core.R.string.sender_scope_summary_format,
+                io.github.magisk317.relay.mobile.core.R.string.sender_scope_summary_format,
                 allowPkgs.size,
                 denyPkgs.size,
             )
@@ -274,7 +274,7 @@ class SenderViewModel(
             val callAllow = callRules.count { it.policy == ForwardFilterConst.POLICY_ALLOW }
             val callDeny = callRules.count { it.policy == ForwardFilterConst.POLICY_DENY }
             getApplication<Application>().getString(
-                io.github.magisk317.relay.core.R.string.sender_filter_summary_format,
+                io.github.magisk317.relay.mobile.core.R.string.sender_filter_summary_format,
                 smsAllow,
                 smsDeny,
                 appAllow,

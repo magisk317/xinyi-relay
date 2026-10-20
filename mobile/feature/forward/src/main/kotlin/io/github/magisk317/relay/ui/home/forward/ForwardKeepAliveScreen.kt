@@ -36,7 +36,7 @@ import io.github.magisk317.relay.contract.repository.SettingsPreferencesReposito
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsUpdate
 import io.github.magisk317.relay.mobilefeature.forward.BuildConfig
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
 import io.github.magisk317.relay.feature.mode.FeatureGate

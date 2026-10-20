@@ -223,7 +223,7 @@ internal fun rememberSettingsBackupRestoreActions(
 
     if (isActive && showBackupSourceDialog) {
         BackupSourceDialog(
-            title = androidx.compose.ui.res.stringResource(id = io.github.magisk317.relay.core.R.string.dialog_backup_source_title),
+            title = androidx.compose.ui.res.stringResource(id = io.github.magisk317.relay.mobile.core.R.string.dialog_backup_source_title),
             onDismiss = { showBackupSourceDialog = false },
             onSourceSelected = { source ->
                 showBackupSourceDialog = false
@@ -237,7 +237,7 @@ internal fun rememberSettingsBackupRestoreActions(
 
     if (isActive && showRestoreSourceDialog) {
         BackupSourceDialog(
-            title = androidx.compose.ui.res.stringResource(id = io.github.magisk317.relay.core.R.string.dialog_restore_source_title),
+            title = androidx.compose.ui.res.stringResource(id = io.github.magisk317.relay.mobile.core.R.string.dialog_restore_source_title),
             onDismiss = { showRestoreSourceDialog = false },
             onSourceSelected = { source ->
                 showRestoreSourceDialog = false

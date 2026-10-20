@@ -14,7 +14,7 @@ val allowConflictBypass = findProperty("allowConflictBypass")
     ?: false
 
 android {
-    namespace = "io.github.magisk317.relay.core"
+    namespace = "io.github.magisk317.relay.mobile.core"
 
     defaultConfig {
         buildConfigField("int", "VERSION_CODE", libs.versions.versionCode.get())

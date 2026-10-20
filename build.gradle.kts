@@ -137,7 +137,7 @@ tasks.register<Delete>("clean") {
 
 tasks.register<Exec>("verifyModuleBoundaries") {
     group = "verification"
-    description = "Ensure app/core/runtime follow the intended direct project dependency graph."
+    description = "Ensure app/mobile:core/runtime follow the intended direct project dependency graph."
     workingDir = rootProject.projectDir
     commandLine("bash", "${rootProject.projectDir}/scripts/checks/verify_module_boundaries.sh")
 }

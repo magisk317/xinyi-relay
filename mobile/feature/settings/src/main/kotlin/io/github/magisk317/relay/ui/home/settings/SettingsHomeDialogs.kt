@@ -3,7 +3,7 @@ package io.github.magisk317.relay.ui.home.settings
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.uikit.preference.NonNegativeIntegerInputDialog
 
 @Composable

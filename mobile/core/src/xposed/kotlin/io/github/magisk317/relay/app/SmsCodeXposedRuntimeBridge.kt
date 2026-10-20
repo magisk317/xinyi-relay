@@ -35,8 +35,8 @@ object SmsCodeXposedRuntimeBridge {
             MagiskOtel.Config(
                 enabled = otelEnabled,
                 serviceName = "xinyi-relay",
-                serviceVersion = io.github.magisk317.relay.core.BuildConfig.VERSION_NAME,
-                serviceCommit = io.github.magisk317.relay.core.BuildConfig.COMMIT_HASH,
+                serviceVersion = io.github.magisk317.relay.mobile.core.BuildConfig.VERSION_NAME,
+                serviceCommit = io.github.magisk317.relay.mobile.core.BuildConfig.COMMIT_HASH,
                 projectId = "84113188",
                 projectName = "xinyi-relay",
                 environment = if (io.github.magisk317.relay.runtime.BuildConfig.DEBUG) "debug"
@@ -54,7 +54,7 @@ object SmsCodeXposedRuntimeBridge {
                         "os.api_level" to Build.VERSION.SDK_INT.toString(),
                         // Lets the cloud side split play from sideload installs,
                         // which share version and commit.
-                        "distribution.channel" to io.github.magisk317.relay.core.BuildConfig.MOBILE_ENTITLEMENT_CHANNEL,
+                        "distribution.channel" to io.github.magisk317.relay.mobile.core.BuildConfig.MOBILE_ENTITLEMENT_CHANNEL,
                     ),
             ),
         )

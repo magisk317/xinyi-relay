@@ -279,7 +279,7 @@ private suspend fun loadOverviewRuntimeUiState(
         }
 
         val frameworkInfo = frameworkInfoDeferred.await()
-        val frameworkType = frameworkInfo?.first ?: context.getString(io.github.magisk317.relay.core.R.string.unknown)
+        val frameworkType = frameworkInfo?.first ?: context.getString(io.github.magisk317.relay.mobile.core.R.string.unknown)
         val frameworkVersion = frameworkInfo?.second ?: run {
             val lsposedVersion = relayPackageActions.getPackageVersion(context, Const.LSPOSED_MANAGER_PACKAGE_NAME)
             when {
@@ -287,9 +287,9 @@ private suspend fun loadOverviewRuntimeUiState(
                     "${lsposedVersion.first} (${lsposedVersion.second})"
 
                 relayPackageActions.isPackageInstalled(context, Const.LSPOSED_MANAGER_PACKAGE_NAME) ->
-                    context.getString(io.github.magisk317.relay.core.R.string.unknown)
+                    context.getString(io.github.magisk317.relay.mobile.core.R.string.unknown)
 
-                else -> context.getString(io.github.magisk317.relay.core.R.string.not_installed)
+                else -> context.getString(io.github.magisk317.relay.mobile.core.R.string.not_installed)
             }
         }
         val appVersion = appVersionDeferred.await()
@@ -298,10 +298,10 @@ private suspend fun loadOverviewRuntimeUiState(
             frameworkVersion = frameworkVersion,
             hasRootAccess = hasRootAccessDeferred.await(),
             appVersionName = appVersion?.first?.takeIf { it.isNotBlank() }
-                ?: context.getString(io.github.magisk317.relay.core.R.string.unknown),
-            appVersionCode = io.github.magisk317.relay.core.BuildConfig.COMMIT_HASH.takeIf { it.isNotBlank() && it != "unknown" }
+                ?: context.getString(io.github.magisk317.relay.mobile.core.R.string.unknown),
+            appVersionCode = io.github.magisk317.relay.mobile.core.BuildConfig.COMMIT_HASH.takeIf { it.isNotBlank() && it != "unknown" }
                 ?: (appVersion?.second?.toString()
-                ?: context.getString(io.github.magisk317.relay.core.R.string.unknown)),
+                ?: context.getString(io.github.magisk317.relay.mobile.core.R.string.unknown)),
             chartSnapshot = chartSnapshotDeferred.await(),
         )
     }

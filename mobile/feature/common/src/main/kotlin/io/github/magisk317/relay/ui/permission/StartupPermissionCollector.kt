@@ -14,7 +14,7 @@ import android.provider.Settings
 import android.view.accessibility.AccessibilityManager
 import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.relay.feature.mode.BatteryOptimizationHelper
 import io.github.magisk317.relay.mobilefeature.common.BuildConfig
 import io.github.magisk317.xposed.permission.PermissionBridge

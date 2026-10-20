@@ -37,7 +37,7 @@ import androidx.metrics.performance.JankStats
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.runtime.CompositionLocalProvider
 import io.github.magisk317.relay.mobileui.BuildConfig
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.smscode.runtime.common.utils.FrameworkCompatibilityMonitor
 import io.github.magisk317.xposed.logging.XLog

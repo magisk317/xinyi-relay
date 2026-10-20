@@ -33,7 +33,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.relay.engine.sender.SenderType
 import io.github.magisk317.relay.sender.E2eeModuleStatus
 import io.github.magisk317.relay.sender.MatrixE2eeAvailability

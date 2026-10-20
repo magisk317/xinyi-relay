@@ -6,7 +6,7 @@ import android.os.PowerManager
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import io.github.magisk317.xposed.logging.XLog
-import io.github.magisk317.relay.core.BuildConfig
+import io.github.magisk317.relay.mobile.core.BuildConfig
 import io.github.magisk317.relay.feature.reminder.SpecialAlertCoordinator
 import io.github.magisk317.relay.platform.ipc.AppNotificationIngressAdapter
 import io.github.magisk317.relay.platform.ipc.ForwardBroadcastDispatcher

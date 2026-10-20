@@ -20,7 +20,7 @@ import io.github.magisk317.relay.backup.drive.GoogleDriveBackupConfig
 import io.github.magisk317.relay.backup.drive.GoogleDriveBackupConfigStore
 import io.github.magisk317.relay.backup.webdav.WebDavConfig
 import io.github.magisk317.relay.backup.webdav.WebDavConfigStore
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.relay.mobilefeature.backup.BuildConfig
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableSharedFlow

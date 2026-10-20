@@ -44,7 +44,7 @@ import io.github.magisk317.relay.backup.BackupSource
 import io.github.magisk317.relay.backup.CloudBackupMeta
 import io.github.magisk317.relay.backup.drive.GoogleDriveBackupConfig
 import io.github.magisk317.relay.backup.webdav.WebDavConfig
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
 import io.github.magisk317.uikit.foundation.LocalSnackbarHostState

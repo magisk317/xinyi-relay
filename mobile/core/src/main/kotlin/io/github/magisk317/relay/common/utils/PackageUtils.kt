@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.common.utils
 
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.relay.runtime.BuildConfig
 import io.github.magisk317.smscode.runtime.common.utils.ConfiguredPackageActions
 import io.github.magisk317.smscode.runtime.common.utils.PackageActionConfig

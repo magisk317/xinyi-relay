@@ -19,7 +19,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.contract.constant.RelayAppConst
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.uikit.preference.AppArrowItem
 import io.github.magisk317.uikit.preference.SectionCard
 import io.github.magisk317.uikit.theme.UiKitStyle

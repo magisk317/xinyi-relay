@@ -21,7 +21,7 @@ dependencies {
     implementation(project(":policy"))
     implementation(project(":magisk-ui-kit"))
     implementation(project(":mobile:feature:common"))
-    implementation(project(":core"))
+    implementation(project(":mobile:core"))
     implementation(project(":smscode-core:domain"))
     implementation(project(":smscode-core:rule"))
     implementation(libs.androidx.material.icons.core)

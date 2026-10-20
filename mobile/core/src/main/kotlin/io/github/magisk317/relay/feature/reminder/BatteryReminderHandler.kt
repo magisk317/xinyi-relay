@@ -6,7 +6,7 @@ import android.os.BatteryManager
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.relay.engine.event.RelayEvent
 import io.github.magisk317.relay.domain.pipeline.EventPipeline
 import io.github.magisk317.relay.bootstrap.RuntimeGraph

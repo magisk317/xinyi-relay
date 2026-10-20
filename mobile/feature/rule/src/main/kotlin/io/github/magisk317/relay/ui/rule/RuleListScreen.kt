@@ -19,7 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.engine.model.Rule
 import io.github.magisk317.relay.ui.sender.displayName
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.mobile.core.R
 import org.koin.compose.viewmodel.koinViewModel
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle

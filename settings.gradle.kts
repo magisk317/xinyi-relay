@@ -51,7 +51,7 @@ include(
     ":benchmark:macro",
     ":hook:entry",
     ":runtime",
-    ":core",
+    ":mobile:core",
     ":policy",
     ":mobile:ui",
     ":mobile:feature:common",
@@ -118,7 +118,6 @@ project(":magisk-ui-kit:billing").projectDir = file("magisk-ui-kit/billing")
 project(":magisk-ui-kit:update").projectDir = file("magisk-ui-kit/update")
 
 // Explicitly remap moved android libraries physical paths to 'modules/'
-project(":core").projectDir = file("modules/core")
 project(":policy").projectDir = file("modules/policy")
 project(":hook:entry").projectDir = file("modules/hook/entry")
 project(":relay:android").projectDir = file("modules/relay/android")
