@@ -7,6 +7,7 @@ import io.github.magisk317.relay.contract.repository.SettingsPreferencesReposito
 import io.github.magisk317.relay.domain.recovery.RootShell
 import io.github.magisk317.relay.mobilefeature.setup.BuildConfig
 import io.github.magisk317.relay.ui.permission.PermissionRequirement
+import io.github.magisk317.relay.ui.permission.PermissionStatus
 import io.github.magisk317.relay.ui.permission.StartupPermissionCollector
 import io.github.magisk317.relay.ui.permission.StartupPermissionConfig
 import io.github.magisk317.relay.ui.permission.StartupPromptStore
@@ -23,11 +24,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * One page of the root-first setup wizard.
+ * One page of the setup wizard.
  *
  * The order is deliberate: privacy first (nothing else may run before the user
- * agrees), then root, then whatever root cannot cover. [DONE] is terminal - the
- * caller leaves the wizard from there.
+ * agrees), then root (optional - skipped when unavailable or declined), then
+ * whatever root cannot cover. [DONE] is terminal - the caller leaves the wizard
+ * from there.
  */
 enum class SetupStep {
     WELCOME,
@@ -45,6 +47,7 @@ data class SetupUiState(
     val grantLog: List<String> = emptyList(),
     val missing: List<PermissionRequirement> = emptyList(),
     val grantedCount: Int = 0,
+    val permissionStatuses: List<PermissionStatus> = emptyList(),
 ) {
     /** Runtime permissions still missing, requested through the permission launcher. */
     val missingRuntime: List<PermissionRequirement>
@@ -73,8 +76,6 @@ class SetupViewModel(
 
     private var config: StartupPermissionConfig? = null
 
-    /** Permissions missing when the grant phase started, for the done summary. */
-    private var grantPhaseTotal = 0
 
     private fun context(): Application = getApplication()
 
@@ -82,12 +83,21 @@ class SetupViewModel(
         config ?: startupPermissionConfig(context(), BuildConfig.ENABLE_ACCESSIBILITY_AUTO_INPUT)
             .also { config = it }
 
-    /** Persists the privacy decision and moves to the root probe. */
+    /**
+     * Persists the privacy decision, then probes root. Root is optional: when it is
+     * unavailable the wizard skips the root step and goes straight to manual grants.
+     */
     fun acceptPrivacyPolicy() {
         viewModelScope.launch {
             settingsRepository.setPrivacyPolicyAccepted(true)
-            _uiState.update { it.copy(step = SetupStep.ROOT) }
-            probeRoot()
+            _uiState.update { it.copy(step = SetupStep.ROOT, rootProbing = true) }
+            val rootAvailable = withContext(Dispatchers.IO) {
+                runCatching { RootShell.canUseRoot() }.getOrDefault(false)
+            }
+            _uiState.update { it.copy(rootProbing = false, rootAvailable = rootAvailable) }
+            if (!rootAvailable) {
+                proceedToGrants()
+            }
         }
     }
 
@@ -99,30 +109,29 @@ class SetupViewModel(
         }
     }
 
-    /** Probes root without leaving the root step; the user still confirms. */
-    fun probeRoot() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(rootProbing = true) }
-            val rootAvailable = withContext(Dispatchers.IO) {
-                runCatching { RootShell.canUseRoot() }.getOrDefault(false)
-            }
-            _uiState.update { it.copy(rootProbing = false, rootAvailable = rootAvailable) }
-        }
-    }
-
     /** Enters the grant phase, skipping it when nothing is missing. */
-    fun proceedToGrants() {
+    fun proceedToGrants(forceManual: Boolean = false) {
         viewModelScope.launch {
             val missing = collectMissing()
-            grantPhaseTotal = missing.size
             if (missing.isEmpty()) {
                 completeSetup()
                 return@launch
             }
             _uiState.update {
-                it.copy(step = if (it.rootAvailable) SetupStep.GRANT_ROOT else SetupStep.GRANT_MANUAL)
+                it.copy(
+                    step = if (it.rootAvailable && !forceManual) {
+                        SetupStep.GRANT_ROOT
+                    } else {
+                        SetupStep.GRANT_MANUAL
+                    },
+                )
             }
         }
+    }
+
+    /** The user declines the root path; the manual grants still cover everything. */
+    fun skipRoot() {
+        proceedToGrants(forceManual = true)
     }
 
     /** One-tap grant through the root bridge, then re-collect what is left. */
@@ -142,11 +151,13 @@ class SetupViewModel(
                 }
             }
             val remaining = collectMissing()
-            _uiState.update {
-                it.copy(
-                    granting = false,
-                    step = if (remaining.isEmpty()) SetupStep.DONE else SetupStep.GRANT_MANUAL,
-                )
+            _uiState.update { it.copy(granting = false) }
+            if (remaining.isEmpty()) {
+                // Route through completeSetup so the done summary counts the
+                // grants and the version marker is written like every other exit.
+                completeSetup()
+            } else {
+                _uiState.update { it.copy(step = SetupStep.GRANT_MANUAL) }
             }
         }
     }
@@ -166,7 +177,8 @@ class SetupViewModel(
             val previous = when (current.step) {
                 SetupStep.ROOT -> SetupStep.WELCOME
                 SetupStep.GRANT_ROOT -> SetupStep.ROOT
-                SetupStep.GRANT_MANUAL -> SetupStep.ROOT
+                SetupStep.GRANT_MANUAL ->
+                    if (current.rootAvailable) SetupStep.ROOT else SetupStep.WELCOME
                 SetupStep.WELCOME, SetupStep.DONE -> current.step
             }
             current.copy(step = previous)
@@ -184,13 +196,19 @@ class SetupViewModel(
     }
 
     private suspend fun completeSetup() {
+        val statuses = withContext(Dispatchers.IO) {
+            runCatching {
+                StartupPermissionCollector.collectStatuses(context(), ensureConfig())
+            }.getOrDefault(emptyList())
+        }
         withContext(Dispatchers.IO) {
             StartupPromptStore.markPromptedForCurrentVersion(context())
         }
         _uiState.update {
             it.copy(
                 step = SetupStep.DONE,
-                grantedCount = maxOf(0, grantPhaseTotal - it.missing.size),
+                permissionStatuses = statuses,
+                grantedCount = statuses.count { it.granted },
             )
         }
     }

@@ -40,6 +40,11 @@ data class PermissionRequirement(
     }
 }
 
+data class PermissionStatus(
+    val requirement: PermissionRequirement,
+    val granted: Boolean,
+)
+
 /**
  * App-specific wiring the collector needs to stay package-agnostic: which
  * notification listener / accessibility component to probe, and whether the
@@ -90,6 +95,47 @@ object StartupPermissionCollector {
             }
         return missing.distinctBy(PermissionRequirement::key)
     }
+
+    /**
+     * Every startup permission with its live grant state, runtime ones first,
+     * deduplicated by key.
+     *
+     * Unlike [collectMissing] this keeps the granted entries too, so the done
+     * screen can list the full set with per-item status instead of a bare count.
+     */
+    fun collectStatuses(context: Context, config: StartupPermissionConfig): List<PermissionStatus> {
+        val requestedPermissions = context.requestedPermissionSet()
+        val statuses = mutableListOf<PermissionStatus>()
+        requestedPermissions
+            .filter { permission ->
+                permission.isRuntimePermissionSupported() && permission.isDangerousPermission(context)
+            }
+            .distinct()
+            .mapTo(statuses) { permission ->
+                PermissionStatus(
+                    requirement = PermissionRequirement(
+                        key = permission,
+                        label = permission.startupPermissionLabel(context),
+                        rootGrantable = PermissionBridge.commandsFor(context, permission) != null,
+                    ),
+                    granted = context.hasPermission(permission),
+                )
+            }
+        StartupSpecialPermission.values()
+            .filter { it.isApplicable(context, requestedPermissions, config) }
+            .mapTo(statuses) { special ->
+                PermissionStatus(
+                    requirement = PermissionRequirement(
+                        key = PermissionRequirement.SPECIAL_KEY_PREFIX + special.key,
+                        label = context.getString(special.labelRes),
+                        rootGrantable = true,
+                    ),
+                    granted = special.isGranted(context),
+                )
+            }
+        return statuses.distinctBy { it.requirement.key }
+    }
+
 
     /**
      * System settings intent for [requirement], or null for runtime permissions

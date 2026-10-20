@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.ui.privacy
+package io.github.magisk317.relay.ui.common
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
