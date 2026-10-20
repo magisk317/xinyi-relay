@@ -201,7 +201,6 @@ fun ForwardKeepAliveScreen(onBack: () -> Unit) {
                     KEEPALIVE_OOM_ADJ,
                     KEEPALIVE_ANTI_KILL,
                     KEEPALIVE_STANDBY_BYPASS,
-                    KEEPALIVE_DOZE_BYPASS,
                 )
                 val canUseKeepAlive = FeatureGate.allAvailable(xposedActive, *keepAliveFeatures.toTypedArray())
                 StateSwitchItem(
@@ -251,23 +250,6 @@ fun ForwardKeepAliveScreen(onBack: () -> Unit) {
                     scope.launch {
                         settings = repository.updateDiagnosticsSettings(
                             DiagnosticsSettingsUpdate(keepAliveStandbyBypass = enabled),
-                        )
-                        notifySaved()
-                    }
-                }
-                StateSwitchItem(
-                    title = stringResource(id = R.string.pref_keepalive_doze_bypass_title),
-                    summary = if (canUseKeepAlive) {
-                        stringResource(id = R.string.pref_keepalive_doze_bypass_summary)
-                    } else {
-                        stringResource(id = R.string.pref_keepalive_doze_bypass_summary) + "\n" + xposedDisabledHint
-                    },
-                    checked = current.keepAliveDozeBypass && canUseKeepAlive,
-                    enabled = canUseKeepAlive,
-                ) { enabled ->
-                    scope.launch {
-                        settings = repository.updateDiagnosticsSettings(
-                            DiagnosticsSettingsUpdate(keepAliveDozeBypass = enabled),
                         )
                         notifySaved()
                     }
