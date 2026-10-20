@@ -105,7 +105,7 @@ Xposed/runtime 之间的 Android API 边界，当前拥有 `XpSmsDispatchRuntime
 
 ### `smscode-core:hook` 宿主契约
 
-`HookHostCapabilities`（`io.github.magisk317.smscode.xposed.hook`，smscode-core 0273466）是共享
+`HookHostCapabilities`（`io.github.magisk317.smscode.xposed.hook`，smscode-core 3c956f9）是共享
 短信 hook 层消费的唯一宿主能力契约；域 hooks（转发主链、保活、验证偏好）不进入契约。本仓为参考
 实现：`modules/hook/entry` 的 `XinyiHookHostCapabilities`
 （`io.github.magisk317.relay.xp.hook.helper`）经 `xpbridge` 接线实现契约，
@@ -267,7 +267,7 @@ Room KMP 本地库与旧库导入。schema 逐列对齐 Rust/Tauri 现役端，�
 - relay 九模块（`contract`/`engine:api`/`engine`/`sender:api`/`sender`/`net`/`security`/`matrix-e2ee`/`android`）经消费方盘点粒度合理，全部保留；api/impl 成对为刻意分层，不是重复实现。
 - `settings.gradle.kts` 中 `:hook`/`:relay`/`:xpbridge`/`:xpbridge:android` 的 projectDir 伞形映射是 `:hook:entry`、`:relay:*`、`:xpbridge:*` 等嵌套子项目的父目录必要声明，删除会导致配置失败（`Configuring project ':xpbridge:android' without an existing directory is not allowed`）。
 - `features/*` 为运行时插件入口（Play 动态下发 / 独立插件 APK），不属于 relay 依赖图本体。
-- 跨仓共享子模块 pin 矩阵（build-logic `a7e25b2` / magisk-ui-kit `dc8ebf9` / magisk-xposed-kit `409cf36` / smscode-core `0273466` / smscode-rules `efec615`）以 AGENTS.md「Cross-Repo Submodule Pin Matrix」为唯一真源。
+- 跨仓共享子模块 pin 矩阵以 AGENTS.md「Cross-Repo Submodule Pin Matrix」为唯一真源。本处不再复刻具体 SHA，避免第二真源腐化；实查当前检出用 `git submodule status`。
 
 ## 边界守护
 
