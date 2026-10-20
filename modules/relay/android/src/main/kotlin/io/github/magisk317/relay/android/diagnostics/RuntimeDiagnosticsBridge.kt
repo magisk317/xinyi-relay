@@ -20,6 +20,8 @@ object RuntimeDiagnosticsBridge {
             logTag = BuildConfig.LOG_TAG,
             exportFilePrefix = "relay_logs_",
             stagingDirPrefix = ".tmp_relay_logs_",
+            distributionChannel = BuildConfig.MOBILE_ENTITLEMENT_CHANNEL,
+            commitHash = BuildConfig.COMMIT_HASH,
             logRetentionDaysProvider = ::readConfiguredLogRetentionDays,
             runtimeConnectedProvider = RuntimeActivationState::isRuntimeActivated,
             activationStatusResolver = ::resolveActivationStatus,
