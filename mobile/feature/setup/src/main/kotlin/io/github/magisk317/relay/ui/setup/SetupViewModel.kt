@@ -48,6 +48,7 @@ data class SetupUiState(
     val missing: List<PermissionRequirement> = emptyList(),
     val grantedCount: Int = 0,
     val permissionStatuses: List<PermissionStatus> = emptyList(),
+    val allStatuses: List<PermissionStatus> = emptyList(),
 ) {
     /** Runtime permissions still missing, requested through the permission launcher. */
     val missingRuntime: List<PermissionRequirement>
@@ -112,7 +113,8 @@ class SetupViewModel(
     /** Enters the grant phase, skipping it when nothing is missing. */
     fun proceedToGrants(forceManual: Boolean = false) {
         viewModelScope.launch {
-            val missing = collectMissing()
+            publishPermissions()
+            val missing = _uiState.value.missing
             if (missing.isEmpty()) {
                 completeSetup()
                 return@launch
@@ -150,11 +152,9 @@ class SetupViewModel(
                     XLog.w(message = "Setup root grant failed", error)
                 }
             }
-            val remaining = collectMissing()
+            publishPermissions()
             _uiState.update { it.copy(granting = false) }
-            if (remaining.isEmpty()) {
-                // Route through completeSetup so the done summary counts the
-                // grants and the version marker is written like every other exit.
+            if (_uiState.value.missing.isEmpty()) {
                 completeSetup()
             } else {
                 _uiState.update { it.copy(step = SetupStep.GRANT_MANUAL) }
@@ -164,7 +164,7 @@ class SetupViewModel(
 
     /** Re-reads the missing set after a runtime/settings grant came back. */
     fun refreshMissing() {
-        viewModelScope.launch { collectMissing() }
+        viewModelScope.launch { publishPermissions() }
     }
 
     /** Leaves the wizard; the version-level marker keeps the legacy prompt quiet. */
@@ -185,14 +185,17 @@ class SetupViewModel(
         }
     }
 
-    private suspend fun collectMissing(): List<PermissionRequirement> {
-        val missing = withContext(Dispatchers.IO) {
+
+    /** Collects the full permission set with live grant state; drives both the
+     *  manual grant list and the per-item granted markers. */
+    private suspend fun publishPermissions() {
+        val statuses = withContext(Dispatchers.IO) {
             runCatching {
-                StartupPermissionCollector.collectMissing(context(), ensureConfig())
+                StartupPermissionCollector.collectStatuses(context(), ensureConfig())
             }.getOrDefault(emptyList())
         }
-        _uiState.update { it.copy(missing = missing) }
-        return missing
+        val missing = statuses.filter { !it.granted }.map { it.requirement }
+        _uiState.update { it.copy(missing = missing, allStatuses = statuses) }
     }
 
     private suspend fun completeSetup() {
