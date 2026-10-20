@@ -97,6 +97,7 @@ fun SetupScreen(
                     SetupStep.GRANT_MANUAL -> GrantManualStep(
                         state = state,
                         onRefreshMissing = viewModel::refreshMissing,
+                        onGrantRoot = viewModel::grantViaRoot,
                     )
 
                     SetupStep.DONE -> DoneStep(state)
@@ -269,6 +270,7 @@ private fun GrantRootStep(state: SetupUiState) {
 private fun GrantManualStep(
     state: SetupUiState,
     onRefreshMissing: () -> Unit,
+    onGrantRoot: () -> Unit,
 ) {
     val context = LocalContext.current
     val runtimeLauncher = rememberLauncherForActivityResult(
@@ -286,59 +288,63 @@ private fun GrantManualStep(
 
     AppText(text = stringResource(R.string.setup_manual_grant_title), role = AppTextRole.Title)
 
-    if (!state.rootAvailable) {
-        AppCard {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                AppText(
-                    text = stringResource(R.string.setup_root_unavailable_title),
-                    role = AppTextRole.Subtitle,
-                )
-                AppText(
-                    text = stringResource(R.string.setup_root_unavailable_summary),
-                    role = AppTextRole.BodySmall,
-                )
-            }
+    // Root status: same plain row style as the permission rows below, so the
+    // one-tap-vs-manual choice stays visible without a prominent card.
+    PermissionRow(
+        label = stringResource(
+            if (state.rootAvailable) {
+                R.string.setup_root_available_title
+            } else {
+                R.string.setup_root_unavailable_title
+            },
+        ),
+        granted = state.rootAvailable,
+        actionText = stringResource(R.string.setup_permission_request),
+        onClick = { if (!state.rootAvailable) onGrantRoot() },
+    )
+    AppText(
+        text = stringResource(R.string.setup_root_hint),
+        role = AppTextRole.BodySmall,
+        modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 8.dp),
+    )
+
+    val runtimeStatuses = state.allStatuses.filterNot { it.requirement.isSpecial }
+    if (runtimeStatuses.isNotEmpty()) {
+        SectionHeading(title = stringResource(R.string.setup_runtime_permissions))
+        val runtimeMissing = runtimeStatuses.filter { !it.granted }
+        if (runtimeMissing.isNotEmpty()) {
+            AppPrimaryButton(
+                text = stringResource(R.string.setup_manual_grant),
+                onClick = {
+                    runtimeLauncher.launch(runtimeMissing.map { it.requirement.key }.toTypedArray())
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        runtimeStatuses.forEach { status ->
+            PermissionRow(
+                label = status.requirement.label,
+                granted = status.granted,
+                actionText = stringResource(R.string.setup_permission_request),
+                onClick = { runtimeLauncher.launch(arrayOf(status.requirement.key)) },
+            )
         }
     }
 
-    SectionHeading(
-        title = stringResource(R.string.setup_missing_title, state.missing.size),
-    )
-
-    val runtimeMissing = state.missingRuntime
-    if (runtimeMissing.isNotEmpty()) {
-        AppPrimaryButton(
-            text = stringResource(R.string.setup_manual_grant),
-            onClick = { runtimeLauncher.launch(runtimeMissing.map { it.key }.toTypedArray()) },
-            modifier = Modifier.fillMaxWidth(),
-        )
-    }
-
-    state.missingSpecial.forEach { requirement ->
-        AppCard(
-            onClick = {
-                val intent = StartupPermissionCollector.buildSystemIntent(context, requirement)
-                if (intent != null) {
-                    runCatching { specialLauncher.launch(intent) }
-                }
-            },
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                AppText(text = requirement.label, role = AppTextRole.Body)
-                AppText(
-                    text = stringResource(R.string.setup_grant_item_open),
-                    role = AppTextRole.Footnote,
-                )
-            }
+    val specialStatuses = state.allStatuses.filter { it.requirement.isSpecial }
+    if (specialStatuses.isNotEmpty()) {
+        SectionHeading(title = stringResource(R.string.setup_special_permissions))
+        specialStatuses.forEach { status ->
+            val intent = StartupPermissionCollector.buildSystemIntent(context, status.requirement)
+            PermissionRow(
+                label = status.requirement.label,
+                granted = status.granted,
+                actionText = stringResource(R.string.setup_grant_item_open),
+                onClick = {
+                    if (status.granted) return@PermissionRow
+                    intent?.let { runCatching { specialLauncher.launch(it) } }
+                },
+            )
         }
     }
 }
@@ -395,6 +401,39 @@ private fun DoneStep(state: SetupUiState) {
                         ),
                     )
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PermissionRow(
+    label: String,
+    granted: Boolean,
+    actionText: String,
+    onClick: () -> Unit,
+) {
+    AppCard(onClick = onClick) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            AppText(
+                text = label,
+                role = AppTextRole.Body,
+                modifier = Modifier.weight(1f),
+            )
+            if (granted) {
+                AppText(
+                    text = stringResource(R.string.setup_done_item_granted),
+                    role = AppTextRole.Footnote,
+                    color = appColor(AppColorRole.Primary),
+                )
+            } else {
+                AppText(text = actionText, role = AppTextRole.Footnote)
             }
         }
     }
