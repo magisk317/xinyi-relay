@@ -1580,4 +1580,8 @@
     <string name="device_control_failure_audio_service">Audio service unavailable</string>
     <string name="device_control_failure_notification_service">Notification service unavailable</string>
     <string name="device_control_failure_execution">Execution error</string>
+    <string name="setup_runtime_permissions">Runtime permissions</string>
+    <string name="setup_special_permissions">System permissions</string>
+    <string name="setup_permission_request">Grant</string>
+    <string name="setup_root_hint">After granting Root, the items below can be granted in one tap; or keep granting them manually.</string>
 </resources>

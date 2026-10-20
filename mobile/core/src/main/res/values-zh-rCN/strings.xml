@@ -507,8 +507,8 @@
     <string name="setup_one_tap_granting">授予中…</string>
     <string name="setup_grant_root_title">授予权限</string>
     <string name="setup_grant_root_summary">下一步将通过 Root 执行几条幂等命令，可重复尝试。</string>
-    <string name="setup_manual_grant_title">剩余权限</string>
-    <string name="setup_manual_grant">申请运行时权限</string>
+    <string name="setup_manual_grant_title">权限引导</string>
+    <string name="setup_manual_grant">一键申请运行时权限</string>
     <string name="setup_missing_title">缺失 %1$d 项</string>
     <string name="setup_grant_item_open">前往设置</string>
     <string name="setup_finish">完成</string>
@@ -1579,4 +1579,8 @@
     <string name="device_control_failure_audio_service">音频服务不可用</string>
     <string name="device_control_failure_notification_service">通知服务不可用</string>
     <string name="device_control_failure_execution">执行失败</string>
+    <string name="setup_runtime_permissions">运行时权限</string>
+    <string name="setup_special_permissions">系统权限</string>
+    <string name="setup_permission_request">申请</string>
+    <string name="setup_root_hint">授予 Root 权限后，下方权限可一键获取；或继续手动逐项授予。</string>
 </resources>
