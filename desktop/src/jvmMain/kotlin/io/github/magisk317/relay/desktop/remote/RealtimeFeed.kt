@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import io.github.magisk317.relay.contract.remote.RealtimeEvent
+import io.github.magisk317.relay.desktop.platform.DesktopLog
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -94,11 +95,27 @@ class DesktopRealtimeFeed(
         }
 
         override fun onMessage(webSocket: WebSocket, text: String) {
-            lastEvent = runCatching { json.decodeFromString<RealtimeEvent>(text) }.getOrNull()
+            lastEvent = runCatching { json.decodeFromString<RealtimeEvent>(text) }
+                .onFailure {
+                    DesktopLog.warn(
+                        key = "realtime.decode",
+                        message = "dropped undecodable realtime event",
+                        fields = mapOf("error" to (it::class.simpleName ?: "Throwable")),
+                    )
+                }
+                .getOrNull()
         }
 
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
             connected = false
+            DesktopLog.warn(
+                key = "realtime.onFailure",
+                message = "realtime websocket failed; scheduling reconnect",
+                fields = buildMap {
+                    put("error", t::class.simpleName ?: "Throwable")
+                    response?.let { put("httpCode", it.code.toString()) }
+                },
+            )
             scheduleReconnect()
         }
 

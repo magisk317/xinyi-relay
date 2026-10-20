@@ -7,6 +7,7 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import io.github.magisk317.relay.desktop.i18n.DesktopMessages
 import io.github.magisk317.relay.desktop.i18n.LocalePreference
+import io.github.magisk317.relay.desktop.platform.DesktopLog
 import io.github.magisk317.relay.desktop.platform.FileLockInstanceGuard
 import io.github.magisk317.relay.desktop.ui.DesktopApp
 import io.github.magisk317.relay.desktop.ui.XinyiDesktopTheme
@@ -21,6 +22,15 @@ import kotlin.system.exitProcess
  * next launch the way a stale PID file would).
  */
 fun main() {
+    // A GUI that dies on a background thread otherwise fails silently: route
+    // every uncaught throwable through the structured desktop log first.
+    Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+        DesktopLog.error(
+            key = "uncaught",
+            message = "uncaught exception on thread ${thread.name}",
+            throwable = throwable,
+        )
+    }
     val instanceGuard = FileLockInstanceGuard(FileLockInstanceGuard.defaultLockFile())
     if (!instanceGuard.acquire()) {
         refuseSecondInstance()
@@ -46,9 +56,9 @@ fun main() {
 }
 
 /**
- * Second-instance refusal. A modal dialog when a display exists, stderr
- * otherwise (headless / CI), so the reason for the early exit is never
- * silent. Exits with status 1 - a refused launch is a failure, not a
+ * Second-instance refusal. A modal dialog when a display exists, a
+ * structured warn log line otherwise (headless / CI), so the reason for the
+ * early exit is never silent. Exits with status 1 - a refused launch is a failure, not a
  * no-op the shell might mistake for a crash-loop.
  */
 private fun refuseSecondInstance() {
@@ -63,7 +73,7 @@ private fun refuseSecondInstance() {
         }
     }.getOrDefault(false)
     if (!shown) {
-        System.err.println(message)
+        DesktopLog.warn(key = "instance.refused", message = message)
     }
     exitProcess(1)
 }
