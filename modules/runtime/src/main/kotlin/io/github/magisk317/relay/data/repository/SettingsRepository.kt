@@ -149,7 +149,7 @@ class SettingsRepository(
             keepAliveOomAdj = preferenceDataSource.getBoolean(PrefConst.KEY_KEEPALIVE_OOM_ADJ, false),
             keepAliveAntiKill = preferenceDataSource.getBoolean(PrefConst.KEY_KEEPALIVE_ANTI_KILL, false),
             keepAliveStandbyBypass = preferenceDataSource.getBoolean(PrefConst.KEY_KEEPALIVE_STANDBY_BYPASS, false),
-            keepAliveDozeBypass = preferenceDataSource.getBoolean(PrefConst.KEY_KEEPALIVE_DOZE_BYPASS, false),
+            keepAliveDozeBypass = false,
             keepAliveAccessibilityHeartbeat = preferenceDataSource.getBoolean(PrefConst.KEY_KEEPALIVE_ACCESSIBILITY_HEARTBEAT, false),
             keepAliveDedicatedService = preferenceDataSource.getBoolean(PrefConst.KEY_KEEPALIVE_DEDICATED_SERVICE, false),
         )

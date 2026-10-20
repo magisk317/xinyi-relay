@@ -54,9 +54,6 @@ object FeatureGate {
         /** Keep-alive: bypass standby bucket restrictions via Xposed hook */
         KEEPALIVE_STANDBY_BYPASS("keepalive_standby_bypass"),
 
-        /** Keep-alive: bypass Doze mode restrictions via Xposed hook */
-        KEEPALIVE_DOZE_BYPASS("keepalive_doze_bypass"),
-
         /** Block incoming SMS at system level (Xposed hook required) */
         BLOCK_SMS("block_sms"),
 

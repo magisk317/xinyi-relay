@@ -347,8 +347,6 @@
     <string name="pref_keepalive_anti_kill_summary">通过 AMS 钩子拦截系统对此应用的进程终止。需要 LSPosed 作用域：系统。</string>
     <string name="pref_keepalive_standby_bypass_title">待机桶绕过</string>
     <string name="pref_keepalive_standby_bypass_summary">阻止应用被放入受限待机桶。需要 LSPosed 作用域：系统。</string>
-    <string name="pref_keepalive_doze_bypass_title">Doze 绕过</string>
-    <string name="pref_keepalive_doze_bypass_summary">将此应用排除在 Doze 模式限制之外。需要 LSPosed 作用域：系统。</string>
     <string name="pref_keepalive_accessibility_heartbeat_title">无障碍心跳</string>
     <string name="pref_keepalive_accessibility_heartbeat_summary">定期检查主应用进程是否存活，如未存活则通过无障碍服务唤醒。</string>
     <string name="pref_keepalive_dedicated_service_title">专用保活服务</string>

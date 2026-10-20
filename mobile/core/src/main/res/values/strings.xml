@@ -346,8 +346,6 @@
     <string name="pref_keepalive_anti_kill_summary">Intercept system process kill for this app via AMS hook. Requires LSPosed scope: System.</string>
     <string name="pref_keepalive_standby_bypass_title">Standby bucket bypass</string>
     <string name="pref_keepalive_standby_bypass_summary">Prevent app from being placed in restricted standby buckets. Requires LSPosed scope: System.</string>
-    <string name="pref_keepalive_doze_bypass_title">Doze bypass</string>
-    <string name="pref_keepalive_doze_bypass_summary">Exclude this app from Doze mode restrictions. Requires LSPosed scope: System.</string>
     <string name="pref_keepalive_accessibility_heartbeat_title">Accessibility heartbeat</string>
     <string name="pref_keepalive_accessibility_heartbeat_summary">Periodically check if the main app process is alive and wake it up via accessibility service.</string>
     <string name="pref_keepalive_dedicated_service_title">Dedicated keep-alive service</string>

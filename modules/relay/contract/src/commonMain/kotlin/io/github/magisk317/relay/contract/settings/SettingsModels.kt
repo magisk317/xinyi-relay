@@ -82,6 +82,7 @@ data class DiagnosticsSettingsSnapshot(
     val keepAliveOomAdj: Boolean,
     val keepAliveAntiKill: Boolean,
     val keepAliveStandbyBypass: Boolean,
+    @Deprecated("Retained for legacy config decoding; ignored because Doze bypass is unsupported.")
     val keepAliveDozeBypass: Boolean,
     val keepAliveAccessibilityHeartbeat: Boolean,
     val keepAliveDedicatedService: Boolean,
@@ -103,6 +104,7 @@ data class DiagnosticsSettingsUpdate(
     val keepAliveOomAdj: Boolean? = null,
     val keepAliveAntiKill: Boolean? = null,
     val keepAliveStandbyBypass: Boolean? = null,
+    @Deprecated("Retained for legacy config decoding; ignored because Doze bypass is unsupported.")
     val keepAliveDozeBypass: Boolean? = null,
     val keepAliveAccessibilityHeartbeat: Boolean? = null,
     val keepAliveDedicatedService: Boolean? = null,

@@ -343,8 +343,6 @@
     <string name="pref_keepalive_anti_kill_summary">透過 AMS 鉤子攔截系統對此應用的行程終止。需要 LSPosed 作用域：系統。</string>
     <string name="pref_keepalive_standby_bypass_title">待機桶繞過</string>
     <string name="pref_keepalive_standby_bypass_summary">阻止應用被放入受限待機桶。需要 LSPosed 作用域：系統。</string>
-    <string name="pref_keepalive_doze_bypass_title">Doze 繞過</string>
-    <string name="pref_keepalive_doze_bypass_summary">將此應用排除在 Doze 模式限制之外。需要 LSPosed 作用域：系統。</string>
     <string name="pref_keepalive_accessibility_heartbeat_title">無障礙心跳</string>
     <string name="pref_keepalive_accessibility_heartbeat_summary">定期檢查主應用行程是否存活，如未存活則透過無障礙服務喚醒。</string>
     <string name="pref_keepalive_dedicated_service_title">專用保活服務</string>
