@@ -1,10 +1,6 @@
 package io.github.magisk317.relay.ui.home.settings
 
-import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.uikit.common.showLatestSnackbar
-
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,7 +17,6 @@ import io.github.magisk317.relay.mobilefeature.settings.BuildConfig
 import io.github.magisk317.relay.ui.permission.PermissionRequirement
 import io.github.magisk317.relay.ui.permission.StartupPermissionCollector
 import io.github.magisk317.relay.ui.permission.StartupPromptStore
-import io.github.magisk317.relay.ui.permission.runRootGrants
 import io.github.magisk317.relay.ui.permission.startupPermissionConfig
 import io.github.magisk317.uikit.foundation.LocalSnackbarHostState
 import kotlinx.coroutines.launch
@@ -112,13 +107,6 @@ fun StartupPermissionPrompt(enabled: Boolean) {
     }
 
     LaunchedEffect(enabled) {
-        runCatching {
-            withContext(Dispatchers.IO) {
-                runRootGrants(context, config) { message ->
-                    XLog.w(message = "PermissionBridge", message)
-                }
-            }
-        }
         startPromptIfNeeded()
     }
 }
