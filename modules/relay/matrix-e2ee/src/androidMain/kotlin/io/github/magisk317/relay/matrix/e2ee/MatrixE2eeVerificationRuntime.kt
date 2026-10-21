@@ -200,6 +200,9 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
             )
         } ?: SLog.w(TAG, "Matrix verification accept called without a pending request")
 
+        // matrix-rust-sdk 26.10.20 only fires didAcceptVerificationRequest for
+        // requests we started, so accepting an incoming request must land the
+        // local ACCEPTED state here rather than in the delegate callback.
         runControllerAction(MatrixE2eeVerificationStatus.ACCEPTED, "acceptVerificationRequest") {
             acceptVerificationRequest()
             SLog.d(TAG, "Matrix verification request accepted: pending=${summarizePendingRequest()}")
@@ -853,6 +856,8 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
             }
 
             override fun didAcceptVerificationRequest() {
+                // SDK >= 26.10.20: only fires when the other side accepted a
+                // request we started; incoming accepts transition in acceptRequest().
                 SLog.d(TAG, "Matrix verification callback didAcceptVerificationRequest: pending=${summarizePendingRequest()}")
                 updateState {
                     it.copy(

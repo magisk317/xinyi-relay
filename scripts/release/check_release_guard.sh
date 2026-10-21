@@ -163,6 +163,83 @@ PY
   echo "PASS: foreground-service manifest contract (StandardModeService retired in 6fa158b9)"
 }
 
+# The GitHub APK pins matrix-sdk-android and downloads the matching plugin APK at
+# runtime. A tag that ships before e2ee-plugin:sync finishes would leave that
+# pin without an artifact, so require the exact SDK version (all ABI APKs and
+# sha256 sidecars) to exist in the registry before the guard passes.
+check_e2ee_plugin_published() {
+  local root_dir="$1"
+  local sdk_version packages_json package_id files_json missing
+
+  sdk_version="$(sed -nE 's/^matrix-sdk-android[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' \
+    "$root_dir/gradle/libs.versions.toml" | head -n1)"
+  if [[ -z "$sdk_version" ]]; then
+    echo "FAIL: cannot resolve matrix-sdk-android from gradle/libs.versions.toml" >&2
+    return 1
+  fi
+
+  # Local guard runs have no job token; the tag pipeline is the enforcement point.
+  if [[ -z "${CI_JOB_TOKEN:-}" || -z "${CI_API_V4_URL:-}" || -z "${CI_PROJECT_ID:-}" ]]; then
+    echo "SKIP: E2EE plugin availability (no GitLab CI job token)"
+    return 0
+  fi
+
+  if ! packages_json="$(curl --silent --show-error --fail \
+    --header "JOB-TOKEN: $CI_JOB_TOKEN" \
+    "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages?package_name=xinyi-e2ee-plugin&per_page=100")"; then
+    echo "FAIL: cannot query the GitLab package registry for xinyi-e2ee-plugin" >&2
+    return 1
+  fi
+
+  package_id="$(python3 -c '
+import json
+import sys
+
+version = sys.argv[1]
+for package in json.load(sys.stdin):
+    if package.get("name") == "xinyi-e2ee-plugin" and package.get("version") == version:
+        print(package.get("id", ""))
+        break
+' "$sdk_version" <<<"$packages_json")"
+
+  if [[ -z "$package_id" ]]; then
+    echo "FAIL: xinyi-e2ee-plugin $sdk_version is not published; run e2ee-plugin:sync before tagging" >&2
+    return 1
+  fi
+
+  if ! files_json="$(curl --silent --show-error --fail \
+    --header "JOB-TOKEN: $CI_JOB_TOKEN" \
+    "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/$package_id/package_files?per_page=100")"; then
+    echo "FAIL: cannot list xinyi-e2ee-plugin $sdk_version package files" >&2
+    return 1
+  fi
+
+  missing="$(python3 -c '
+import json
+import sys
+
+version = sys.argv[1]
+abis = ("arm64-v8a", "armeabi-v7a", "x86", "x86_64")
+expected = {
+    f"xinyi-e2ee-plugin_v{version}_{abi}{suffix}"
+    for abi in abis
+    for suffix in (".apk", ".apk.sha256")
+}
+names = {entry.get("file_name", "") for entry in json.load(sys.stdin)}
+print("\n".join(sorted(expected - names)))
+' "$sdk_version" <<<"$files_json")"
+
+  if [[ -n "$missing" ]]; then
+    echo "FAIL: xinyi-e2ee-plugin $sdk_version is missing artifacts:" >&2
+    printf '%s\n' "$missing" >&2
+    return 1
+  fi
+
+  echo "PASS: xinyi-e2ee-plugin $sdk_version has all ABI APKs and sha256 sidecars"
+}
+
+check_e2ee_plugin_published "$ROOT_DIR"
+
 # The base checks, the Play metadata checks and the project_checks dispatch all
 # live in the toolkit; scripts/config/release-policy.json drives what runs.
 # shellcheck source=check_release_guard.sh
