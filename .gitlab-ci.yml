@@ -1,27 +1,31 @@
 include:
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "eb3f93a050ec0ade996d0452c00d871e52189fca"
+    ref: "30dcb9c64facc024eb140a04a0f607dc07d21792"
     file: /.gitlab/ci/android.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "eb3f93a050ec0ade996d0452c00d871e52189fca"
+    ref: "30dcb9c64facc024eb140a04a0f607dc07d21792"
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "eb3f93a050ec0ade996d0452c00d871e52189fca"
+    ref: "30dcb9c64facc024eb140a04a0f607dc07d21792"
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "eb3f93a050ec0ade996d0452c00d871e52189fca"
+    ref: "30dcb9c64facc024eb140a04a0f607dc07d21792"
     file: /.gitlab/ci/renovate.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "eb3f93a050ec0ade996d0452c00d871e52189fca"
+    ref: "30dcb9c64facc024eb140a04a0f607dc07d21792"
     file: /.gitlab/ci/cancel-mr-pipelines.yml
-  # Utility-job anchor (alpine, pinned): sync:github extends it instead of
-  # pinning its own image. Language-tool jobs (backend:go, webui:check, the
-  # docker/node jobs) keep their own pinned tool images by design.
+  # Utility-job anchor (alpine, pinned): the GitHub mirror and the README-badge
+  # job extend it instead of pinning their own image. Language-tool jobs
+  # (backend:go, webui:check, the docker/node jobs) keep their own pinned tool
+  # images by design.
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "eb3f93a050ec0ade996d0452c00d871e52189fca"
+    ref: "30dcb9c64facc024eb140a04a0f607dc07d21792"
     file: /.gitlab/ci/utility.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "eb3f93a050ec0ade996d0452c00d871e52189fca"
+    ref: "30dcb9c64facc024eb140a04a0f607dc07d21792"
+    file: /.gitlab/ci/github-sync.yml
+  - project: magisk3171/shared/magisk-ci-toolkit
+    ref: "30dcb9c64facc024eb140a04a0f607dc07d21792"
     file: /.gitlab/ci/readme-badges.yml
 
 workflow:
@@ -47,7 +51,7 @@ stages:
 
 variables:
   MAGISK_CI_TOOLKIT_REPOSITORY: "https://gitlab.com/magisk3171/shared/magisk-ci-toolkit.git"
-  MAGISK_CI_TOOLKIT_REF: "eb3f93a050ec0ade996d0452c00d871e52189fca"
+  MAGISK_CI_TOOLKIT_REF: "30dcb9c64facc024eb140a04a0f607dc07d21792"
   MAGISK_CANCEL_OLDER_MR_PIPELINES: "true"
   # Cancel the merged MR's own merge_request_event pipeline from the push
   # pipeline that lands the merge. GitLab has no cancel-on-merge hook and
@@ -1134,32 +1138,21 @@ android:release:github:
 # group-level protected variable, so it is only injected on protected branches;
 # tag pipelines fall back to the project-level GITHUB_RELEASE_TOKEN.
 sync:github:
-  extends: .magisk_utility_base
+  # The shared anchor owns the push: default branch plus release tags, with the
+  # internal safety-net prefixes (backup/, archive/, tmp/, wip/, keep/) withheld.
+  # This is the repository that leaked one: `git push --tags --force` published
+  # archive/api101-20260614 to GitHub, where it could not be taken back quietly.
+  extends: .magisk_github_sync
+  # Kept in the release stage because android:release:github needs the tag to be
+  # on GitHub before it creates the release there.
   stage: release
   needs:
     - job: android:release:guard
       optional: true
-  tags:
-    - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
-  rules:
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"'
-    - if: '$CI_COMMIT_TAG'
-    - when: never
-  script:
-    - |
-      set -euo pipefail
-      sync_token="${GITHUB_PAT:-${GITHUB_RELEASE_TOKEN:-}}"
-      if [ -z "$sync_token" ]; then
-        echo "ERROR: neither GITHUB_PAT nor GITHUB_RELEASE_TOKEN is available on $CI_COMMIT_REF_NAME" >&2
-        exit 1
-      fi
-      git remote add github "https://magisk317:${sync_token}@github.com/magisk317/${CI_PROJECT_NAME}.git" || true
-      if [ -n "${CI_COMMIT_TAG:-}" ]; then
-        git push github "$CI_COMMIT_TAG" --force
-        git push github --tags --force
-      else
-        git push github "HEAD:refs/heads/$CI_COMMIT_BRANCH" --force
-      fi
+  variables:
+    # Written out rather than reused from MAGISK_ANDROID_RELEASE_GITHUB_REPOSITORY:
+    # the mirror target is its own contract and must not follow a release setting.
+    MAGISK_GITHUB_MIRROR_REPOSITORY: "magisk317/xinyi-relay"
 
 # Scheduled/manual README badge sync (replaces the retired GitHub workflow).
 sync:readme-badges:
