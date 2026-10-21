@@ -11,9 +11,8 @@ import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import io.github.magisk317.xposed.logging.MagiskLogPolicy
 import io.github.magisk317.xposed.logging.MagiskOtel
-import io.github.magisk317.relay.android.BuildConfig
-import io.github.magisk317.xposed.logging.LogSanitizerConfig
 
 class DataStoreSyncInitializer : AppInitializer {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -24,21 +23,21 @@ class DataStoreSyncInitializer : AppInitializer {
 
             val preferenceDataSource = RuntimeGraph.from(application).preferenceDataSource
 
-            val isPlaintextBuild = BuildConfig.DEBUG || BuildConfig.IS_CI_BUILD
-            val verboseLog = isPlaintextBuild
-            val logRetentionDays = preferenceDataSource.getInt(
-                PrefConst.KEY_RUNTIME_LOG_RETENTION_DAYS,
-                PrefConst.RUNTIME_LOG_RETENTION_DAYS_DEFAULT,
+            val policy = MagiskLogPolicy.current()
+            val logRetentionDays = MagiskLogPolicy.retentionDays(
+                preferenceDataSource.getInt(
+                    PrefConst.KEY_RUNTIME_LOG_RETENTION_DAYS,
+                    PrefConst.RUNTIME_LOG_RETENTION_DAYS_DEFAULT,
+                ),
             )
             RuntimeDiagnosticsBridge.ensureInstalled()
-            RuntimeLogStore.setEnabled(verboseLog)
-            RuntimeDiagnosticsBridge.ensureInstalled()
+            RuntimeLogStore.setEnabled(policy.verboseLogging)
             RuntimeLogStore.setRetentionDays(logRetentionDays)
-            LogSanitizerConfig.syncFromVerboseMode(isPlaintextBuild)
             RelayLogger.w(
                 LogRoute.APP,
-                "Diag runtime log config: verbose=%s retentionDays=%d",
-                verboseLog,
+                "Diag runtime log config: verbose=%s sanitized=%s retentionDays=%d",
+                policy.verboseLogging,
+                policy.sanitizesText,
                 logRetentionDays,
             )
             MagiskOtel.event(

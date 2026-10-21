@@ -14,6 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import io.github.magisk317.xposed.logging.MagiskLogPolicy
 import io.github.magisk317.xposed.logging.MagiskOtel
 
 object XposedServiceRuntimeCoordinator {
@@ -96,6 +97,6 @@ object XposedServiceRuntimeCoordinator {
     }
 
     private fun readVerboseLogMode(application: Application): Boolean =
-        io.github.magisk317.relay.android.BuildConfig.DEBUG || io.github.magisk317.relay.android.BuildConfig.IS_CI_BUILD
+        MagiskLogPolicy.current().verboseLogging
 
 }

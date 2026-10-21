@@ -22,6 +22,7 @@ import io.github.magisk317.xposed.entitlement.MobileHookGateCheck
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.Collections
 import io.github.magisk317.xposed.logging.AnonymousInstallationId
+import io.github.magisk317.xposed.logging.MagiskLogPolicy
 
 // Phase3 complete: PrefsReader is runtime/Xposed/跨进程只读 only.
 // Source-chain resolution lives in PrefsSourceChain; do not add more business getters here.
@@ -227,11 +228,11 @@ object PrefsReader {
 
     @JvmStatic
     fun isVerboseLogMode(context: Context): Boolean =
-        BuildConfig.DEBUG || BuildConfig.IS_CI_BUILD
+        MagiskLogPolicy.current().verboseLogging
 
     @JvmStatic
     fun isSensitiveDebugLogMode(context: Context): Boolean =
-        BuildConfig.DEBUG || BuildConfig.IS_CI_BUILD
+        !MagiskLogPolicy.current().sanitizesText
 
     @JvmStatic
     fun verificationFeaturesEnabled(context: Context): Boolean {

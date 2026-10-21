@@ -36,6 +36,7 @@ import io.github.magisk317.smscode.xposed.runtime.CoreRuntimeAccess
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.xposed.BaseHook
 import io.github.magisk317.xposed.BaseLibXposedEntry
+import io.github.magisk317.xposed.logging.MagiskLogPolicy
 import io.github.magisk317.xposed.logging.MagiskOtel
 import io.github.magisk317.xposed.LibXposedHookApi
 import io.github.magisk317.xposed.LoadParam
@@ -61,6 +62,13 @@ class LibXposedEntry : BaseLibXposedEntry {
     )
 
     override fun installModuleRuntime(module: XposedModule, hookApi: LibXposedHookApi) {
+        // The hook process is its own JVM: nothing installed in the app process reaches it,
+        // so the policy has to be evaluated from these build flags before the first hook log.
+        MagiskLogPolicy.install(
+            isDebugBuild = BuildConfig.DEBUG,
+            isCiBuild = BuildConfig.IS_CI_BUILD,
+            allowPlaintextLogs = BuildConfig.ALLOW_PLAINTEXT_LOGS,
+        )
         installCoreRuntime()
         XpHookDiagnostics.installRuntimeBridge(AndroidXpDiagnosticsBridge)
         XpHookDiagnostics.configureLogClient(

@@ -364,7 +364,7 @@
     <string name="pref_log_sanitization_summary">开启后隐藏日志中的敏感信息</string>
     <string name="pref_runtime_log_retention_days_title">日志保留天数</string>
     <string name="pref_runtime_log_retention_days_summary">按天轮转，保留最近 %1$d 天日志</string>
-    <string name="pref_runtime_log_retention_days_hint">单位：天，最小值 1，默认 7。</string>
+    <string name="pref_runtime_log_retention_days_hint">单位：天，最小值 1，默认 2。</string>
     <string name="pref_runtime_log_retention_days_error">请输入大于等于 1 的整数。</string>
     <string name="pref_auto_update_on_start_title">启动时自动更新</string>
     <string name="pref_auto_update_on_start_summary">应用启动时执行一次更新策略</string>

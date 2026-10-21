@@ -113,7 +113,9 @@ object RelayPrefConst {
     const val KEY_VERBOSE_LOG_MODE = "pref_verbose_log_mode"
     const val KEY_SENSITIVE_DEBUG_LOG_MODE = "pref_sensitive_debug_log_mode"
     const val KEY_RUNTIME_LOG_RETENTION_DAYS = "pref_runtime_log_retention_days"
-    const val RUNTIME_LOG_RETENTION_DAYS_DEFAULT = 7
+    // Kept in sync with MagiskLogPolicy.DEFAULT_LOG_RETENTION_DAYS by
+    // RuntimeLogRetentionDefaultsTest: this module is commonMain and cannot see the kit.
+    const val RUNTIME_LOG_RETENTION_DAYS_DEFAULT = 2
     const val RUNTIME_LOG_RETENTION_DAYS_MIN = 1
     @Deprecated("Runtime logs now rotate by day; use RUNTIME_LOG_RETENTION_DAYS_MIN.")
     const val RUNTIME_LOG_FILE_SIZE_MB_MIN = 1
