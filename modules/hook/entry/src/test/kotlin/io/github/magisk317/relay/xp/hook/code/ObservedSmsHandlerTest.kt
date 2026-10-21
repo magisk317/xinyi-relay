@@ -7,6 +7,7 @@ import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
 import io.github.magisk317.smscode.runtime.verification.SmsCodePostParseCoordinator
 import io.github.magisk317.smscode.verification.SmsInboxObserverDecision
+import io.github.magisk317.smscode.verification.SmsDuplicateCheckResult
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -35,7 +36,7 @@ class ObservedSmsHandlerTest {
             moduleEnabledReader = { true },
             conflictSuppressor = { _, _ -> true },
             roleStateLogger = { roleLogCount++ },
-            duplicateChecker = { _, _, _, _ -> false },
+            duplicateChecker = { _, _, _, _ -> SmsDuplicateCheckResult.NOT_DUPLICATE },
             dispatcher = { _, _, _, _, _ -> dispatchCount++ },
         )
 
@@ -64,7 +65,7 @@ class ObservedSmsHandlerTest {
             conflictSuppressor = { _, _ -> false },
             sharedGateClaimer = { _, _, _, _, _ -> XpSharedRuntimeGate.ClaimResult(claimed = true) },
             roleStateLogger = { eventId -> loggedEventId = eventId },
-            duplicateChecker = { _, _, _, _ -> false },
+            duplicateChecker = { _, _, _, _ -> SmsDuplicateCheckResult.NOT_DUPLICATE },
             smsEnricher = { _, record ->
                 SmsMsg(
                     sender = record.sender,
@@ -117,7 +118,7 @@ class ObservedSmsHandlerTest {
             moduleEnabledReader = { true },
             conflictSuppressor = { _, _ -> false },
             roleStateLogger = { roleLogCount++ },
-            duplicateChecker = { _, _, _, _ -> false },
+            duplicateChecker = { _, _, _, _ -> SmsDuplicateCheckResult.NOT_DUPLICATE },
             dispatcher = { _, _, _, _, _ -> dispatchCount++ },
         )
 
@@ -143,7 +144,7 @@ class ObservedSmsHandlerTest {
             conflictSuppressor = { _, _ -> false },
             sharedGateClaimer = { _, _, _, _, _ -> XpSharedRuntimeGate.ClaimResult(claimed = false, ageMs = 12L) },
             roleStateLogger = { roleLogCount++ },
-            duplicateChecker = { _, _, _, _ -> false },
+            duplicateChecker = { _, _, _, _ -> SmsDuplicateCheckResult.NOT_DUPLICATE },
             dispatcher = { _, _, _, _, _ -> dispatchCount++ },
         )
 
@@ -167,7 +168,7 @@ class ObservedSmsHandlerTest {
             moduleEnabledReader = { true },
             conflictSuppressor = { _, _ -> false },
             sharedGateClaimer = { _, _, _, _, _ -> XpSharedRuntimeGate.ClaimResult(claimed = true) },
-            duplicateChecker = { _, _, _, _ -> false },
+            duplicateChecker = { _, _, _, _ -> SmsDuplicateCheckResult.NOT_DUPLICATE },
             dispatcher = { _, _, _, eventId, _ -> dispatchedEventId = eventId },
             currentTimeMillis = { 1_234_567_890L },
         )

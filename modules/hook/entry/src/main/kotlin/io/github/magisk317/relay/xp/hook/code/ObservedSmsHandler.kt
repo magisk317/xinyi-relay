@@ -8,6 +8,7 @@ import io.github.magisk317.relay.xpbridge.XpRecordFacade
 import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.smscode.verification.ObservedInboxScanRecord
+import io.github.magisk317.smscode.verification.SmsDuplicateCheckResult
 import io.github.magisk317.smscode.runtime.verification.ObservedSmsHandler as SharedObservedSmsHandler
 import io.github.magisk317.smscode.runtime.verification.SmsCodePostParseCoordinator
 import io.github.magisk317.smscode.verification.SmsInboxObserverDecision
@@ -38,7 +39,7 @@ internal class ObservedSmsHandler(
             )
     },
     private val roleStateLogger: (String) -> Unit = {},
-    private val duplicateChecker: ((SmsCodePostParseCoordinator.Settings, String, String, Long) -> Boolean)? = null,
+    private val duplicateChecker: ((SmsCodePostParseCoordinator.Settings, String, String, Long) -> SmsDuplicateCheckResult)? = null,
     private val smsEnricher: (Context, ObservedInboxScanRecord) -> SmsMsg = { context, record ->
         XpDispatchCoordinator.enrichObservedSms(
             phoneContext = context,
@@ -130,21 +131,29 @@ internal class ObservedSmsHandler(
         sender: String,
         body: String,
         date: Long,
-    ): Boolean {
+    ): SmsDuplicateCheckResult {
         if (!settings.deduplicateSmsEnabled) {
-            return false
+            return SmsDuplicateCheckResult.NOT_DUPLICATE
         }
         val runtimeRecordFacade = runtimeRecordFacadeProvider?.invoke() ?: XpRecordFacade(pluginContext)
         val timestamp = if (date > 0) date else currentTimeMillis()
-        return runBlocking {
-            runCatching {
+        val lookup = runCatching {
+            runBlocking {
                 runtimeRecordFacade.isDuplicateSms(
                     sender = sender,
                     body = body,
                     date = timestamp,
                     msgType = SmsMsg.MSG_TYPE_SMS,
                 )
-            }.getOrDefault(false)
+            }
+        }
+        // A failed lookup is not proof of a fresh message. The shared decision layer treats
+        // UNAVAILABLE as fail-closed, so surface it instead of defaulting to "not duplicate"
+        // the way the old Boolean contract did.
+        return when (lookup.getOrNull()) {
+            true -> SmsDuplicateCheckResult.DUPLICATE
+            false -> SmsDuplicateCheckResult.NOT_DUPLICATE
+            null -> SmsDuplicateCheckResult.UNAVAILABLE
         }
     }
 

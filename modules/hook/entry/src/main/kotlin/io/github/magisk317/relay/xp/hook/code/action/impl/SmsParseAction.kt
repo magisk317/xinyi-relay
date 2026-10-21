@@ -12,6 +12,7 @@ import io.github.magisk317.relay.xpbridge.XpRecordFacade
 import io.github.magisk317.relay.xpbridge.XpStringEscaper
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
 import io.github.magisk317.smscode.runtime.verification.SmsParseAction as SharedSmsParseAction
+import io.github.magisk317.smscode.verification.SmsDuplicateCheckResult
 import io.github.magisk317.xposed.logging.XLog
 
 /**
@@ -50,14 +51,22 @@ class SmsParseAction(pluginContext: Context, phoneContext: Context, smsMsg: SmsM
                 if (sensitive) XpStringEscaper.escape(value).orEmpty() else XpStringEscaper.summarizeCode(value)
             },
             duplicateChecker = { sender, body, timestamp ->
-                runCatching {
-                    runtimeRecordFacade.isDuplicateSms(
-                        sender = sender,
-                        body = body,
-                        date = timestamp,
-                        msgType = SmsMsg.MSG_TYPE_SMS,
-                    )
-                }.getOrDefault(false)
+                // A lookup that cannot be completed is UNAVAILABLE (fail closed),
+                // never a silent "not duplicate" like the old Boolean contract.
+                when (
+                    runCatching {
+                        runtimeRecordFacade.isDuplicateSms(
+                            sender = sender,
+                            body = body,
+                            date = timestamp,
+                            msgType = SmsMsg.MSG_TYPE_SMS,
+                        )
+                    }.getOrNull()
+                ) {
+                    true -> SmsDuplicateCheckResult.DUPLICATE
+                    false -> SmsDuplicateCheckResult.NOT_DUPLICATE
+                    null -> SmsDuplicateCheckResult.UNAVAILABLE
+                }
             },
             preparedSmsResolver = { pluginContext, phoneContext, smsMsg, intent, timestamp ->
                 val prepared = XpDispatchCoordinator.prepareIngressSms(

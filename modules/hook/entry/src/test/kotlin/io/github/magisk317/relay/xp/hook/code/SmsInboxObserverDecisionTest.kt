@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import io.github.magisk317.smscode.verification.SmsInboxObserverDecision
+import io.github.magisk317.smscode.verification.SmsDuplicateCheckResult
 
 class SmsInboxObserverDecisionTest {
 
@@ -14,7 +15,7 @@ class SmsInboxObserverDecisionTest {
         val decision = SmsInboxObserverDecision.evaluate(
             moduleEnabled = true,
             suppressedByRelay = true,
-            duplicated = false,
+            duplicateCheckResult = SmsDuplicateCheckResult.NOT_DUPLICATE,
             autoInputEnabled = true,
             shouldRecord = true,
             deduplicateSmsEnabled = false,
@@ -30,7 +31,7 @@ class SmsInboxObserverDecisionTest {
         val decision = SmsInboxObserverDecision.evaluate(
             moduleEnabled = false,
             suppressedByRelay = false,
-            duplicated = false,
+            duplicateCheckResult = SmsDuplicateCheckResult.NOT_DUPLICATE,
             autoInputEnabled = true,
             shouldRecord = true,
             deduplicateSmsEnabled = false,
@@ -46,10 +47,10 @@ class SmsInboxObserverDecisionTest {
         val decision = SmsInboxObserverDecision.evaluate(
             moduleEnabled = true,
             suppressedByRelay = false,
-            duplicated = true,
+            duplicateCheckResult = SmsDuplicateCheckResult.DUPLICATE,
             autoInputEnabled = true,
             shouldRecord = true,
-            deduplicateSmsEnabled = false,
+            deduplicateSmsEnabled = true,
         )
 
         assertEquals(SmsInboxObserverDecision.SkipReason.DUPLICATED, decision.skipReason)
@@ -62,7 +63,7 @@ class SmsInboxObserverDecisionTest {
         val decision = SmsInboxObserverDecision.evaluate(
             moduleEnabled = true,
             suppressedByRelay = false,
-            duplicated = false,
+            duplicateCheckResult = SmsDuplicateCheckResult.NOT_DUPLICATE,
             autoInputEnabled = false,
             shouldRecord = false,
             deduplicateSmsEnabled = true,
@@ -79,7 +80,7 @@ class SmsInboxObserverDecisionTest {
         val decision = SmsInboxObserverDecision.evaluate(
             moduleEnabled = true,
             suppressedByRelay = false,
-            duplicated = false,
+            duplicateCheckResult = SmsDuplicateCheckResult.NOT_DUPLICATE,
             autoInputEnabled = true,
             shouldRecord = true,
             deduplicateSmsEnabled = false,
@@ -91,4 +92,19 @@ class SmsInboxObserverDecisionTest {
         assertNull(decision.recordSkipReason)
     }
 
+    @Test
+    fun evaluate_failsClosedWhenDuplicateCheckIsUnavailable() {
+        val decision = SmsInboxObserverDecision.evaluate(
+            moduleEnabled = true,
+            suppressedByRelay = false,
+            duplicateCheckResult = SmsDuplicateCheckResult.UNAVAILABLE,
+            autoInputEnabled = true,
+            shouldRecord = true,
+            deduplicateSmsEnabled = true,
+        )
+
+        assertEquals(SmsInboxObserverDecision.SkipReason.DUPLICATE_CHECK_UNAVAILABLE, decision.skipReason)
+        assertFalse(decision.shouldProceed)
+        assertFalse(decision.autoInputEnabled)
+    }
 }
