@@ -1113,6 +1113,11 @@ renovate:gitlab:
   stage: maintenance
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
+  variables:
+    # Renovate skips github-tags/github-releases deps when no GitHub token is
+    # present. GITHUB_PAT is a protected group variable, and this job only runs
+    # on the protected default branch (beta), so it is available here.
+    GITHUB_TOKEN: "$GITHUB_PAT"
 
 # Mirrors the GitLab-owned release to GitHub (tag, notes, release APKs).
 # Inert unless GITHUB_RELEASE_TOKEN is configured for the project.
