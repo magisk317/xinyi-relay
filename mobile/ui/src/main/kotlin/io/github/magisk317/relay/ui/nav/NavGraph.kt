@@ -68,7 +68,7 @@ object ForwardKeepAliveRoute
 object VerificationSettingsRoute
 
 @Serializable
-object RemoteAgentRoute
+data class RemoteAgentRoute(val bindCode: String = "", val baseUrl: String = "")
 
 @Serializable
 object DeviceControlRoute

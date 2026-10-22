@@ -19,6 +19,7 @@ type ParsedRecordMetadata = {
 type EnrichedRecord = RecordItem & {
   appLabel: string
   deviceLabel: string
+  deviceActive: boolean
   lineLabel: string
   simLabel: string
 }
@@ -28,6 +29,7 @@ export function RecordsPage() {
   const [records, setRecords] = useState<RecordItem[]>([])
   const { devices, selectedDeviceId, setSelectedDeviceId, refreshDevices } = useDeviceConfig()
   const [selectedTab, setSelectedTab] = useState<RecordTab>('sms_code')
+  const [includeAllDevices, setIncludeAllDevices] = useState(false)
   const [selectedAppLabel, setSelectedAppLabel] = useState('')
   const [selectedPackageName, setSelectedPackageName] = useState('')
   const [selectedLineLabel, setSelectedLineLabel] = useState('')
@@ -42,7 +44,7 @@ export function RecordsPage() {
       setLoading(true)
       setError('')
       const [recordsResp] = await Promise.all([
-        apiClient.getRecords(80, selectedDeviceId ?? undefined),
+        apiClient.getRecords(80, includeAllDevices ? undefined : selectedDeviceId ?? undefined),
         refreshDevices()
       ])
       setRecords(recordsResp.records)
@@ -51,7 +53,7 @@ export function RecordsPage() {
     } finally {
       setLoading(false)
     }
-  }, [refreshDevices, selectedDeviceId, t])
+  }, [includeAllDevices, refreshDevices, selectedDeviceId, t])
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -103,13 +105,15 @@ export function RecordsPage() {
       records.map((item) => {
         const metadata = parseRecordMetadata(item.metadata)
         const appLabel = metadata.company?.trim() || ''
-        const deviceLabel = deviceNameById.get(item.deviceId) ?? t('records.deviceBadge', { deviceId: item.deviceId })
+        const activeDeviceLabel = deviceNameById.get(item.deviceId)
+        const deviceLabel = activeDeviceLabel ?? t('records.revokedDeviceBadge', { deviceId: item.deviceId })
         const lineLabel = resolveLineLabel(item, metadata)
         const simLabel = resolveSimLabel(metadata, t)
         return {
           ...item,
           appLabel,
           deviceLabel,
+          deviceActive: activeDeviceLabel != null,
           lineLabel,
           simLabel
         }
@@ -118,7 +122,7 @@ export function RecordsPage() {
   )
 
   const baseFilteredRecords = enrichedRecords.filter((item) => {
-    if (selectedDeviceId != null && item.deviceId !== selectedDeviceId) return false
+    if (!includeAllDevices && selectedDeviceId != null && item.deviceId !== selectedDeviceId) return false
     if (selectedAppLabel && item.appLabel !== selectedAppLabel) return false
     if (selectedPackageName && item.packageName !== selectedPackageName) return false
     if (selectedLineLabel && item.lineLabel !== selectedLineLabel && item.simLabel !== selectedLineLabel) return false
@@ -127,11 +131,14 @@ export function RecordsPage() {
 
   const filteredRecords = baseFilteredRecords.filter((item) => item.recordType === selectedTab)
 
-  const deviceOptions = devices.map((device) => ({
+  const deviceOptions = [
+    { value: '', label: t('records.allDevices') },
+    ...devices.map((device) => ({
       value: device.id,
       label: device.displayName || device.deviceName,
       description: `${device.platform} / ${device.deviceModel || t('common.unknownModel')}`
     }))
+  ]
 
   const hasActiveFacetFilters =
     selectedAppLabel || selectedPackageName || selectedLineLabel
@@ -170,12 +177,16 @@ export function RecordsPage() {
       <RelayBadge tone={connected ? 'success' : 'warning'}>
         {connected ? t('common.liveConnected') : t('common.liveReconnecting')}
       </RelayBadge>
-      <RelaySelect
+      <RelaySelect<string | number>
         className="min-w-0 flex-1 sm:min-w-[16rem] sm:flex-none"
-        value={selectedDeviceId ?? ''}
+        value={includeAllDevices ? '' : selectedDeviceId ?? ''}
         options={deviceOptions}
         onChange={(value) => {
-          if (value === '') return
+          if (value === '') {
+            setIncludeAllDevices(true)
+            return
+          }
+          setIncludeAllDevices(false)
           setSelectedDeviceId(Number(value))
         }}
       />
@@ -309,13 +320,22 @@ export function RecordsPage() {
                   </button>
                 ) : null}
 
-                <button
-                  type="button"
-                  onClick={() => setSelectedDeviceId(item.deviceId)}
-                  className={badgeButtonClass(selectedDeviceId === item.deviceId, 'muted')}
-                >
-                  {item.deviceLabel}
-                </button>
+                {item.deviceActive ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIncludeAllDevices(false)
+                      setSelectedDeviceId(item.deviceId)
+                    }}
+                    className={badgeButtonClass(!includeAllDevices && selectedDeviceId === item.deviceId, 'muted')}
+                  >
+                    {item.deviceLabel}
+                  </button>
+                ) : (
+                  <span className="inline-flex items-center rounded-xl bg-[#eef4df] px-3 py-1.5 text-sm font-medium leading-none text-[#566347]">
+                    {item.deviceLabel}
+                  </span>
+                )}
 
                 {item.simLabel ? (
                   <button

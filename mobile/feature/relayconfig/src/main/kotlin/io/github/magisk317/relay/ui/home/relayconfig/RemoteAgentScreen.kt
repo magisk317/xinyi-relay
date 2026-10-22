@@ -1,7 +1,8 @@
 package io.github.magisk317.relay.ui.home.relayconfig
 
 import io.github.magisk317.uikit.common.showLatestSnackbar
-import android.net.Uri
+import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,9 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.activity.compose.rememberLauncherForActivityResult
-import io.github.magisk317.uikit.surface.AppTextField
-import io.github.magisk317.uikit.common.AppSnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -24,9 +22,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import io.github.magisk317.uikit.surface.AppTextField
+import io.github.magisk317.uikit.common.AppSnackbarHostState
+import io.github.magisk317.uikit.common.AppSnackbarResult
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
 import com.google.mlkit.vision.barcode.common.Barcode
@@ -35,8 +38,11 @@ import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
 import io.github.magisk317.relay.contract.repository.ConfigSyncCoordinator
 import io.github.magisk317.relay.contract.settings.RemoteAgentSnapshot
+import io.github.magisk317.relay.common.utils.RelayBindLink
+import io.github.magisk317.relay.common.utils.RelayBindPayload
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import java.io.IOException
 import java.text.DateFormat
 import java.util.Date
 import io.github.magisk317.uikit.text.AppText
@@ -47,7 +53,10 @@ import io.github.magisk317.uikit.theme.AppColorRole
 import io.github.magisk317.uikit.theme.appColor
 
 @Composable
-fun RemoteAgentScreen(onBack: () -> Unit) {
+fun RemoteAgentScreen(
+    onBack: () -> Unit,
+    bindRequest: RelayBindPayload? = null,
+) {
     val repository: ConfigSyncCoordinator = koinInject()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -73,6 +82,16 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
     val noneText = stringResource(id = R.string.pref_remote_agent_none)
     val notYetText = stringResource(id = R.string.pref_remote_agent_not_yet)
     val scanUpdatedText = stringResource(id = R.string.pref_remote_agent_scan_done)
+    val scanFailedText = stringResource(id = R.string.pref_remote_agent_scan_failed)
+    val bindFailedText = stringResource(id = R.string.pref_remote_agent_bind_failed)
+    val saveFailedText = stringResource(id = R.string.pref_remote_agent_save_failed)
+    val heartbeatFailedText = stringResource(id = R.string.pref_remote_agent_heartbeat_failed)
+    val pullFailedText = stringResource(id = R.string.pref_remote_agent_pull_failed)
+    val pushFailedText = stringResource(id = R.string.pref_remote_agent_push_failed)
+    val recordsFailedText = stringResource(id = R.string.pref_remote_agent_records_failed)
+    val systemScanHintText = stringResource(id = R.string.pref_remote_agent_system_scan_hint)
+    val linkFilledText = stringResource(id = R.string.pref_remote_agent_link_filled)
+    val installScannerText = stringResource(id = R.string.pref_remote_agent_install_scanner)
 
     suspend fun refresh() {
         val next = repository.getSnapshot()
@@ -80,8 +99,84 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
         baseUrl = next.backendBaseUrl
     }
 
+    suspend fun bind(code: String, url: String) {
+        runCatching {
+            repository.updateBackendBaseUrl(url)
+            repository.bindDevice(code)
+        }.onSuccess {
+            refresh()
+            bindCode = ""
+            snackbarHostState.showLatestSnackbar(
+                context.getString(R.string.pref_remote_agent_bind_done, it.deviceId),
+            )
+        }.onFailure {
+            refresh()
+            snackbarHostState.showLatestSnackbar(errorMessage(context, it, bindFailedText))
+        }
+    }
+
+    val packageManager = context.packageManager
+    val systemScannerIntent = remember { scannerIntent(MIUI_SCAN_ACTION, MIUI_SCANNER_PACKAGE) }
+    val scannerInstallIntent = remember { scannerIntent(GMS_SCANNER_UI_ACTION, GMS_PACKAGE) }
+    val hasSystemScanner = remember { systemScannerIntent.resolveActivity(packageManager) != null }
+    val canInstallScanner = remember { scannerInstallIntent.resolveActivity(packageManager) != null }
+
+    fun startScan() {
+        val options = GmsBarcodeScannerOptions.Builder()
+            .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+            .build()
+        GmsBarcodeScanning.getClient(context, options)
+            .startScan()
+            .addOnSuccessListener { barcode ->
+                val contents = barcode.rawValue?.trim().orEmpty()
+                if (contents.isBlank()) return@addOnSuccessListener
+                val parsed = RelayBindLink.parse(contents)
+                val resolvedBaseUrl = parsed.baseUrl.ifBlank { baseUrl }.trim()
+                bindCode = parsed.bindCode
+                if (resolvedBaseUrl.isNotBlank()) {
+                    baseUrl = resolvedBaseUrl
+                }
+                scope.launch {
+                    snackbarHostState.showLatestSnackbar(scanUpdatedText)
+                    if (resolvedBaseUrl.isNotBlank()) {
+                        bind(parsed.bindCode, resolvedBaseUrl)
+                    }
+                }
+            }
+            .addOnFailureListener { error ->
+                if (error is ApiException && error.statusCode == CommonStatusCodes.CANCELED) {
+                    return@addOnFailureListener
+                }
+                scope.launch {
+                    val result = snackbarHostState.showLatestSnackbar(
+                        message = scanFailedText,
+                        actionLabel = if (canInstallScanner) installScannerText else null,
+                    )
+                    if (result == AppSnackbarResult.ActionPerformed) {
+                        context.tryStartScanner(scannerInstallIntent)
+                    }
+                }
+            }
+    }
+
+    fun startScanning() {
+        val systemScannerLaunched = hasSystemScanner && context.tryStartScanner(systemScannerIntent)
+        if (systemScannerLaunched) {
+            scope.launch { snackbarHostState.showLatestSnackbar(systemScanHintText) }
+            return
+        }
+        startScan()
+    }
+
     LaunchedEffect(Unit) {
         refresh()
+        bindRequest?.let { request ->
+            if (request.baseUrl.isNotBlank()) {
+                baseUrl = request.baseUrl
+            }
+            bindCode = request.bindCode
+            snackbarHostState.showLatestSnackbar(linkFilledText)
+        }
     }
 
     val remoteAgentBody: @Composable (PaddingValues) -> Unit = { padding ->
@@ -119,64 +214,14 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
             AppPrimaryButton(
                 onClick = {
                     scope.launch {
-                        runCatching {
-                            repository.updateBackendBaseUrl(baseUrl)
-                            repository.bindDevice(bindCode)
-                        }.onSuccess {
-                            refresh()
-                            snackbarHostState.showLatestSnackbar(
-                                context.getString(R.string.pref_remote_agent_bind_done, it.deviceId),
-                            )
-                        }.onFailure {
-                            refresh()
-                            snackbarHostState.showLatestSnackbar(it.message ?: it.javaClass.simpleName)
-                        }
+                        bind(bindCode, baseUrl)
                     }
                 },
             ) {
                 AppText(bindActionText)
             }
             AppPrimaryButton(
-                onClick = {
-                    val options = GmsBarcodeScannerOptions.Builder()
-                        .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
-                        .build()
-                    val scanner = GmsBarcodeScanning.getClient(context, options)
-                    scanner.startScan()
-                        .addOnSuccessListener { barcode ->
-                            val contents = barcode.rawValue?.trim().orEmpty()
-                            if (contents.isBlank()) return@addOnSuccessListener
-                            val parsed = parseBindPayload(contents)
-                            val resolvedCode = parsed.code.ifBlank { contents }
-                            val resolvedBaseUrl = parsed.baseUrl.ifBlank { baseUrl }.trim()
-                            bindCode = resolvedCode
-                            if (resolvedBaseUrl.isNotBlank()) {
-                                baseUrl = resolvedBaseUrl
-                            }
-                            scope.launch {
-                                snackbarHostState.showLatestSnackbar(scanUpdatedText)
-                                if (resolvedBaseUrl.isBlank() || resolvedCode.isBlank()) return@launch
-                                runCatching {
-                                    repository.updateBackendBaseUrl(resolvedBaseUrl)
-                                    repository.bindDevice(resolvedCode)
-                                }.onSuccess {
-                                    refresh()
-                                    bindCode = ""
-                                    snackbarHostState.showLatestSnackbar(
-                                        context.getString(R.string.pref_remote_agent_bind_done, it.deviceId),
-                                    )
-                                }.onFailure {
-                                    refresh()
-                                    snackbarHostState.showLatestSnackbar(it.message ?: it.javaClass.simpleName)
-                                }
-                            }
-                        }
-                        .addOnFailureListener { e ->
-                            scope.launch {
-                                snackbarHostState.showLatestSnackbar(e.message ?: "Scan failed")
-                            }
-                        }
-                },
+                onClick = { startScanning() },
             ) {
                 AppText(scanActionText)
             }
@@ -189,7 +234,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                             refresh()
                             snackbarHostState.showLatestSnackbar(backendSavedText)
                         }.onFailure {
-                            snackbarHostState.showLatestSnackbar(it.message ?: it.javaClass.simpleName)
+                            snackbarHostState.showLatestSnackbar(errorMessage(context, it, saveFailedText))
                         }
                     }
                 },
@@ -212,7 +257,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                             }
                             .onFailure {
                                 refresh()
-                                snackbarHostState.showLatestSnackbar(it.message ?: it.javaClass.simpleName)
+                                snackbarHostState.showLatestSnackbar(errorMessage(context, it, heartbeatFailedText))
                             }
                     }
                 },
@@ -229,10 +274,9 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                                 snackbarHostState.showLatestSnackbar(
                                     context.getString(R.string.pref_remote_agent_pull_done, it.revision.value),
                                 )
-                            }
-                            .onFailure {
+                            }.onFailure {
                                 refresh()
-                                snackbarHostState.showLatestSnackbar(it.message ?: it.javaClass.simpleName)
+                                snackbarHostState.showLatestSnackbar(errorMessage(context, it, pullFailedText))
                             }
                     }
                 },
@@ -256,7 +300,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                             }
                             .onFailure {
                                 refresh()
-                                snackbarHostState.showLatestSnackbar(it.message ?: it.javaClass.simpleName)
+                                snackbarHostState.showLatestSnackbar(errorMessage(context, it, pushFailedText))
                             }
                     }
                 },
@@ -274,7 +318,7 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
                             }
                             .onFailure {
                                 refresh()
-                                snackbarHostState.showLatestSnackbar(it.message ?: it.javaClass.simpleName)
+                                snackbarHostState.showLatestSnackbar(errorMessage(context, it, recordsFailedText))
                             }
                     }
                 },
@@ -364,29 +408,32 @@ fun RemoteAgentScreen(onBack: () -> Unit) {
     }
 }
 
+private fun errorMessage(context: Context, error: Throwable, fallback: String): String = when {
+    error is IOException -> context.getString(R.string.pref_remote_agent_error_network)
+    error is IllegalArgumentException && error.message?.contains("base url", ignoreCase = true) == true ->
+        context.getString(R.string.pref_remote_agent_error_invalid_base_url)
+    else -> fallback
+}
+
 private fun formatEpochMillis(value: Long, emptyLabel: String): String {
     if (value <= 0L) return emptyLabel
     return DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.MEDIUM).format(Date(value))
 }
 
-private data class ParsedBindPayload(
-    val code: String,
-    val baseUrl: String,
-)
+private fun Context.tryStartScanner(intent: Intent): Boolean =
+    runCatching { startActivity(intent) }.isSuccess
 
-private fun parseBindPayload(raw: String): ParsedBindPayload {
-    return runCatching {
-        val uri = Uri.parse(raw.trim())
-        if (uri.scheme == "xinyi-relay" && uri.host == "bind") {
-            ParsedBindPayload(
-                code = uri.getQueryParameter("code").orEmpty(),
-                baseUrl = uri.getQueryParameter("base_url").orEmpty(),
-            )
-        } else {
-            ParsedBindPayload(code = raw.trim(), baseUrl = "")
-        }
-    }.getOrDefault(ParsedBindPayload(code = raw.trim(), baseUrl = ""))
-}
+private const val MIUI_SCANNER_PACKAGE = "com.xiaomi.scanner"
+private const val MIUI_SCAN_ACTION = "miui.intent.action.scanbarcode"
+private const val GMS_PACKAGE = "com.google.android.gms"
+private const val GMS_SCANNER_UI_ACTION = "com.google.android.gms.mlkit_barcode_ui.SCAN_QR_CODE"
+
+// LocalContext here can be a createConfigurationContext wrapper rather than the Activity, so the
+// external scanner UI must be started in its own task.
+private fun scannerIntent(action: String, targetPackage: String): Intent = Intent(action)
+    .addCategory(Intent.CATEGORY_DEFAULT)
+    .setPackage(targetPackage)
+    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
 @Composable
 private fun StatusCard(title: String, value: String) {

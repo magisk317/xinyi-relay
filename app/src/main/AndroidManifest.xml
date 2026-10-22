@@ -26,6 +26,12 @@
         <intent>
             <action android:name="android.intent.action.MAIN" />
         </intent>
+        <intent>
+            <action android:name="miui.intent.action.scanbarcode" />
+        </intent>
+        <intent>
+            <action android:name="com.google.android.gms.mlkit_barcode_ui.SCAN_QR_CODE" />
+        </intent>
     </queries>
 
     <application
@@ -111,6 +117,13 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:mimeType="application/octet-stream" android:scheme="content" />
                 <data android:mimeType="application/json" android:scheme="content" />
+            </intent-filter>
+            <!-- Bind link scanned by the system QR scanner: xinyi-relay://bind?code=..&base_url=.. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:host="bind" android:scheme="xinyi-relay" />
             </intent-filter>
         </activity>
 

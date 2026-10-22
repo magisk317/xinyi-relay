@@ -111,4 +111,18 @@ describe('shared console API client', () => {
       '/api/v1/records?limit=20&device_id=5'
     ])
   })
+
+  it('normalizes a null record list to an empty array', async () => {
+    const client = createConsoleApiClient({
+      async request<T>(): Promise<T> {
+        return { records: null, limit: 80, offset: 0 } as unknown as T
+      }
+    })
+
+    await expect(client.getRecords()).resolves.toEqual({
+      records: [],
+      limit: 80,
+      offset: 0
+    })
+  })
 })

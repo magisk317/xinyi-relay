@@ -42,6 +42,8 @@ import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.smscode.runtime.common.utils.FrameworkCompatibilityMonitor
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.common.utils.relayPackageActions
+import io.github.magisk317.relay.common.utils.RelayBindLink
+import io.github.magisk317.relay.ui.nav.RemoteAgentRoute
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.uikit.update.AppUpdateController
 import io.github.magisk317.uikit.update.AppUpdateDialog
@@ -172,7 +174,15 @@ class MainActivity : ComponentActivity() {
 
             fun handleIncomingIntent(incoming: Intent?): Boolean {
                 viewModel.handleArguments(incoming?.extras)
-                val backupUri = incoming?.data ?: return true
+                val incomingData = incoming?.data ?: return true
+                RelayBindLink.fromUri(incomingData)?.let { payload ->
+                    requestedTab = RemoteAgentRoute(
+                        bindCode = payload.bindCode,
+                        baseUrl = payload.baseUrl,
+                    )
+                    return true
+                }
+                val backupUri = incomingData
                 return if (viewModel.handleBackupArguments(backupUri)) {
                     requestedTab = io.github.magisk317.relay.ui.nav.SettingsRoute
                     true

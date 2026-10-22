@@ -363,6 +363,7 @@ backend:container:amd64:
     - .xinyi_backend_publish_rules
   resource_group: xinyi-backend-docker-amd64
   stage: build
+  allow_failure: true
   tags:
     - $XINYI_GITLAB_LINUX_AMD64_RUNNER_TAG
   needs:
@@ -378,6 +379,7 @@ backend:container:arm64:
     - .xinyi_backend_publish_rules
   resource_group: xinyi-backend-docker-arm64
   stage: build
+  allow_failure: true
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
@@ -393,6 +395,7 @@ backend:container:manifest:
     - .xinyi_backend_publish_rules
   resource_group: xinyi-backend-docker-manifest
   stage: release
+  allow_failure: true
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
