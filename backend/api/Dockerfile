@@ -1,5 +1,5 @@
 # Stage 1: Build webui
-FROM --platform=$BUILDPLATFORM oven/bun:1.4-alpine AS webui-build
+FROM --platform=$BUILDPLATFORM oven/bun:1.4.3-alpine AS webui-build
 ARG HTTP_PROXY
 ARG HTTPS_PROXY
 ARG ALL_PROXY
