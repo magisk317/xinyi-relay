@@ -465,7 +465,7 @@ desktop:release:gitlab:
 
 webui:check:
   extends: .xinyi_android_rules
-  image: "oven/bun:1.4.3-alpine"
+  image: "oven/bun:1.4.4-alpine"
   stage: quality
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
