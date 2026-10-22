@@ -30,7 +30,7 @@ jobs:
 
       - uses: ./.github/actions/resolve-ci-toolkit
         with:
-          ref: 30dcb9c64facc024eb140a04a0f607dc07d21792
+          ref: 5a9cef57abe852dc7798664e03ad50256a0204dd
 
       - name: Download artifacts
         if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'beta'
