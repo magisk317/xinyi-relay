@@ -57,7 +57,7 @@ COPY --from=webui-build /src/frontend/webui/dist ./webui_dist
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -o /out/relayd ./cmd/relayd
 
 # Stage 3: Final image
-FROM alpine:3.24.2
+FROM alpine:3.24.3
 WORKDIR /app
 COPY --from=build /out/relayd /usr/local/bin/relayd
 EXPOSE 8080
