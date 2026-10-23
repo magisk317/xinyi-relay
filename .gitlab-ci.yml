@@ -1,31 +1,31 @@
 include:
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "5a9cef57abe852dc7798664e03ad50256a0204dd"
+    ref: "94c53f1bbc921cccd4b0d399b5da7c54da4a6ce6"
     file: /.gitlab/ci/android.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "5a9cef57abe852dc7798664e03ad50256a0204dd"
+    ref: "94c53f1bbc921cccd4b0d399b5da7c54da4a6ce6"
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "5a9cef57abe852dc7798664e03ad50256a0204dd"
+    ref: "94c53f1bbc921cccd4b0d399b5da7c54da4a6ce6"
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "5a9cef57abe852dc7798664e03ad50256a0204dd"
+    ref: "94c53f1bbc921cccd4b0d399b5da7c54da4a6ce6"
     file: /.gitlab/ci/renovate.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "5a9cef57abe852dc7798664e03ad50256a0204dd"
+    ref: "94c53f1bbc921cccd4b0d399b5da7c54da4a6ce6"
     file: /.gitlab/ci/cancel-mr-pipelines.yml
   # Utility-job anchor (alpine, pinned): the GitHub mirror and the README-badge
   # job extend it instead of pinning their own image. Language-tool jobs
   # (backend:go, webui:check, the docker/node jobs) keep their own pinned tool
   # images by design.
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "5a9cef57abe852dc7798664e03ad50256a0204dd"
+    ref: "94c53f1bbc921cccd4b0d399b5da7c54da4a6ce6"
     file: /.gitlab/ci/utility.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "5a9cef57abe852dc7798664e03ad50256a0204dd"
+    ref: "94c53f1bbc921cccd4b0d399b5da7c54da4a6ce6"
     file: /.gitlab/ci/github-sync.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "5a9cef57abe852dc7798664e03ad50256a0204dd"
+    ref: "94c53f1bbc921cccd4b0d399b5da7c54da4a6ce6"
     file: /.gitlab/ci/readme-badges.yml
 
 workflow:
@@ -51,7 +51,7 @@ stages:
 
 variables:
   MAGISK_CI_TOOLKIT_REPOSITORY: "https://gitlab.com/magisk3171/shared/magisk-ci-toolkit.git"
-  MAGISK_CI_TOOLKIT_REF: "5a9cef57abe852dc7798664e03ad50256a0204dd"
+  MAGISK_CI_TOOLKIT_REF: "94c53f1bbc921cccd4b0d399b5da7c54da4a6ce6"
   MAGISK_CANCEL_OLDER_MR_PIPELINES: "true"
   # Cancel the merged MR's own merge_request_event pipeline from the push
   # pipeline that lands the merge. GitLab has no cancel-on-merge hook and
@@ -554,9 +554,13 @@ android:build:
       -PbuildSplits
       -PminifyDebug
       -PskipGoogleServices=true
-    # Bind artifact versionCode to the pipeline iid so the in-app
-    # update check sees a monotonically increasing version axis.
-    MAGISK_GRADLE_ARGS: "--warning-mode all -PversionCode=$CI_PIPELINE_IID"
+    # Bind artifact versionCode to the shared allocator: the pipeline iid used to
+    # play this role, but Play's own scale runs ahead of it and Google Play compares
+    # versionCode, not versionName. The template appends the allocated
+    # -PversionCode itself (last one wins) and exports MAGISK_VERSION_CODE for
+    # staging.
+    MAGISK_VERSION_SCOPE: "gitlab:$CI_PROJECT_ID:$CI_PIPELINE_IID"
+    MAGISK_GRADLE_ARGS: "--warning-mode all"
   artifacts:
     name: "XinyiRelay-debug-$CI_COMMIT_REF_SLUG"
     when: always
@@ -565,6 +569,7 @@ android:build:
       - app/build/outputs/apk/github/debug/*.apk
       - ci-dist/app-ci.apk
       - ci-dist/version.txt
+      - ci-dist/app-ci-manifest.json
   # A job-level after_script replaces the one inherited from
   # .magisk_android_base, so the otel export is restated here before staging.
   after_script:
@@ -585,7 +590,16 @@ android:build:
       mkdir -p ci-dist
       cp app/build/outputs/apk/github/debug/universal_*.apk ci-dist/app-ci.apk
       apk_name=$(basename app/build/outputs/apk/github/debug/universal_*.apk)
-      echo "$apk_name" | sed -n 's/^universal_.*_v\(.*\)_debug\.apk$/\1/p' > ci-dist/version.txt
+      apk_version=$(echo "$apk_name" | sed -n 's/^universal_.*_v\(.*\)_debug\.apk$/\1/p')
+      echo "$apk_version" > ci-dist/version.txt
+      # The in-app updater judges a build by this manifest's versionCode, so it must
+      # carry the allocated number rather than the pipeline iid. Staging it also
+      # gates the download on the sha256 below.
+      apk_sha=$(sha256sum ci-dist/app-ci.apk | cut -d' ' -f1)
+      printf '{"schema":1,"variant":"github","versionName":"%s","versionCode":%s,"sha256":"%s","force":true,"minSupportedVersionCode":%s}\n' \
+        "$apk_version" "${MAGISK_VERSION_CODE:?version code was not allocated}" \
+        "$apk_sha" "${MAGISK_VERSION_CODE:?version code was not allocated}" \
+        > ci-dist/app-ci-manifest.json
 
 android:check:
   extends: .magisk_android_build

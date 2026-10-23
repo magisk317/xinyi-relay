@@ -58,6 +58,9 @@ val uiModule = module {
                     branch = "beta",
                     jobName = "android:build",
                     artifactPath = "ci-dist/app-ci.apk",
+                    // Staged manifest gates the download on its sha256 and carries the
+                    // allocated versionCode, which is what the up-to-date check compares.
+                    manifestFilePath = "ci-dist/app-ci-manifest.json",
                     currentCommitHash = BuildConfig.COMMIT_HASH,
                 ),
                 GitLabReleaseUpdateSource("magisk3171/xinyi-relay"),
