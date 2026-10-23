@@ -32,8 +32,8 @@ import io.github.magisk317.uikit.update.AppUpdateController
 import io.github.magisk317.uikit.surface.AppPrimaryButton
 import org.koin.compose.koinInject
 
-private val isCiOrDebugBuild: Boolean =
-    BuildConfig.DEBUG || BuildConfig.IS_CI_BUILD
+private val allowsLogExport: Boolean =
+    BuildConfig.BUILD_TYPE == "debug" || BuildConfig.ALLOW_PLAINTEXT_LOGS
 
 @Composable
 internal fun SettingsGeneralSection(
@@ -208,7 +208,7 @@ internal fun SettingsDiagnosticsSection(
                     RuntimeLogDiagnosticsItem.ANALYTICS,
                 ),
             ),
-            enabled = isCiOrDebugBuild,
+            enabled = allowsLogExport,
         )
         AppArrowItem(
             title = stringResource(id = R.string.check_update_title),
