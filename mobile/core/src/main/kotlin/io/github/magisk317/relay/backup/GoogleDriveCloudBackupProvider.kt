@@ -63,7 +63,7 @@ class GoogleDriveCloudBackupProvider(
 
     override suspend fun enableAutoBackup(enabled: Boolean) {
         CloudBackupSettingsStore.setAutoBackup(context, BackupSource.GOOGLE_DRIVE, enabled)
-        XLog.i("Google Drive auto backup setting changed: enabled=%s", enabled)
+        XLog.i("Google Drive auto backup setting changed: enabled=$enabled")
     }
 
     override fun isAutoBackupEnabled(): Boolean {
