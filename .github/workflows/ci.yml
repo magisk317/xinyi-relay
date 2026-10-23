@@ -41,6 +41,11 @@ jobs:
         uses: ./.magisk-ci-toolkit/.github/actions/setup-android-ci
         with:
           checkout: 'false'
+          # The toolkit defaults to 26, but this project targets 27 (see
+          # gradle/libs.versions.toml: java / javaBytecode). Lint refuses to run on
+          # a JVM older than the target, and GitLab never sees that because its
+          # runner image already ships 27 -- only a GitHub-hosted runner does.
+          java-version: '27'
       - name: Set up Bun
         shell: bash
         run: |
@@ -57,6 +62,11 @@ jobs:
           bun run typecheck
           bun run test
           bun run build
+      - name: Require release signing
+        if: env.HAS_RELEASE_SIGNING != 'true'
+        run: |
+          echo "::error::Release signing is unavailable (RELEASE_KEYSTORE / STORE_PASSWORD / KEY_ALIAS / KEY_PASSWORD). The Android build and upload steps below are gated on it, so without this the job would report success while producing no APK at all."
+          exit 1
       - name: Decode Keystore
         if: env.HAS_RELEASE_SIGNING == 'true'
         run: echo "${{ secrets.RELEASE_KEYSTORE }}" | base64 --decode > release.jks
