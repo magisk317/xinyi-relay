@@ -16,6 +16,11 @@
 # Keep `name: Release` -- release-versioncode-recovery.yml fires on a completed
 # run of the workflow called "Release", and that recovery path is this project's
 # own (Play burns every versionCode it sees, so a collided code needs a bump PR).
+# Note for the operator: that recovery workflow -- and every other workflow here
+# except Release -- is disabled_manually on this repository, so a failed fallback
+# release opens no bump PR by itself. Enable
+# .github/workflows/release-versioncode-recovery.yml before relying on it, or run
+# scripts/release/bump_version_code.sh and open the bump PR by hand.
 #
 # Deploying this file does not enable publishing. GitHub publishes only while the
 # repository variable RELEASE_OWNER is exactly `github`:
@@ -167,11 +172,11 @@ jobs:
     if: needs.release-eligibility.outputs.proceed == 'true'
     permissions:
       contents: write
-    uses: magisk317/magisk-ci-toolkit/.github/workflows/release-android.yml@32b04bbf4364ad3446ff4d296738fa77944a27af
+    uses: magisk317/magisk-ci-toolkit/.github/workflows/release-android.yml@af0295f4631f61a163e981d52bc863e5b8f00dde
     with:
       # Must equal the ref above, MAGISK_CI_TOOLKIT_REF and every GitLab
       # include.ref; ci/verify_toolkit_pin.sh in the toolkit checks it.
-      toolkit_ref: 32b04bbf4364ad3446ff4d296738fa77944a27af
+      toolkit_ref: af0295f4631f61a163e981d52bc863e5b8f00dde
       release_tag: ${{ inputs.release_tag }}
       package_name: io.github.magisk317.xinyi.relay
       release_cert_sha256: 027b936e1d82a606d83599548b8b11e49a2c8ae2588c4a9fbe8311e2c54f103a

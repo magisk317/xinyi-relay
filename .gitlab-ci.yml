@@ -1,31 +1,31 @@
 include:
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "32b04bbf4364ad3446ff4d296738fa77944a27af"
+    ref: "af0295f4631f61a163e981d52bc863e5b8f00dde"
     file: /.gitlab/ci/android.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "32b04bbf4364ad3446ff4d296738fa77944a27af"
+    ref: "af0295f4631f61a163e981d52bc863e5b8f00dde"
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "32b04bbf4364ad3446ff4d296738fa77944a27af"
+    ref: "af0295f4631f61a163e981d52bc863e5b8f00dde"
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "32b04bbf4364ad3446ff4d296738fa77944a27af"
+    ref: "af0295f4631f61a163e981d52bc863e5b8f00dde"
     file: /.gitlab/ci/renovate.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "32b04bbf4364ad3446ff4d296738fa77944a27af"
+    ref: "af0295f4631f61a163e981d52bc863e5b8f00dde"
     file: /.gitlab/ci/cancel-mr-pipelines.yml
   # Utility-job anchor (alpine, pinned): the GitHub mirror and the README-badge
   # job extend it instead of pinning their own image. Language-tool jobs
   # (backend:go, webui:check, the docker/node jobs) keep their own pinned tool
   # images by design.
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "32b04bbf4364ad3446ff4d296738fa77944a27af"
+    ref: "af0295f4631f61a163e981d52bc863e5b8f00dde"
     file: /.gitlab/ci/utility.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "32b04bbf4364ad3446ff4d296738fa77944a27af"
+    ref: "af0295f4631f61a163e981d52bc863e5b8f00dde"
     file: /.gitlab/ci/github-sync.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "32b04bbf4364ad3446ff4d296738fa77944a27af"
+    ref: "af0295f4631f61a163e981d52bc863e5b8f00dde"
     file: /.gitlab/ci/readme-badges.yml
 
 workflow:
@@ -51,7 +51,7 @@ stages:
 
 variables:
   MAGISK_CI_TOOLKIT_REPOSITORY: "https://gitlab.com/magisk3171/shared/magisk-ci-toolkit.git"
-  MAGISK_CI_TOOLKIT_REF: "32b04bbf4364ad3446ff4d296738fa77944a27af"
+  MAGISK_CI_TOOLKIT_REF: "af0295f4631f61a163e981d52bc863e5b8f00dde"
   MAGISK_CANCEL_OLDER_MR_PIPELINES: "true"
   # Cancel the merged MR's own merge_request_event pipeline from the push
   # pipeline that lands the merge. GitLab has no cancel-on-merge hook and
@@ -557,8 +557,9 @@ android:build:
     # Bind artifact versionCode to the shared allocator: the pipeline iid used to
     # play this role, but Play's own scale runs ahead of it and Google Play compares
     # versionCode, not versionName. The template appends the allocated
-    # -PversionCode itself (last one wins) and exports MAGISK_VERSION_CODE for
-    # staging.
+    # -PversionCode itself (last one wins) and writes the same number into the
+    # workspace, which the staging step reads back through
+    # ci/allocated_version_code.sh (after_script is a separate shell).
     MAGISK_VERSION_SCOPE: "gitlab:$CI_PROJECT_ID:$CI_PIPELINE_IID"
     MAGISK_GRADLE_ARGS: "--warning-mode all"
   artifacts:
@@ -596,9 +597,14 @@ android:build:
       # carry the allocated number rather than the pipeline iid. Staging it also
       # gates the download on the sha256 below.
       apk_sha=$(sha256sum ci-dist/app-ci.apk | cut -d' ' -f1)
+      # after_script runs in its own shell, so the export made in script is gone by
+      # here. The helper reads the allocated number back from the workspace file the
+      # build template wrote and fails with both source names when neither is there
+      # -- a silently missing manifest puts the updater back on the iid scale.
+      allocated_code="$(bash "$MAGISK_CI_TOOLKIT_DIR/ci/allocated_version_code.sh")"
       printf '{"schema":1,"variant":"github","versionName":"%s","versionCode":%s,"sha256":"%s","force":true,"minSupportedVersionCode":%s}\n' \
-        "$apk_version" "${MAGISK_VERSION_CODE:?version code was not allocated}" \
-        "$apk_sha" "${MAGISK_VERSION_CODE:?version code was not allocated}" \
+        "$apk_version" "$allocated_code" \
+        "$apk_sha" "$allocated_code" \
         > ci-dist/app-ci-manifest.json
 
 android:check:
