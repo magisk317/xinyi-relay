@@ -1,31 +1,31 @@
 include:
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "94c53f1bbc921cccd4b0d399b5da7c54da4a6ce6"
+    ref: "32b04bbf4364ad3446ff4d296738fa77944a27af"
     file: /.gitlab/ci/android.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "94c53f1bbc921cccd4b0d399b5da7c54da4a6ce6"
+    ref: "32b04bbf4364ad3446ff4d296738fa77944a27af"
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "94c53f1bbc921cccd4b0d399b5da7c54da4a6ce6"
+    ref: "32b04bbf4364ad3446ff4d296738fa77944a27af"
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "94c53f1bbc921cccd4b0d399b5da7c54da4a6ce6"
+    ref: "32b04bbf4364ad3446ff4d296738fa77944a27af"
     file: /.gitlab/ci/renovate.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "94c53f1bbc921cccd4b0d399b5da7c54da4a6ce6"
+    ref: "32b04bbf4364ad3446ff4d296738fa77944a27af"
     file: /.gitlab/ci/cancel-mr-pipelines.yml
   # Utility-job anchor (alpine, pinned): the GitHub mirror and the README-badge
   # job extend it instead of pinning their own image. Language-tool jobs
   # (backend:go, webui:check, the docker/node jobs) keep their own pinned tool
   # images by design.
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "94c53f1bbc921cccd4b0d399b5da7c54da4a6ce6"
+    ref: "32b04bbf4364ad3446ff4d296738fa77944a27af"
     file: /.gitlab/ci/utility.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "94c53f1bbc921cccd4b0d399b5da7c54da4a6ce6"
+    ref: "32b04bbf4364ad3446ff4d296738fa77944a27af"
     file: /.gitlab/ci/github-sync.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "94c53f1bbc921cccd4b0d399b5da7c54da4a6ce6"
+    ref: "32b04bbf4364ad3446ff4d296738fa77944a27af"
     file: /.gitlab/ci/readme-badges.yml
 
 workflow:
@@ -51,7 +51,7 @@ stages:
 
 variables:
   MAGISK_CI_TOOLKIT_REPOSITORY: "https://gitlab.com/magisk3171/shared/magisk-ci-toolkit.git"
-  MAGISK_CI_TOOLKIT_REF: "94c53f1bbc921cccd4b0d399b5da7c54da4a6ce6"
+  MAGISK_CI_TOOLKIT_REF: "32b04bbf4364ad3446ff4d296738fa77944a27af"
   MAGISK_CANCEL_OLDER_MR_PIPELINES: "true"
   # Cancel the merged MR's own merge_request_event pipeline from the push
   # pipeline that lands the merge. GitLab has no cancel-on-merge hook and
