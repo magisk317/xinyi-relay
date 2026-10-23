@@ -16,6 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import io.github.magisk317.xposed.diagnostics.DiagnosticBundleNames
+import io.github.magisk317.xposed.logging.MagiskLogPolicy
 import io.github.magisk317.smscode.runtime.common.diagnostics.LogBundleExporter
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeDiagnosticsEnvironment
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
@@ -49,6 +50,7 @@ internal fun rememberSettingsRuntimeLogActions(
         ActivityResultContracts.CreateDocument("application/zip"),
     ) { destination ->
         if (destination == null) return@rememberLauncherForActivityResult
+        if (!MagiskLogPolicy.current().allowsLogExport) return@rememberLauncherForActivityResult
         scope.launch {
             val failure = withContext(Dispatchers.IO) {
                 RuntimeDiagnosticsBridge.ensureInstalled()
@@ -72,6 +74,7 @@ internal fun rememberSettingsRuntimeLogActions(
     }
 
     fun saveLog() {
+        if (!MagiskLogPolicy.current().allowsLogExport) return
         if (LogBundleExporter.checkPreExport() != null) {
             scope.launch {
                 snackbarHostState.showLatestSnackbar(

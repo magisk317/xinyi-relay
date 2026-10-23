@@ -29,11 +29,12 @@ import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsLayout
 import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsState
 import io.github.magisk317.uikit.preference.AppArrowItem
 import io.github.magisk317.uikit.update.AppUpdateController
+import io.github.magisk317.xposed.logging.MagiskLogPolicy
 import io.github.magisk317.uikit.surface.AppPrimaryButton
 import org.koin.compose.koinInject
 
-private val allowsLogExport: Boolean =
-    BuildConfig.BUILD_TYPE == "debug" || BuildConfig.ALLOW_PLAINTEXT_LOGS
+private val allowsLogExport: Boolean
+    get() = MagiskLogPolicy.current().allowsLogExport
 
 @Composable
 internal fun SettingsGeneralSection(
@@ -201,12 +202,16 @@ internal fun SettingsDiagnosticsSection(
             ),
             layout = RuntimeLogDiagnosticsLayout(
                 shareEntryMode = RuntimeLogShareEntryMode.SEPARATE_ITEM,
-                itemOrder = listOf(
-                    RuntimeLogDiagnosticsItem.SHARE_LOG,
-                    RuntimeLogDiagnosticsItem.RETENTION,
-                    RuntimeLogDiagnosticsItem.CLEAR_LOG,
-                    RuntimeLogDiagnosticsItem.ANALYTICS,
-                ),
+                itemOrder = if (allowsLogExport) {
+                    listOf(
+                        RuntimeLogDiagnosticsItem.SHARE_LOG,
+                        RuntimeLogDiagnosticsItem.RETENTION,
+                        RuntimeLogDiagnosticsItem.CLEAR_LOG,
+                        RuntimeLogDiagnosticsItem.ANALYTICS,
+                    )
+                } else {
+                    listOf(RuntimeLogDiagnosticsItem.ANALYTICS)
+                },
             ),
             enabled = allowsLogExport,
         )
