@@ -527,6 +527,7 @@ webui:check:
     paths:
       - frontend/webui/dist/
 
+# The in-app updater resolves this job by name; do not rename it.
 android:build:
   extends:
     - .magisk_android_build
@@ -612,7 +613,7 @@ cancel:older:mr:pipelines:
   # stage still runs when the publish job is absent) instead of
   # consuming the release runner in parallel.
   needs:
-    - job: android:ci:play-beta
+    - job: android:ci:publish-play
       artifacts: false
       optional: true
   script:
@@ -658,7 +659,7 @@ android:detekt:
   # stage still runs when the publish job is absent) instead of
   # consuming the release runner in parallel.
   needs:
-    - job: android:ci:play-beta
+    - job: android:ci:publish-play
       artifacts: false
       optional: true
   allow_failure: true
@@ -838,7 +839,7 @@ android:release:guard:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs: []
 
-android:release:github-apk:
+android:release:apk:
   # Driven by the shared template. The project only declares what is
   # project-specific: the GitHub flavours and the split flag. Keystore
   # decoding, version resolution and signature validation are the template's
@@ -867,7 +868,7 @@ android:release:github-apk:
       - app/build/outputs/mapping/**/mapping.txt
       - play-release.env
 
-android:release:play-bundle:
+android:release:aab:
   extends:
     - .magisk_android_base
     - .magisk_android_release_tag_rules
@@ -927,13 +928,13 @@ android:release:gitlab:
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
-    - job: android:release:github-apk
+    - job: android:release:apk
       artifacts: true
-    - job: android:release:play-bundle
+    - job: android:release:aab
       artifacts: true
       optional: true
 
-android:release:play:
+android:release:publish-play:
   extends: .magisk_android_publish_play
   resource_group: xinyi-android-release-play
   stage: release
@@ -949,7 +950,7 @@ android:release:play:
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
-    - job: android:release:play-bundle
+    - job: android:release:aab
       artifacts: true
   artifacts:
     reports:
@@ -959,7 +960,7 @@ android:release:play:
     when: always
     expire_in: 1 day
 
-android:ci:play-beta-bundle:
+android:ci:aab:
   extends: .magisk_android_base
   resource_group: xinyi-android-release-play
   stage: build
@@ -1000,7 +1001,7 @@ android:ci:play-beta-bundle:
       - app/build/outputs/mapping/**/mapping.txt
       - play-release.env
 
-android:ci:play-beta:
+android:ci:publish-play:
   extends: .magisk_utility_base
   resource_group: xinyi-android-release-play
   stage: release
@@ -1017,7 +1018,7 @@ android:ci:play-beta:
       when: on_success
     - when: never
   needs:
-    - job: android:ci:play-beta-bundle
+    - job: android:ci:aab
       artifacts: true
   # .magisk_utility_base ships the image only, and this job runs
   # release/publish_play.sh from the toolkit, so resolve the toolkit here with
@@ -1050,8 +1051,8 @@ android:ci:play-beta:
       - play-release-status.env
 
 android:release:modules-repo:
-  # The modules repo publishes release APKs, and only android:release:github-apk
-  # produces them (play-bundle emits an AAB). Pointing this at play-bundle made
+  # The modules repo publishes release APKs, and only android:release:apk
+  # produces them (android:release:aab emits an AAB). Pointing this at play-bundle made
   # the template's APK lookup fail with "no release APK files found".
   extends: .magisk_android_publish_modules_repo
   resource_group: xinyi-android-release-publish
@@ -1059,7 +1060,7 @@ android:release:modules-repo:
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
-    - job: android:release:github-apk
+    - job: android:release:apk
       artifacts: true
 
 
@@ -1077,7 +1078,7 @@ telegram:release:
     # TG_CHAT_ID (which retargets CI to the new room) does NOT override this.
     TG_RELEASE_CHAT_ID: "-1003532345372"
   needs:
-    - job: android:release:github-apk
+    - job: android:release:apk
       artifacts: true
     - job: backend:container:manifest
       artifacts: true
@@ -1136,7 +1137,7 @@ android:release:github:
     # block, so a global override here would be silently ignored.
     MAGISK_ANDROID_RELEASE_GITHUB_ASSET_PATTERN: "*.apk"
   needs:
-    - job: android:release:github-apk
+    - job: android:release:apk
       artifacts: true
     # gh release create would otherwise invent the tag at the GitHub default
     # branch HEAD while the mirror has not published it yet.
