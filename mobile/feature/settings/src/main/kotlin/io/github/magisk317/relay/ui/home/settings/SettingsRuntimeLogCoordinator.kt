@@ -43,6 +43,17 @@ internal fun rememberSettingsRuntimeLogActions(
 ): SettingsRuntimeLogActions {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    // A release never reaches the export path: no launcher, no exporter call, no callback.
+    // Debug and CI builds are the capture channel and keep the full wiring below.
+    if (!MagiskLogPolicy.current().allowsLogExport) {
+        return remember {
+            SettingsRuntimeLogActions(
+                onRuntimeLogTitleClick = {},
+                onRuntimeLogRetentionClick = {},
+                onClearLog = {},
+            )
+        }
+    }
     var showRetentionDialog by remember { mutableStateOf(false) }
     var showClearConfirmDialog by remember { mutableStateOf(false) }
 
@@ -50,7 +61,6 @@ internal fun rememberSettingsRuntimeLogActions(
         ActivityResultContracts.CreateDocument("application/zip"),
     ) { destination ->
         if (destination == null) return@rememberLauncherForActivityResult
-        if (!MagiskLogPolicy.current().allowsLogExport) return@rememberLauncherForActivityResult
         scope.launch {
             val failure = withContext(Dispatchers.IO) {
                 RuntimeDiagnosticsBridge.ensureInstalled()
@@ -74,7 +84,6 @@ internal fun rememberSettingsRuntimeLogActions(
     }
 
     fun saveLog() {
-        if (!MagiskLogPolicy.current().allowsLogExport) return
         if (LogBundleExporter.checkPreExport() != null) {
             scope.launch {
                 snackbarHostState.showLatestSnackbar(

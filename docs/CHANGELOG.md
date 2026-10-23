@@ -6,7 +6,7 @@
 ## [v0.4.1] - Unreleased
 - 版本：`versionCode 54` / `versionName 0.4.1`。
 - 下一轮开发占位，发布前补充具体变更。
-- `[log]` 日志策略改由 `magisk-xposed-kit` 按构建类型判定：发行构建脱敏且不导出，debug 构建不脱敏并导出，采集 LSPosed 日志、全量 logcat 与 root 诊断；主进程与 Hook 进程各自在启动前评估策略，`SensitiveLogPolicy` 不再自行读取 BuildConfig。CI 标记不再把 release 放宽成捕获构建；主工程在正式版隐藏日志导出、保留天数与清理入口，导出入口在运行期按策略直接返回。
+- `[log]` 日志策略改由 `magisk-xposed-kit` 按构建类型判定：发行构建脱敏且不导出，debug 构建不脱敏并导出，采集 LSPosed 日志、全量 logcat 与 root 诊断；主进程与 Hook 进程各自在启动前评估策略，`SensitiveLogPolicy` 不再自行读取 BuildConfig。CI 标记不再把 release 放宽成捕获构建；主工程在正式版隐藏日志导出、保留天数与清理入口，并且不注册导出回调与保存入口，导出链路在正式版不可达。
 - `[log]` 导出不再由设置页硬编码 FULL 模式；归档名、暂存目录与私有导出目录统一由产品名 `relay` 派生，设置页给出的文件名与导出器写出的文件名同源，此前的 `relay_logs_` 与 `xinyi_logs_` 两个名字合一。
 - `[log]` 运行时日志保留天数默认 7 天改为 2 天并取子模块常量；`RelayPrefConst` 属 commonMain 无法依赖子模块，新增 `RuntimeLogRetentionDefaultsTest` 保证两处与设置页提示一致。
 - `[log]` 崩溃文件改由子模块写入者落盘，导出包 `crash/` 不再为空目录。
