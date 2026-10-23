@@ -28,7 +28,7 @@ object PluginEntry {
 
     @JvmStatic
     fun install(context: Context) {
-        MatrixE2eePlatform.initialize()
+        MatrixE2eePlatform.initialize(context)
         MatrixE2eeSenderProvider.install(MatrixE2eeRuntime)
         MatrixE2eeVerificationProvider.install(MatrixE2eeVerificationRuntime)
         Log.i(TAG, "Matrix E2EE plugin installed (sdk=" + BuildConfig.VERSION_NAME + ")")
