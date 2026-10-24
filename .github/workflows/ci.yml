@@ -15,6 +15,9 @@ env:
 jobs:
   build:
     runs-on: ubuntu-26.04
+    # Every job needs a ceiling. XposedSmsCode ran a hung test job for 4.8 hours because
+    # nothing in its workflow could stop it; this repository had the same gap.
+    timeout-minutes: 45
     if: github.actor != 'dependabot[bot]'
     env:
       GRADLE_OPTS: -Dorg.gradle.warning.mode=all
@@ -78,21 +81,41 @@ jobs:
           echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/play/google-services.json
       - name: Test
         shell: bash
+        # Test results feed code changes afterwards; they do not gate the build. This step
+        # sits inside the job that compiles and uploads the APKs, so without the flag a
+        # single failing test would have skipped every later step, including the artifacts.
+        continue-on-error: true
         run: |
           set -euo pipefail
-          mapfile -t selected_tasks < <(
+          # Command substitution, not `mapfile < <(...)`: the process-substitution form
+          # discards the selector's exit status, so a dead selector would leave an empty
+          # array, print "no tasks selected" and report a green job that ran nothing.
+          if ! selected="$(
             python3 "${MAGISK_CI_TOOLKIT_DIR:-.magisk-ci-toolkit}/ci/select_gradle_tasks.py" \
               --root "$PWD" \
               --toolkit "${MAGISK_CI_TOOLKIT_DIR:-.magisk-ci-toolkit}" \
               --config scripts/config/android-test-tasks.json
-          )
-          if ((${#selected_tasks[@]} == 0)); then
+          )"; then
+            echo "::error::the test task selector failed; refusing to report a passing job with no tests"
+            exit 1
+          fi
+          mapfile -t selected_tasks <<< "$selected"
+          if [[ ${#selected_tasks[@]} -eq 0 || -z "${selected_tasks[0]}" ]]; then
             echo "No Android test tasks selected for this change."
             exit 0
           fi
-          bash "${MAGISK_CI_TOOLKIT_DIR:-.magisk-ci-toolkit}/gradle/run_gradle_with_retry.sh" \
+          printf 'selected tasks: %s\n' "${selected_tasks[*]}"
+          # In-shell budget rather than timeout-minutes, so a stall is a step failure that
+          # continue-on-error can absorb; a runner-side job timeout reports the job as
+          # cancelled, which the flag does not swallow.
+          rc=0
+          timeout --kill-after=60s 25m bash "${MAGISK_CI_TOOLKIT_DIR:-.magisk-ci-toolkit}/gradle/run_gradle_with_retry.sh" \
             --warning-mode all "${selected_tasks[@]}" \
-            -PskipGoogleServices=${{ env.HAS_GOOGLE_SERVICES_JSON == 'false' }}
+            -PskipGoogleServices=${{ env.HAS_GOOGLE_SERVICES_JSON == 'false' }} || rc=$?
+          if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
+            echo "::warning::tests exceeded their 25m budget (exit $rc). The job continues by policy, but this is not a passing test run."
+          fi
+          exit "$rc"
       - name: Build signed debug APKs
         if: env.HAS_RELEASE_SIGNING == 'true'
         uses: ./.magisk-ci-toolkit/.github/actions/run-gradle-with-retry
