@@ -131,8 +131,6 @@ create_builder() {
   local proxy="${HTTPS_PROXY:-${https_proxy:-${HTTP_PROXY:-${http_proxy:-}}}}"
   if [[ -n "$proxy" ]]; then
     create_args+=(--driver-opt "env.http_proxy=$proxy" "env.https_proxy=$proxy")
-    local no_proxy="${NO_PROXY:-${no_proxy:-}}"
-    [[ -n "$no_proxy" ]] && create_args+=(--driver-opt "env.no_proxy=$no_proxy")
     echo "buildx builder: buildkitd egress routed through the job proxy"
   elif network_use_mirror; then
     config_file="$(mktemp)"
