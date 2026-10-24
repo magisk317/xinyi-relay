@@ -3,6 +3,13 @@
 本日志记录了项目近期的主要变更。 
 
 ---
+## [v0.4.2] - Unreleased
+- 版本：`versionCode 55` / `versionName 0.4.2`。
+- 下一轮开发占位，发布前补充具体变更。
+
+> Full Changelog: https://gitlab.com/magisk3171/xinyi-relay/-/compare/v0.4.1...v0.4.2
+
+---
 ## [v0.4.1] - 2026-10-24
 - 版本：`versionCode 54` / `versionName 0.4.1`。
 - `[log]` 日志策略随构建类型：正式版脱敏且不导出，debug 版保留并导出。
