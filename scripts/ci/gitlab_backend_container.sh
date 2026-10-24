@@ -117,8 +117,41 @@ backend_arches() {
 
 create_builder() {
   BUILDX_BUILDER="xinyi-backend-${CI_JOB_ID:-$$}"
-  docker buildx create --name "$BUILDX_BUILDER" --use
-  trap 'docker buildx rm "$BUILDX_BUILDER" >/dev/null 2>&1 || true' EXIT
+  local -a create_args=(--name "$BUILDX_BUILDER")
+  local config_file=""
+
+  # The buildkitd container behind the docker-container driver resolves and
+  # dials registry-1.docker.io itself: neither ~/.docker/config.json proxies on
+  # the job side nor the build-args reach it, and a direct dial dies on a
+  # poisoned DNS answer for docker.io (observed 2026-10-24 on the amd64
+  # runner: 31.13.95.35, a Meta range, i/o timeout). Route its egress through
+  # the job proxy when one is set; otherwise fall back to a docker.io mirror,
+  # same spirit as the goproxy.cn/npmmirror choices above. Mirrors rotate —
+  # check https://status.anye.xyz before swapping entries.
+  local proxy="${HTTPS_PROXY:-${https_proxy:-${HTTP_PROXY:-${http_proxy:-}}}}"
+  if [[ -n "$proxy" ]]; then
+    create_args+=(--driver-opt "env.http_proxy=$proxy" "env.https_proxy=$proxy")
+    local no_proxy="${NO_PROXY:-${no_proxy:-}}"
+    [[ -n "$no_proxy" ]] && create_args+=(--driver-opt "env.no_proxy=$no_proxy")
+    echo "buildx builder: buildkitd egress routed through the job proxy"
+  elif network_use_mirror; then
+    config_file="$(mktemp)"
+    cat > "$config_file" <<'BKC'
+[registry."docker.io"]
+  mirrors = ["docker.m.daocloud.io", "docker.1ms.run"]
+BKC
+    create_args+=(--buildkitd-config "$config_file")
+    echo "buildx builder: no proxy; buildkitd egress falls back to the docker.io mirror"
+  else
+    echo "buildx builder: direct egress (no proxy, mirrors disabled by MAGISK_LINUX_USE_MIRROR)"
+  fi
+
+  docker buildx create "${create_args[@]}" --use
+  if [[ -n "$config_file" ]]; then
+    trap 'rm -f "$config_file"; docker buildx rm "$BUILDX_BUILDER" >/dev/null 2>&1 || true' EXIT
+  else
+    trap 'docker buildx rm "$BUILDX_BUILDER" >/dev/null 2>&1 || true' EXIT
+  fi
 }
 
 build_target() {
