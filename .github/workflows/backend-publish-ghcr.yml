@@ -1,18 +1,11 @@
 name: Publish Backend Container
 
+# Manual-only by policy (2026-10-25): automatic triggers are removed so this file
+# can never start on its own. Release automation is driven from the project's
+# primary CI host; runs on this mirror are operator-initiated, and the inputs
+# below are the only way any publishing step turns on.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - beta
-    tags:
-      - "v*.*.*"
-    paths:
-      - "frontend/webui/**"
-      - "frontend/shared/**"
-      - "backend/**"
-      - "backend/api/Dockerfile"
-      - ".github/workflows/backend-publish-ghcr.yml"
 
 permissions:
   contents: write
