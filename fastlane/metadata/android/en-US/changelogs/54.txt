@@ -1,3 +1,5 @@
 - Updated to 0.4.1 (54).
-- Development build; release notes will be updated before publishing.
+- Setup resumes after interruption and the permission flow has been reworked.
+- Fixed keep-alive recovery and E2EE initialization.
+- Backend and desktop stability fixes.
 - https://gitlab.com/magisk3171/xinyi-relay/-/releases
