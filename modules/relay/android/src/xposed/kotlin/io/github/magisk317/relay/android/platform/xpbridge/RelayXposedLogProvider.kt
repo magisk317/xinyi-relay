@@ -11,6 +11,7 @@ import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
 import io.github.magisk317.xposed.logging.BaseXposedLogProvider
 import io.github.magisk317.xposed.logging.LogProviderQuotaConfig
 import io.github.magisk317.xposed.logging.LogProviderQuotaPolicy
+import io.github.magisk317.xposed.logging.MagiskLogPolicy
 import io.github.magisk317.xposed.logging.XposedLogEvent
 
 class RelayXposedLogProvider : BaseXposedLogProvider() {
@@ -61,7 +62,7 @@ class RelayXposedLogProvider : BaseXposedLogProvider() {
     override fun appendLog(event: XposedLogEvent) {
         val ctx = context?.applicationContext ?: return
         RuntimeDiagnosticsBridge.ensureInstalled()
-        RuntimeLogStore.initialize(ctx, enableDetailedLogs = true)
+        RuntimeLogStore.initialize(ctx, enableDetailedLogs = MagiskLogPolicy.current().verboseLogging)
         val safeMessage = if (event.sensitive) {
             SensitiveLogPolicy.sanitizeLogMessage(event.message)
         } else {

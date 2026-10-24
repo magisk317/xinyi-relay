@@ -1,9 +1,11 @@
 package io.github.magisk317.relay.ui.app
 
+import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeCrashLogs
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.uikit.entitlement.MobileGate
 import io.github.magisk317.relay.android.prefs.RelayPreferenceHooks
 import io.github.magisk317.relay.security.CiUpdateGateVault
+import io.github.magisk317.xposed.logging.MagiskLogPolicy
 import android.app.Application
 import android.app.Activity
 import android.os.Bundle
@@ -36,6 +38,14 @@ class SmsCodeApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // Before anything logs or crashes: the policy decides both redaction and how much a
+        // bundle collects, and the crash writer has to be in place to catch the rest of startup.
+        MagiskLogPolicy.install(
+            isDebugBuild = BuildConfig.DEBUG,
+            isCiBuild = BuildConfig.IS_CI_BUILD,
+            allowPlaintextLogs = BuildConfig.ALLOW_PLAINTEXT_LOGS,
+        )
+        RuntimeCrashLogs.install(this)
         AppPreferencesDataStore.install(RelayPreferenceHooks)
         if (BuildConfig.ENABLE_MOBILE_ENTITLEMENT) {
             configureMobileEntitlement()

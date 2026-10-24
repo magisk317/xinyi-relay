@@ -2,24 +2,24 @@ package io.github.magisk317.relay.android.diagnostics
 
 import android.content.Context
 import io.github.magisk317.relay.android.BuildConfig
+import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.smscode.runtime.contract.diagnostics.ActivationDiagnosticsSnapshot
 import io.github.magisk317.smscode.runtime.contract.diagnostics.ActivationStatusInputs
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeDiagnosticsConfig
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeDiagnosticsInstaller
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
+import io.github.magisk317.xposed.logging.MagiskLogPolicy
 
 object RuntimeDiagnosticsBridge {
-    private const val KEY_RUNTIME_LOG_RETENTION_DAYS = "pref_runtime_log_retention_days"
-    private const val RUNTIME_LOG_RETENTION_DAYS_DEFAULT = 7
-    private const val RUNTIME_LOG_RETENTION_DAYS_MIN = 1
+    private const val PRODUCT = "relay"
 
     private val installer = RuntimeDiagnosticsInstaller {
         RuntimeDiagnosticsConfig(
             applicationId = BuildConfig.APPLICATION_ID,
             logTag = BuildConfig.LOG_TAG,
-            exportFilePrefix = "relay_logs_",
-            stagingDirPrefix = ".tmp_relay_logs_",
+            // One token names the bundle, the staging directory and the export directory.
+            product = PRODUCT,
             distributionChannel = BuildConfig.MOBILE_ENTITLEMENT_CHANNEL,
             commitHash = BuildConfig.COMMIT_HASH,
             logRetentionDaysProvider = ::readConfiguredLogRetentionDays,
@@ -36,11 +36,15 @@ object RuntimeDiagnosticsBridge {
         // provider route is unavailable. Never interpret that process's private DataStore as
         // module configuration.
         if (context.packageName != BuildConfig.APPLICATION_ID) {
-            return RUNTIME_LOG_RETENTION_DAYS_DEFAULT
+            return MagiskLogPolicy.DEFAULT_LOG_RETENTION_DAYS
         }
         return kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
-            AppPreferencesDataStore.getInt(context, KEY_RUNTIME_LOG_RETENTION_DAYS, RUNTIME_LOG_RETENTION_DAYS_DEFAULT)
-        }.coerceAtLeast(RUNTIME_LOG_RETENTION_DAYS_MIN)
+            AppPreferencesDataStore.getInt(
+                context,
+                RelayPrefConst.KEY_RUNTIME_LOG_RETENTION_DAYS,
+                RelayPrefConst.RUNTIME_LOG_RETENTION_DAYS_DEFAULT,
+            )
+        }.let(MagiskLogPolicy::retentionDays)
     }
 
     private fun resolveActivationStatus(

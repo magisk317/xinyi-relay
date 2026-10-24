@@ -6,6 +6,13 @@
 ## [v0.4.1] - Unreleased
 - 版本：`versionCode 54` / `versionName 0.4.1`。
 - 下一轮开发占位，发布前补充具体变更。
+- `[log]` 日志策略改由 `magisk-xposed-kit` 按构建类型判定：发行构建脱敏且只导出有界内容，debug/CI 构建不脱敏并采集 LSPosed 日志、全量 logcat 与 root 诊断；主进程与 Hook 进程各自在启动前评估策略，`SensitiveLogPolicy` 不再自行读取 BuildConfig。
+- `[log]` 导出不再由设置页硬编码 FULL 模式；归档名、暂存目录与私有导出目录统一由产品名 `relay` 派生，设置页给出的文件名与导出器写出的文件名同源，此前的 `relay_logs_` 与 `xinyi_logs_` 两个名字合一。
+- `[log]` 运行时日志保留天数默认 7 天改为 2 天并取子模块常量；`RelayPrefConst` 属 commonMain 无法依赖子模块，新增 `RuntimeLogRetentionDefaultsTest` 保证两处与设置页提示一致。
+- `[log]` 崩溃文件改由子模块写入者落盘，导出包 `crash/` 不再为空目录。
+- `[fix]` `hook/entry`、`relay/android` 的 release 日志级别此前固定为 WARN，CI 产物抓不到有效日志，现与其他模块一致改为随 CI 构建降级到 VERBOSE。
+- `[fix]` 保留天数设置提示误写默认 7 天（实际默认 2 天）。
+- `[docs]` 子模块 pin 矩阵对齐实况；README 补充 App 端日志导出前提与保留天数默认值。
 
 > Full Changelog: https://gitlab.com/magisk3171/xinyi-relay/-/compare/v0.4.0...v0.4.1
 

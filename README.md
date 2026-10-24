@@ -120,6 +120,15 @@ Backend 和 Desktop 都支持日志文件输出，便于问题排查：
 
 详见各组件的 README 文档。
 
+#### App 端（Android）
+
+App 侧的运行时日志不以明文文件长期落盘，排查时按以下方式取得：
+
+- **正式版**：不打 verbose/debug 日志，设置里的「日志导出」为不可点击的占位行。
+- **CI / 调试版本**：日志区完全可用，可直接导出 `xinyi_logs_<时间戳>.zip`。
+- **导出前提**：需要 root 权限（归档含 `/data/adb/lspd/log` 等模块日志目录），非 root 设备会在选择保存位置前被拦截。
+- **保留天数**：默认 2 天，最小值 1，可在设置中调整。
+
 ## 桌面端 (Desktop)
 
 桌面端是基于 Kotlin Multiplatform + Compose Multiplatform 构建的跨平台管理应用（当前发布 Linux x64 / arm64 包）。它不再仅是 Backend 的外壳，而是**全功能客户端**，支持以下三种运行模式：

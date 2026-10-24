@@ -15,8 +15,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import io.github.magisk317.xposed.diagnostics.DiagnosticBundleNames
 import io.github.magisk317.smscode.runtime.common.diagnostics.LogBundleExporter
-import io.github.magisk317.xposed.diagnostics.DiagnosticExportMode
+import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeDiagnosticsEnvironment
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsUpdate
@@ -51,10 +52,7 @@ internal fun rememberSettingsRuntimeLogActions(
         scope.launch {
             val failure = withContext(Dispatchers.IO) {
                 RuntimeDiagnosticsBridge.ensureInstalled()
-                val bundle = LogBundleExporter.buildLogBundle(
-                    context = context,
-                    mode = DiagnosticExportMode.FULL,
-                )
+                val bundle = LogBundleExporter.buildLogBundle(context = context)
                 val file = bundle.file ?: return@withContext bundle.details
                 context.contentResolver.openOutputStream(destination, "wt")?.use { output ->
                     file.inputStream().use { input -> input.copyTo(output) }
@@ -82,9 +80,15 @@ internal fun rememberSettingsRuntimeLogActions(
             }
             return
         }
-        val timestamp = java.text.SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", java.util.Locale.US)
-            .format(java.util.Date())
-        saveRuntimeLogLauncher.launch("xinyi_logs_$timestamp.zip")
+        RuntimeDiagnosticsBridge.ensureInstalled()
+        // The name offered here is the name the exporter writes, because both read the
+        // product token from the installed configuration.
+        saveRuntimeLogLauncher.launch(
+            DiagnosticBundleNames.bundleFileName(
+                product = RuntimeDiagnosticsEnvironment.current().product,
+                timestamp = DiagnosticBundleNames.exportTimestamp(),
+            ),
+        )
     }
 
     fun clearLog() {
