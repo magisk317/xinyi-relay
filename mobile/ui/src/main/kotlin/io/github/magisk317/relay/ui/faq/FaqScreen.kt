@@ -3,7 +3,7 @@ package io.github.magisk317.relay.ui.faq
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.uikit.surface.FaqScaffold
 
 @Composable

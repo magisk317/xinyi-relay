@@ -75,6 +75,7 @@ val uiModule = module {
         val checker = AppUpdateChecker(
             context = context,
             sources = sources,
+            allowForceUpdate = !BuildConfig.SKIP_FORCE_UPDATE,
         )
         val downloader = AppUpdateDownloader(context)
         AppUpdateController(

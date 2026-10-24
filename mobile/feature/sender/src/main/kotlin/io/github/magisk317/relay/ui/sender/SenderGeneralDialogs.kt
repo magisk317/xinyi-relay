@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.contract.constant.DispatchStrategy
 import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.contract.model.ForwardSilentPeriodConfig
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.relay.engine.model.Sender
 import io.github.magisk317.relay.engine.schedule.ForwardSilentPeriodEvaluator
 import io.github.magisk317.relay.ui.common.ActiveScheduleTimeValueButton
@@ -278,7 +278,7 @@ fun SenderCustomTemplateDialog(
 
     AppAlertDialog(
         onDismissRequest = onDismiss,
-        title = { AppText(text = stringResource(io.github.magisk317.relay.core.R.string.sender_custom_template_dialog_title)) },
+        title = { AppText(text = stringResource(io.github.magisk317.relay.mobile.core.R.string.sender_custom_template_dialog_title)) },
         text = {
             Column(
                 modifier = Modifier
@@ -291,8 +291,8 @@ fun SenderCustomTemplateDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(min = 140.dp),
-                    label = stringResource(io.github.magisk317.relay.core.R.string.sender_custom_template_label),
-                    placeholderText = stringResource(io.github.magisk317.relay.core.R.string.sender_custom_template_placeholder),
+                    label = stringResource(io.github.magisk317.relay.mobile.core.R.string.sender_custom_template_label),
+                    placeholderText = stringResource(io.github.magisk317.relay.mobile.core.R.string.sender_custom_template_placeholder),
                 )
                 
                 LazyVerticalGrid(
@@ -321,13 +321,13 @@ fun SenderCustomTemplateDialog(
         },
         confirmButton = {
             AppTextButton(
-                text = stringResource(io.github.magisk317.relay.core.R.string.save),
+                text = stringResource(io.github.magisk317.relay.mobile.core.R.string.save),
                 onClick = { onSave(templateState.text.toString()) },
             )
         },
         dismissButton = {
             AppTextButton(
-                text = stringResource(io.github.magisk317.relay.core.R.string.cancel),
+                text = stringResource(io.github.magisk317.relay.mobile.core.R.string.cancel),
                 onClick = onDismiss,
             )
         },

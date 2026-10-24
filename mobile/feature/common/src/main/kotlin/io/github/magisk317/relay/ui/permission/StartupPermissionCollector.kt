@@ -14,7 +14,7 @@ import android.provider.Settings
 import android.view.accessibility.AccessibilityManager
 import androidx.annotation.StringRes
 import androidx.core.content.ContextCompat
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.relay.feature.mode.BatteryOptimizationHelper
 import io.github.magisk317.relay.mobilefeature.common.BuildConfig
 import io.github.magisk317.xposed.permission.PermissionBridge
@@ -39,6 +39,11 @@ data class PermissionRequirement(
         const val SPECIAL_KEY_PREFIX = "special:"
     }
 }
+
+data class PermissionStatus(
+    val requirement: PermissionRequirement,
+    val granted: Boolean,
+)
 
 /**
  * App-specific wiring the collector needs to stay package-agnostic: which
@@ -90,6 +95,47 @@ object StartupPermissionCollector {
             }
         return missing.distinctBy(PermissionRequirement::key)
     }
+
+    /**
+     * Every startup permission with its live grant state, runtime ones first,
+     * deduplicated by key.
+     *
+     * Unlike [collectMissing] this keeps the granted entries too, so the done
+     * screen can list the full set with per-item status instead of a bare count.
+     */
+    fun collectStatuses(context: Context, config: StartupPermissionConfig): List<PermissionStatus> {
+        val requestedPermissions = context.requestedPermissionSet()
+        val statuses = mutableListOf<PermissionStatus>()
+        requestedPermissions
+            .filter { permission ->
+                permission.isRuntimePermissionSupported() && permission.isDangerousPermission(context)
+            }
+            .distinct()
+            .mapTo(statuses) { permission ->
+                PermissionStatus(
+                    requirement = PermissionRequirement(
+                        key = permission,
+                        label = permission.startupPermissionLabel(context),
+                        rootGrantable = PermissionBridge.commandsFor(context, permission) != null,
+                    ),
+                    granted = context.hasPermission(permission),
+                )
+            }
+        StartupSpecialPermission.values()
+            .filter { it.isApplicable(context, requestedPermissions, config) }
+            .mapTo(statuses) { special ->
+                PermissionStatus(
+                    requirement = PermissionRequirement(
+                        key = PermissionRequirement.SPECIAL_KEY_PREFIX + special.key,
+                        label = context.getString(special.labelRes),
+                        rootGrantable = true,
+                    ),
+                    granted = special.isGranted(context),
+                )
+            }
+        return statuses.distinctBy { it.requirement.key }
+    }
+
 
     /**
      * System settings intent for [requirement], or null for runtime permissions
@@ -217,6 +263,53 @@ object StartupPromptStore {
             .putLong(KEY_PROMPTED_VERSION_CODE, context.currentVersionCode())
             .apply()
     }
+}
+
+enum class SetupProgress(val completed: Boolean, val rootSelected: Boolean) {
+    ROOT_PENDING(false, false),
+    GRANT_ROOT(false, true),
+    GRANT_MANUAL(false, false),
+    COMPLETE_ROOT(true, true),
+    COMPLETE_MANUAL(true, false),
+}
+
+object SetupProgressPolicy {
+    fun shouldShowWizard(privacyAccepted: Boolean, progress: SetupProgress?): Boolean =
+        !privacyAccepted || progress?.completed != true
+}
+
+object SetupProgressStore {
+
+    fun current(context: Context): SetupProgress? {
+        val preferences = context.getSharedPreferences(STARTUP_PERMISSION_PREFS, Context.MODE_PRIVATE)
+        if (preferences.getLong(SETUP_VERSION_CODE, Long.MIN_VALUE) != context.currentVersionCode()) {
+            return null
+        }
+        return preferences.getString(SETUP_PROGRESS, null)
+            ?.let { value -> runCatching { SetupProgress.valueOf(value) }.getOrNull() }
+    }
+
+    fun isComplete(context: Context): Boolean = current(context)?.completed == true
+
+    fun mark(context: Context, progress: SetupProgress) {
+        context.getSharedPreferences(STARTUP_PERMISSION_PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putLong(SETUP_VERSION_CODE, context.currentVersionCode())
+            .putString(SETUP_PROGRESS, progress.name)
+            .apply()
+    }
+
+    fun markComplete(context: Context) {
+        val completed = if (current(context)?.rootSelected == true) {
+            SetupProgress.COMPLETE_ROOT
+        } else {
+            SetupProgress.COMPLETE_MANUAL
+        }
+        mark(context, completed)
+    }
+
+    private const val SETUP_PROGRESS = "setup_progress"
+    private const val SETUP_VERSION_CODE = "setup_progress_version_code"
 }
 
 private enum class StartupSpecialPermission(

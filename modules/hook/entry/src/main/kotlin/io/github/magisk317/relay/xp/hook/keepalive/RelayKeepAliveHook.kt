@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.xp.hook.keepalive
 
 import io.github.magisk317.smscode.xposed.prefs.CorePrefs
+import io.github.magisk317.xposed.keepalive.KeepAliveCapability
 import io.github.magisk317.xposed.keepalive.KeepAliveConfig
 import io.github.magisk317.xposed.keepalive.KeepAliveEventSink
 import io.github.magisk317.xposed.keepalive.KeepAliveFlags
@@ -23,7 +24,6 @@ private object CorePrefsKeepAliveFlagsProvider : KeepAliveFlagsProvider {
                 oomAdj = CorePrefs.getBoolean(KeepAliveHookConst.KEY_KEEPALIVE_OOM_ADJ, false),
                 antiKill = CorePrefs.getBoolean(KeepAliveHookConst.KEY_KEEPALIVE_ANTI_KILL, false),
                 standbyBypass = CorePrefs.getBoolean(KeepAliveHookConst.KEY_KEEPALIVE_STANDBY_BYPASS, false),
-                dozeBypass = CorePrefs.getBoolean(KeepAliveHookConst.KEY_KEEPALIVE_DOZE_BYPASS, false),
             )
         }.getOrElse { error ->
             // A failed read must not leave the previous decision in place.
@@ -43,6 +43,13 @@ class RelayKeepAliveHook : KeepAliveHook(
     KeepAliveConfig(
         targetPackage = KeepAliveHookConst.TARGET_PACKAGE,
         flagsProvider = CorePrefsKeepAliveFlagsProvider,
+        capabilities = setOf(
+            KeepAliveCapability.OOM_APPLY,
+            KeepAliveCapability.KILL_GUARD,
+            KeepAliveCapability.STANDBY_BUCKET,
+            KeepAliveCapability.STANDBY_IDLE,
+            KeepAliveCapability.STANDBY_FORCE_IDLE,
+        ),
         eventSink = MagiskOtelKeepAliveEventSink,
         // MIUI/HyperOS surface system_server under more than one package/process name.
         systemPackages = setOf("android", "system"),

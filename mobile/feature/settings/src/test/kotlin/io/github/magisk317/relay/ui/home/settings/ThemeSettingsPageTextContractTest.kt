@@ -45,7 +45,7 @@ class ThemeSettingsPageTextContractTest {
         val override = System.getProperty("xinyi.moduleRoot")
             ?: System.getenv("XINYI_MODULE_ROOT")
         return if (override.isNullOrBlank()) {
-            File("../../../modules/core/src").absoluteFile
+            File("../../../mobile/core/src").absoluteFile
         } else {
             File(override).absoluteFile
         }

@@ -179,7 +179,6 @@ class LocalConfigRepositoryImpl(
                     keepAliveOomAdj = payload.diagnostics.keepAliveOomAdj,
                     keepAliveAntiKill = payload.diagnostics.keepAliveAntiKill,
                     keepAliveStandbyBypass = payload.diagnostics.keepAliveStandbyBypass,
-                    keepAliveDozeBypass = payload.diagnostics.keepAliveDozeBypass,
                     keepAliveAccessibilityHeartbeat = payload.diagnostics.keepAliveAccessibilityHeartbeat,
                     keepAliveDedicatedService = payload.diagnostics.keepAliveDedicatedService,
                 ),

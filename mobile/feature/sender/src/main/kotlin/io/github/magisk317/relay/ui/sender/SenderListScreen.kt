@@ -24,7 +24,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.relay.contract.settings.ForwardTypeGateSnapshot
 import io.github.magisk317.relay.contract.settings.ForwardTypeGateUpdate
 import io.github.magisk317.relay.contract.settings.MessageTypeGateSnapshot

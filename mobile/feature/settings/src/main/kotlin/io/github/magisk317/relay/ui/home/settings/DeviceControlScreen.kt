@@ -30,7 +30,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.contract.constant.DeviceActionConst
 import io.github.magisk317.relay.contract.remote.DeviceActionCommandResponse
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.relay.domain.action.DeviceActionExecutor
 import io.github.magisk317.relay.domain.action.DeviceActionOutcome
 import io.github.magisk317.relay.domain.recovery.RootShell

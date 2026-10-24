@@ -11,7 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.relay.mobilefeature.settings.BuildConfig
 import io.github.magisk317.relay.ui.theme.ThemeAccent
 import io.github.magisk317.uikit.preference.SectionCard

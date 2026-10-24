@@ -24,7 +24,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":core"))
+    implementation(project(":mobile:core"))
     implementation(project(":policy"))
     implementation(project(":magisk-xposed-kit:permission"))
     implementation(project(":relay:android"))

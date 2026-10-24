@@ -36,7 +36,7 @@ import io.github.magisk317.relay.contract.repository.SettingsPreferencesReposito
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsUpdate
 import io.github.magisk317.relay.mobilefeature.forward.BuildConfig
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
 import io.github.magisk317.relay.feature.mode.FeatureGate
@@ -201,7 +201,6 @@ fun ForwardKeepAliveScreen(onBack: () -> Unit) {
                     KEEPALIVE_OOM_ADJ,
                     KEEPALIVE_ANTI_KILL,
                     KEEPALIVE_STANDBY_BYPASS,
-                    KEEPALIVE_DOZE_BYPASS,
                 )
                 val canUseKeepAlive = FeatureGate.allAvailable(xposedActive, *keepAliveFeatures.toTypedArray())
                 StateSwitchItem(
@@ -251,23 +250,6 @@ fun ForwardKeepAliveScreen(onBack: () -> Unit) {
                     scope.launch {
                         settings = repository.updateDiagnosticsSettings(
                             DiagnosticsSettingsUpdate(keepAliveStandbyBypass = enabled),
-                        )
-                        notifySaved()
-                    }
-                }
-                StateSwitchItem(
-                    title = stringResource(id = R.string.pref_keepalive_doze_bypass_title),
-                    summary = if (canUseKeepAlive) {
-                        stringResource(id = R.string.pref_keepalive_doze_bypass_summary)
-                    } else {
-                        stringResource(id = R.string.pref_keepalive_doze_bypass_summary) + "\n" + xposedDisabledHint
-                    },
-                    checked = current.keepAliveDozeBypass && canUseKeepAlive,
-                    enabled = canUseKeepAlive,
-                ) { enabled ->
-                    scope.launch {
-                        settings = repository.updateDiagnosticsSettings(
-                            DiagnosticsSettingsUpdate(keepAliveDozeBypass = enabled),
                         )
                         notifySaved()
                     }

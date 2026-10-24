@@ -23,9 +23,9 @@
         ":hook:entry:testGithubDebugUnitTest",
         ":runtime:testGithubDebugUnitTest",
         ":relay:sender:testGithubDebugUnitTest",
-        ":core:testGithubDebugUnitTest",
-        ":core:koverHtmlReportGithubDebug",
-        ":core:compileGithubDebugKotlin",
+        ":mobile:core:testGithubDebugUnitTest",
+        ":mobile:core:koverHtmlReportGithubDebug",
+        ":mobile:core:compileGithubDebugKotlin",
         ":app:detekt"
       ]
     },

@@ -19,7 +19,7 @@ android {
 }
 
 dependencies {
-    implementation(project(":core"))
+    implementation(project(":mobile:core"))
     implementation(project(":mobile:feature:common"))
     implementation(project(":magisk-ui-kit"))
     implementation(libs.androidx.material.icons.core)

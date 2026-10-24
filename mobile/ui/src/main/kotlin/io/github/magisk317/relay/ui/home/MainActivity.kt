@@ -37,7 +37,7 @@ import androidx.metrics.performance.JankStats
 import androidx.navigation.compose.rememberNavController
 import androidx.compose.runtime.CompositionLocalProvider
 import io.github.magisk317.relay.mobileui.BuildConfig
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.smscode.runtime.common.utils.FrameworkCompatibilityMonitor
 import io.github.magisk317.xposed.logging.XLog
@@ -52,7 +52,7 @@ import io.github.magisk317.uikit.update.UpdatePlayPolicy
 import io.github.magisk317.uikit.update.WifiState
 import io.github.magisk317.uikit.shell.PlayUpdateDelegate
 import io.github.magisk317.relay.ui.nav.SmsCodeNavHost
-import io.github.magisk317.relay.ui.privacy.PrivacyPolicyPage
+import io.github.magisk317.relay.ui.common.PrivacyPolicyPage
 import io.github.magisk317.relay.ui.theme.AppTheme
 import io.github.magisk317.uikit.theme.ThemeRevealState
 import io.github.magisk317.uikit.theme.UiKitStyle
@@ -75,6 +75,8 @@ import io.github.magisk317.relay.ui.home.settings.SettingsViewModel
 import io.github.magisk317.relay.ui.home.settings.SettingsEvent
 import io.github.magisk317.relay.ui.setup.SetupScreen
 import io.github.magisk317.relay.ui.setup.SetupViewModel
+import io.github.magisk317.relay.ui.permission.SetupProgressPolicy
+import io.github.magisk317.relay.ui.permission.SetupProgressStore
 
 class MainActivity : ComponentActivity() {
 
@@ -197,9 +199,7 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(Unit) {
                 val accepted = settingsRepository.isPrivacyPolicyAccepted()
                 privacyAccepted = accepted
-                if (!accepted) {
-                    showSetup = true
-                }
+                showSetup = SetupProgressPolicy.shouldShowWizard(accepted, SetupProgressStore.current(context))
             }
             LaunchedEffect(Unit) {
                 try {
@@ -246,7 +246,11 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(viewModel.eventsFlow) {
                 viewModel.eventsFlow.collect { event ->
                     when (event) {
-                        is SettingsEvent.ShowPrivacyPolicy -> showPrivacyPolicyDialog = true
+                        is SettingsEvent.ShowPrivacyPolicy -> {
+                            // The setup wizard owns the launch-path privacy flow, so the
+                            // legacy dialog must not stack on top of it.
+                            if (!showSetup) showPrivacyPolicyDialog = true
+                        }
                         is SettingsEvent.NavigateToRules -> {
                             requestedTab = io.github.magisk317.relay.ui.nav.SmsCodeRulesRoute()
                         }
@@ -314,6 +318,7 @@ class MainActivity : ComponentActivity() {
 
                             if (blockingStartupDialog == null &&
                                 privacyAccepted == true &&
+                                SetupProgressStore.isComplete(context) &&
                                 !showPrivacyPolicyDialog &&
                                 !showPrivacyPolicyPage &&
                                 !showSetup
@@ -382,6 +387,7 @@ class MainActivity : ComponentActivity() {
                                     privacyAccepted = true
                                     showSetup = false
                                 },
+                                privacyAlreadyAccepted = privacyAccepted == true,
                             )
                         }
 

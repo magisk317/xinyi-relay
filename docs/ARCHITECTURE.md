@@ -28,7 +28,7 @@
 | `:app` / `app` | `app/` |
 | `:hook:entry` / `hook/entry` | `modules/hook/entry/` |
 | `:runtime` / `runtime` | `modules/runtime/` |
-| `:core` / `core` | `modules/core/` |
+| `:mobile:core` / `mobile:core` | `mobile/core/` |
 | `:policy` / `policy` | `modules/policy/` |
 | `:relay:android` / `relay/android` | `modules/relay/android/` |
 | `:relay:contract` / `relay/contract` | `modules/relay/contract/` |
@@ -77,9 +77,9 @@
 
 ### `app`
 
-Android 应用壳。打包 `hook/entry`、`core`、`policy`、`mobile/ui`、feature 模块、`relay/android`、`xpbridge/core` 等。
+Android 应用壳。打包 `hook/entry`、`:mobile:core`、`policy`、`mobile/ui`、feature 模块、`relay/android`、`xpbridge/core` 等。
 
-- 允许：`core`、`policy`、`hook/entry`、`relay/android`、`mobile/ui`、`mobile/feature/*`、`xpbridge/core`、`smscode-core/verification`、`smscode-core/hook`
+- 允许：`:mobile:core`、`policy`、`hook/entry`、`relay/android`、`mobile/ui`、`mobile/feature/*`、`xpbridge/core`、`smscode-core/verification`、`smscode-core/hook`
 - 禁止：直接依赖 `runtime`（`verifyNoRuntimePipelineLeak` 源码级禁令）
 
 ### `hook/entry`
@@ -87,7 +87,7 @@ Android 应用壳。打包 `hook/entry`、`core`、`policy`、`mobile/ui`、feat
 Xposed/libxposed 入口和 hook 调度。hook 侧负责采集/解析/拦截，不直接做 sender 选择、路由、结果落库。
 
 - 允许：`runtime`、`relay/android`、`xpbridge/core`、`relay/contract`、`smscode-core/*`
-- 禁止：`core`
+- 禁止：`:mobile:core`
 
 ### `xpbridge/core`
 
@@ -133,7 +133,7 @@ arity。契约变更必须同批同步两仓适配器并 bump 全部父仓 gitli
 ### `relay/security`
 
 共享密码学原语模块，当前持有 `AesGcmEnvelopeCipher`（AES-GCM 信封加密）与对应测试。模块自身
-不依赖 relay 其他模块，由 `relay/sender` 与 `core` 两个消费方使用。
+不依赖 relay 其他模块，由 `relay/sender` 与 `:mobile:core` 两个消费方使用。
 
 - 允许：密码学/编码标准库能力（不引入 relay 内部依赖）
 - 禁止：Compose、网络、sender/engine 业务策略
@@ -180,16 +180,16 @@ Android 平台数据源与 adapter：Room、DataStore、PrefsReader、DBProvider
 
 子包：`bootstrap`（`RuntimeDependencies`）、`domain`（pipeline/filter/routing/recovery/schedule）、`data`（remote API/repository/backup）、`platform`（IPC/BroadcastReceiver/reminder）。
 
-### `core`
+### `:mobile:core`
 
-应用侧 facade、initializer、Koin binding、系统能力协调层。`RuntimeGraph` 是 Koin 的类型化 facade，仅供 `:core` 内部使用。
+应用侧 facade、initializer、Koin binding、系统能力协调层。`RuntimeGraph` 是 Koin 的类型化 facade，仅供 `:mobile:core` 内部使用。
 
 - 允许：`runtime`（implementation，不传递暴露）、`policy`、`relay/engine/api`、`relay/android`、`relay/contract`、`magisk-ui-kit`、`smscode-core/*`
 - 禁止：`xpbridge/core`、`webui` 包（`verifyNoWebUiLeak`）
 
 ### `policy`
 
-Xposed 运行时状态与 feature gating 策略层：`XposedRuntimeState`、`FeatureGate`、权限与电池优化相关策略。从 `core` 拆出，供 app、core 与部分 feature 使用。
+Xposed 运行时状态与 feature gating 策略层：`XposedRuntimeState`、`FeatureGate`、权限与电池优化相关策略。从 `:mobile:core` 拆出，供 app、`:mobile:core` 与部分 feature 使用。
 
 - Xposed 运行时是否在线不是产品 flavor，而是同一个 APK 的运行时能力状态：检测到有效
   libxposed runtime/本次开机 hook 心跳时为 active，否则为 inactive。
@@ -285,7 +285,7 @@ KMP 模块里的 contract 源文件，因此 contract 源在 `commonMain`/`andro
 
 ## 运行时主链
 
-装配：`:runtime` 通过 `RuntimeDependencies`（service-locator）解析单例；`:core` 通过 `RuntimeGraph`（Koin facade）访问同一批实例。
+装配：`:runtime` 通过 `RuntimeDependencies`（service-locator）解析单例；`:mobile:core` 通过 `RuntimeGraph`（Koin facade）访问同一批实例。
 
 处理顺序：采集原始事件 → `RelayEvent` → `EventGatekeeper`（gate）→ 记录写入 → 特殊提醒 → `SenderSelector`（选择/路由）→ `SenderDispatcher`（下发）→ `DispatchResultWriter`（结果写回）。
 

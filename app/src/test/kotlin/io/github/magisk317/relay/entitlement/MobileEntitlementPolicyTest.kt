@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.entitlement
 
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.mobile.core.R
 import com.magisk317.mobile.entitlement.MobileEntitlementStatus
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse

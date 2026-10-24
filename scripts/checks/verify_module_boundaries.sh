@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "$ROOT_DIR/scripts/utils/regex_helpers.sh"
 APP_BUILD="$ROOT_DIR/app/build.gradle.kts"
-CORE_BUILD="$ROOT_DIR/modules/core/build.gradle.kts"
+MOBILE_CORE_BUILD="$ROOT_DIR/mobile/core/build.gradle.kts"
 HOOK_ENTRY_BUILD="$ROOT_DIR/modules/hook/entry/build.gradle.kts"
 MOBILE_UI_BUILD="$ROOT_DIR/mobile/ui/build.gradle.kts"
 MOBILE_UI_SRC="$ROOT_DIR/mobile/ui/src"
@@ -82,8 +82,8 @@ check_mobile_feature_dependencies() {
   done < <(find "$MOBILE_FEATURE_DIR" -mindepth 2 -maxdepth 2 -name build.gradle.kts -print0)
 }
 
-require_pattern "$APP_BUILD" 'implementation\(project\(":core"\)\)' \
-  "app must depend directly on :core"
+require_pattern "$APP_BUILD" 'implementation\(project\(":mobile:core"\)\)' \
+  "app must depend directly on :mobile:core"
 require_pattern "$APP_BUILD" 'implementation\(project\(":relay:android"\)\)' \
   "app must depend directly on :relay:android for platform adapter installation"
 forbid_pattern "$APP_BUILD" 'implementation\(project\(":runtime"\)\)' \
@@ -110,23 +110,23 @@ require_pattern "$APP_BUILD" 'add\("\$\{flavor\}Implementation", project\(":xpbr
   "app must package :xpbridge:core through Xposed flavor-specific dependencies"
 require_pattern "$APP_BUILD" 'add\("\$\{flavor\}Implementation", libs\.libxposed\.service\)' \
   "app must package libxposed service through Xposed flavor-specific dependencies"
-require_pattern "$CORE_BUILD" 'implementation\(project\(":runtime"\)\)' \
-  "core must depend on :runtime as implementation"
-forbid_pattern "$CORE_BUILD" 'api\(project\(":runtime"\)\)' \
-  "core must not expose :runtime transitively"
-require_pattern "$CORE_BUILD" 'implementation\(project\(":relay:engine:api"\)\)' \
-  "core must depend on :relay:engine:api for engine contracts"
-forbid_pattern "$CORE_BUILD" 'implementation\(project\(":smscode-core:hook"\)\)' \
-  "core must not package :smscode-core:hook for every flavor; keep it on Xposed-capable flavors only"
-forbid_pattern "$CORE_BUILD" 'api\(project\(":smscode-core:hook"\)\)' \
-  "core must not expose :smscode-core:hook transitively"
-require_pattern "$CORE_BUILD" 'add\("\$\{flavor\}Implementation", project\(":smscode-core:hook"\)\)' \
-  "core runtime bridge may depend on :smscode-core:hook only through Xposed flavor-specific dependencies"
-forbid_pattern "$CORE_BUILD" 'project\(":xpbridge:core"\)' \
-  "core must not depend on :xpbridge:core directly"
+require_pattern "$MOBILE_CORE_BUILD" 'implementation\(project\(":runtime"\)\)' \
+  "mobile:core must depend on :runtime as implementation"
+forbid_pattern "$MOBILE_CORE_BUILD" 'api\(project\(":runtime"\)\)' \
+  "mobile:core must not expose :runtime transitively"
+require_pattern "$MOBILE_CORE_BUILD" 'implementation\(project\(":relay:engine:api"\)\)' \
+  "mobile:core must depend on :relay:engine:api for engine contracts"
+forbid_pattern "$MOBILE_CORE_BUILD" 'implementation\(project\(":smscode-core:hook"\)\)' \
+  "mobile:core must not package :smscode-core:hook for every flavor; keep it on Xposed-capable flavors only"
+forbid_pattern "$MOBILE_CORE_BUILD" 'api\(project\(":smscode-core:hook"\)\)' \
+  "mobile:core must not expose :smscode-core:hook transitively"
+require_pattern "$MOBILE_CORE_BUILD" 'add\("\$\{flavor\}Implementation", project\(":smscode-core:hook"\)\)' \
+  "mobile:core runtime bridge may depend on :smscode-core:hook only through Xposed flavor-specific dependencies"
+forbid_pattern "$MOBILE_CORE_BUILD" 'project\(":xpbridge:core"\)' \
+  "mobile:core must not depend on :xpbridge:core directly"
 
-forbid_pattern "$HOOK_ENTRY_BUILD" 'project\(":core"\)' \
-  "hook/entry must not depend on :core directly"
+forbid_pattern "$HOOK_ENTRY_BUILD" 'project\(":mobile:core"\)' \
+  "hook/entry must not depend on :mobile:core directly"
 
 forbid_pattern "$XPBRIDGE_CORE_BUILD" 'project\(":relay:engine"\)' \
   "xpbridge/core must not depend on :relay:engine implementation directly"

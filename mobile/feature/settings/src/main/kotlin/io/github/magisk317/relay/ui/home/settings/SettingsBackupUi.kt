@@ -23,7 +23,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.backup.RelayBackupManager
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.smscode.runtime.contract.backup.BackupImportResult
 import io.github.magisk317.smscode.runtime.contract.backup.ImportResult
 import io.github.magisk317.smscode.runtime.contract.backup.ImportWarning

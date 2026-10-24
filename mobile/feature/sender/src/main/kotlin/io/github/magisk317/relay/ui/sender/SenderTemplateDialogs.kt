@@ -27,7 +27,7 @@ import androidx.compose.ui.window.DialogProperties
 import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.contract.settings.SimRemarkSettingsSnapshot
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.uikit.surface.AppAlertDialog
 import io.github.magisk317.uikit.surface.AppHorizontalDivider
 import io.github.magisk317.uikit.surface.AppSecondaryButton

@@ -21,7 +21,7 @@ import com.magisk317.mobile.entitlement.MobileEntitlementChallenge
 import com.magisk317.mobile.entitlement.MobileEntitlementCoordinator
 import com.magisk317.mobile.entitlement.MobileEntitlementStatus
 import io.github.magisk317.relay.contract.constant.RelayAppConst
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.relay.ui.home.settings.SettingsViewModel
 import io.github.magisk317.relay.ui.theme.AppTheme
 import io.github.magisk317.uikit.entitlement.MobileEntitlementBusyAction

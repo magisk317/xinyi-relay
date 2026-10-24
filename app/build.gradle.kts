@@ -164,7 +164,7 @@ dependencies {
     implementation(libs.mobile.entitlement.android)
     implementation(project(":policy"))
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
-    implementation(project(":core"))
+    implementation(project(":mobile:core"))
     implementation(project(":mobile:ui"))
     implementation(project(":mobile:feature:common"))
     implementation(project(":mobile:feature:settings"))

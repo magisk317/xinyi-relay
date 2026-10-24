@@ -149,7 +149,7 @@ class SettingsRepository(
             keepAliveOomAdj = preferenceDataSource.getBoolean(PrefConst.KEY_KEEPALIVE_OOM_ADJ, false),
             keepAliveAntiKill = preferenceDataSource.getBoolean(PrefConst.KEY_KEEPALIVE_ANTI_KILL, false),
             keepAliveStandbyBypass = preferenceDataSource.getBoolean(PrefConst.KEY_KEEPALIVE_STANDBY_BYPASS, false),
-            keepAliveDozeBypass = preferenceDataSource.getBoolean(PrefConst.KEY_KEEPALIVE_DOZE_BYPASS, false),
+            keepAliveDozeBypass = false,
             keepAliveAccessibilityHeartbeat = preferenceDataSource.getBoolean(PrefConst.KEY_KEEPALIVE_ACCESSIBILITY_HEARTBEAT, false),
             keepAliveDedicatedService = preferenceDataSource.getBoolean(PrefConst.KEY_KEEPALIVE_DEDICATED_SERVICE, false),
         )
@@ -182,7 +182,6 @@ class SettingsRepository(
         update.keepAliveOomAdj?.let { preferenceDataSource.setBoolean(PrefConst.KEY_KEEPALIVE_OOM_ADJ, it) }
         update.keepAliveAntiKill?.let { preferenceDataSource.setBoolean(PrefConst.KEY_KEEPALIVE_ANTI_KILL, it) }
         update.keepAliveStandbyBypass?.let { preferenceDataSource.setBoolean(PrefConst.KEY_KEEPALIVE_STANDBY_BYPASS, it) }
-        update.keepAliveDozeBypass?.let { preferenceDataSource.setBoolean(PrefConst.KEY_KEEPALIVE_DOZE_BYPASS, it) }
         update.keepAliveAccessibilityHeartbeat?.let { preferenceDataSource.setBoolean(PrefConst.KEY_KEEPALIVE_ACCESSIBILITY_HEARTBEAT, it) }
         update.keepAliveDedicatedService?.let { preferenceDataSource.setBoolean(PrefConst.KEY_KEEPALIVE_DEDICATED_SERVICE, it) }
         publishHookPrefsAndNoteLocalMutation("settings.diagnostics")

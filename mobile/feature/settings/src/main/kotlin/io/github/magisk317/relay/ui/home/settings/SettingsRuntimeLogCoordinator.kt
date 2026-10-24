@@ -20,7 +20,7 @@ import io.github.magisk317.xposed.diagnostics.DiagnosticExportMode
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsUpdate
-import io.github.magisk317.relay.core.R
+import io.github.magisk317.relay.mobile.core.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

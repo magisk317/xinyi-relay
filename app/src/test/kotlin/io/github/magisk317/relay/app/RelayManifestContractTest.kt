@@ -108,7 +108,7 @@ class RelayManifestContractTest {
 
     @Test
     fun `static shortcuts route through launcher activity`() {
-        val document = parseManifest("modules/core/src/main/res/xml/shortcuts.xml")
+        val document = parseManifest("mobile/core/src/main/res/xml/shortcuts.xml")
         val targetClasses = document.getElementsByTagName("intent")
             .asElements()
             .mapNotNull { it.attributes.getNamedItemNS(ANDROID_NS, "targetClass")?.nodeValue }
