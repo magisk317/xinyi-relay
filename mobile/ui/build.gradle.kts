@@ -39,6 +39,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.okhttp)
     implementation(project(":magisk-xposed-kit:logging"))
     implementation(project(":mobile:core"))
     implementation(project(":mobile:feature:common"))

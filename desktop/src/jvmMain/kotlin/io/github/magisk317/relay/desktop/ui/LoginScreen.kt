@@ -1,3 +1,7 @@
+// Compose 1.x painterResource/TextField deprecations; migrate with Compose Resources and
+// the state-based text-field APIs in a dedicated pass.
+@file:Suppress("DEPRECATION")
+
 package io.github.magisk317.relay.desktop.ui
 
 import androidx.compose.foundation.layout.Arrangement

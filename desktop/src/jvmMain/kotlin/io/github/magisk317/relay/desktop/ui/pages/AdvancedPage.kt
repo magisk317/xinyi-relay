@@ -280,7 +280,7 @@ fun AdvancedPage(
                                     scope.launch {
                                         syncBusy = true
                                         try {
-                                            localSyncController?.sync()
+                                            localSyncController.sync()
                                             error = ""
                                         } finally {
                                             syncBusy = false
@@ -299,7 +299,7 @@ fun AdvancedPage(
                                     scope.launch {
                                         syncBusy = true
                                         try {
-                                            localSyncController?.push()
+                                            localSyncController.push()
                                             error = ""
                                         } catch (failure: Exception) {
                                             error = failure.message ?: "sync failed"
