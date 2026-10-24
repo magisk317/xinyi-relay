@@ -18,7 +18,7 @@
 
 - **单一版本源**：桌面端包版本由 `gradle/libs.versions.toml` 的 `versionName` 单一驱动，发布构建可由 `-PdesktopVersion` 剥离预发后缀，并由 `scripts/release/check_release_guard.sh` 实施自动化防呆校验。
 - **运行模式（RunMode）**：支持 `Local`（默认，本地镜像优先，内嵌服务器承接设备）、`Remote`（纯远端）、`Hybrid`（远端主读，本地热缓存）。读路由由 `DesktopReadRouter` 动态分流。
-- **UI 风格与门禁豁免**：采用桌面 Material 3 组件，不引入 Android 侧的 miuix 规范；双轨合同门禁（`dual_track_check.py`）按 `desktop/` 与 `modules/desktop/` 路径前缀进行针对性豁免。
+- **UI 风格与门禁豁免**：采用桌面 Material 3 组件，不引入 Android 侧的 miuix 规范；`magisk-ci-toolkit/checks/dual_track_check.py` 读取 `scripts/config/dual-track.json`，按 `desktop/` 与 `modules/desktop/` 路径前缀进行针对性豁免。
 
 ---
 

@@ -11,6 +11,8 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT_DIR"
+TOOLKIT_DIR="${MAGISK_CI_TOOLKIT_DIR:-$(bash scripts/resolve_ci_toolkit.sh)}"
+source "$TOOLKIT_DIR/ci/gitlab_api.sh"
 
 PACKAGE_NAME="xinyi-e2ee-plugin"
 APK_OUTPUT_DIR="features/matrix-e2ee-plugin/build/outputs/apk"
@@ -21,21 +23,8 @@ if [[ -z "$SDK_VERSION" ]]; then
   exit 2
 fi
 
-API_BASE="${CI_API_V4_URL:-https://gitlab.com/api/v4}"
 PROJECT_ID="${CI_PROJECT_ID:-84113188}"
 
-gitlab_curl_args() {
-  if [[ -n "${CI_JOB_TOKEN:-}" ]]; then
-    printf '%s\n' --header "JOB-TOKEN: $CI_JOB_TOKEN"
-  elif [[ -n "${GITLAB_TOKEN:-}" ]]; then
-    printf '%s\n' --header "PRIVATE-TOKEN: $GITLAB_TOKEN"
-  elif [[ -n "${GITLAB_DEPLOY_TOKEN:-}" ]]; then
-    printf '%s\n' --header "DEPLOY-TOKEN: $GITLAB_DEPLOY_TOKEN"
-  else
-    echo "ERROR: set CI_JOB_TOKEN, GITLAB_TOKEN, or GITLAB_DEPLOY_TOKEN" >&2
-    exit 2
-  fi
-}
 
 echo "==> Building E2EE plugin APKs (matrix-sdk $SDK_VERSION)"
 ./gradlew :features:matrix_e2ee_plugin:assembleRelease --console=plain
@@ -47,8 +36,6 @@ if [[ ${#apk_files[@]} -eq 0 ]]; then
   exit 1
 fi
 
-auth_args=()
-while IFS= read -r line; do auth_args+=("$line"); done < <(gitlab_curl_args)
 
 for apk in "${apk_files[@]}"; do
   name="$(basename "$apk")"
@@ -57,10 +44,10 @@ for apk in "${apk_files[@]}"; do
 
   for asset in "$apk" "$sha_file"; do
     asset_name="$(basename "$asset")"
-    url="$API_BASE/projects/$PROJECT_ID/packages/generic/$PACKAGE_NAME/$SDK_VERSION/$asset_name"
+    endpoint="projects/$PROJECT_ID/packages/generic/$PACKAGE_NAME/$SDK_VERSION/$asset_name"
     echo "==> PUT $asset_name"
-    status="$(curl --silent --output /tmp/e2ee-plugin-upload.json --write-out '%{http_code}' \
-      --request PUT --upload-file "$asset" "${auth_args[@]}" "$url" || true)"
+    status="$(gitlab_api_curl "$endpoint" --output /tmp/e2ee-plugin-upload.json --write-out '%{http_code}' \
+      --request PUT --upload-file "$asset" || true)"
     case "$status" in
       200|201|409) ;;
       400)

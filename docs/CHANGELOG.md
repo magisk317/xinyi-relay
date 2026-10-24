@@ -208,8 +208,8 @@
 - `[test]` 补充 DataStore 自动修复逻辑、依赖强制规则合并行为等回归测试，提升配置系统与依赖治理脚本的稳健性。
 - `[submodule]` 同步更新 `smscode-core` (含 Android 16 兼容性文档) 与 `magisk-ui-kit` 子模块指针。
 - `[release/tag]` 发布入口从单一整包 tag 扩展为组件化 tag：`v0.1.1` 继续代表完整发布，另新增 `mobile-v0.1.1`、`desktop-v0.1.1`、`backend-v0.1.1`，分别驱动移动端、桌面端和后端的独立发布链路；`scripts/release_ref.sh` 统一负责 tag 生成、解析与 release kind 判断。
-- `[release/script]` `scripts/release_tag.sh` 现支持 `all|mobile|desktop|backend` 目标参数；仅 `all/mobile` 会同步 Android `distribution/whatsnew`、Fastlane changelog 与截图，`desktop/backend` 则跳过移动端元数据同步，避免组件发布被无关校验阻塞。
-- `[release/guard]` `scripts/check_release_guard.sh` 已按 release kind 分流：完整版与移动端 tag 继续校验 `CHANGELOG`、`distribution/whatsnew`、Fastlane metadata、截图与 tag/version 一致性；桌面端和后端 tag 则只保留与自身相关的版本和提交卫生检查。
+- `[release/script]` `scripts/release/release_tag.sh` 现支持 `all|mobile|desktop|backend` 目标参数；仅 `all/mobile` 会同步 Android `distribution/whatsnew`、Fastlane changelog 与截图，`desktop/backend` 则跳过移动端元数据同步，避免组件发布被无关校验阻塞。
+- `[release/guard]` `scripts/release/check_release_guard.sh` 已按 release kind 分流：完整版与移动端 tag 继续校验 `CHANGELOG`、`distribution/whatsnew`、Fastlane metadata、截图与 tag/version 一致性；桌面端和后端 tag 则只保留与自身相关的版本和提交卫生检查。
 - `[ci/mobile]` Android 发布工作流现同时支持完整 tag 与 `mobile-v*`；GitHub Draft Release、Google Play 轨道选择、Xposed-Modules-Repo 发布、符号包上传与 release title 解析都统一走 `release_ref.sh`，减少脚本和 workflow 各自解析 tag 带来的分叉。
 - `[ci/desktop]` Desktop Release 工作流支持 `desktop-v*` 独立发布：若使用完整 tag，会等待移动端 workflow 创建同名 Release 后再补传桌面资产；若使用桌面组件 tag，则直接创建或更新桌面专用 Draft Release，方便桌面端单独迭代。
 - `[ci/backend]` Backend GHCR 发布工作流支持 `backend-v*` 独立镜像发布：`beta` 分支继续维护 `beta` 通道，多架构 manifest 仍会在完整 tag 下同步推送 `latest` 与版本标签，而后端组件 tag 会单独生成镜像说明并创建对应 GitHub Release 草稿。

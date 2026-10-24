@@ -1,27 +1,27 @@
 include:
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: v1
+    ref: "174d78104f79bb2073e7175125a0e0dbb989edb5"
     file: /.gitlab/ci/android.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: v1
+    ref: "174d78104f79bb2073e7175125a0e0dbb989edb5"
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: v1
+    ref: "174d78104f79bb2073e7175125a0e0dbb989edb5"
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: v1
+    ref: "174d78104f79bb2073e7175125a0e0dbb989edb5"
     file: /.gitlab/ci/renovate.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: v1
+    ref: "174d78104f79bb2073e7175125a0e0dbb989edb5"
     file: /.gitlab/ci/cancel-mr-pipelines.yml
   # Utility-job anchor (alpine, pinned): sync:github extends it instead of
   # pinning its own image. Language-tool jobs (backend:go, webui:check, the
   # docker/node jobs) keep their own pinned tool images by design.
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: v1
+    ref: "174d78104f79bb2073e7175125a0e0dbb989edb5"
     file: /.gitlab/ci/utility.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: v1
+    ref: "174d78104f79bb2073e7175125a0e0dbb989edb5"
     file: /.gitlab/ci/readme-badges.yml
 
 workflow:
@@ -47,7 +47,7 @@ stages:
 
 variables:
   MAGISK_CI_TOOLKIT_REPOSITORY: "https://gitlab.com/magisk3171/shared/magisk-ci-toolkit.git"
-  MAGISK_CI_TOOLKIT_REF: "v1"
+  MAGISK_CI_TOOLKIT_REF: "174d78104f79bb2073e7175125a0e0dbb989edb5"
   MAGISK_CANCEL_OLDER_MR_PIPELINES: "true"
   # Cancel the merged MR's own merge_request_event pipeline from the push
   # pipeline that lands the merge. GitLab has no cancel-on-merge hook and
@@ -160,8 +160,8 @@ variables:
     HTTPS_PROXY: "$CI_HTTPS_PROXY"
     http_proxy: "$CI_HTTP_PROXY"
     https_proxy: "$CI_HTTPS_PROXY"
-    NO_PROXY: "$CI_NO_PROXY,auth.docker.io,registry-1.docker.io,production.cloudflare.docker.com,docker.io"
-    no_proxy: "$CI_NO_PROXY,auth.docker.io,registry-1.docker.io,production.cloudflare.docker.com,docker.io"
+    NO_PROXY: "$CI_NO_PROXY"
+    no_proxy: "$CI_NO_PROXY"
   before_script:
     - |
       use_mirror="${MAGISK_LINUX_USE_MIRROR:-true}"
@@ -359,7 +359,6 @@ backend:container:amd64:
     - .xinyi_backend_publish_rules
   resource_group: xinyi-backend-docker-amd64
   stage: build
-  allow_failure: true
   tags:
     - $XINYI_GITLAB_LINUX_AMD64_RUNNER_TAG
   needs:
@@ -375,7 +374,6 @@ backend:container:arm64:
     - .xinyi_backend_publish_rules
   resource_group: xinyi-backend-docker-arm64
   stage: build
-  allow_failure: true
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
@@ -391,7 +389,6 @@ backend:container:manifest:
     - .xinyi_backend_publish_rules
   resource_group: xinyi-backend-docker-manifest
   stage: release
-  allow_failure: true
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
@@ -402,6 +399,15 @@ backend:container:manifest:
   script:
     - chmod +x scripts/ci/gitlab_backend_container.sh
     - scripts/ci/gitlab_backend_container.sh publish-manifests
+    - |
+      set -euo pipefail
+      export MAGISK_CI_TOOLKIT_DIR="$(bash scripts/resolve_ci_toolkit.sh)"
+      while IFS= read -r image_ref; do
+        [[ -z "$image_ref" ]] && continue
+        bash "$MAGISK_CI_TOOLKIT_DIR/ci/validate_image_manifest.sh" \
+          --image "$image_ref" \
+          --architectures "${XINYI_BACKEND_ARCHES:-amd64 arm64}"
+      done < <(bash scripts/ci/gitlab_backend_container.sh list-images)
   artifacts:
     reports:
       dotenv: telegram_images.env
@@ -606,7 +612,12 @@ cancel:older:mr:pipelines:
     - |
       set -euo pipefail
       : "${MAGISK_GRADLE_ARGS:=--warning-mode all}"
-      mapfile -t selected_tasks < <(bash scripts/ci/select_android_test_tasks.sh "$MAGISK_CI_TOOLKIT_DIR")
+      mapfile -t selected_tasks < <(
+        python3 "$MAGISK_CI_TOOLKIT_DIR/ci/select_gradle_tasks.py" \
+          --root "$CI_PROJECT_DIR" \
+          --toolkit "$MAGISK_CI_TOOLKIT_DIR" \
+          --config "$CI_PROJECT_DIR/scripts/config/android-test-tasks.json"
+      )
       if ((${#selected_tasks[@]} == 0)); then
         echo "No Android test tasks selected for this change."
         exit 0

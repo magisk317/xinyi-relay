@@ -1,0 +1,15 @@
+{
+  "version_file": "gradle/libs.versions.toml",
+  "changelog_file": "docs/CHANGELOG.md",
+  "require_changelog": true,
+  "require_versioncode_increment": true,
+  "require_readme_badges": true,
+  "require_tag_match": true,
+  "allow_non_ascii_commit_subject": false,
+  "whatsnew_locales": ["en-US", "zh-CN"],
+  "whatsnew_directory": "distribution/whatsnew",
+  "whatsnew_max_length": 500,
+  "fastlane_locales": ["en-US", "zh-CN"],
+  "fastlane_min_screenshots": 1,
+  "project_checks": ["check_desktop_version", "check_backend_version", "check_manifest_contract"]
+}

@@ -10,8 +10,8 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-google()
-mavenCentral()
+        google()
+        mavenCentral()
         maven("https://jitpack.io") {
             name = "JitPack"
             content {
@@ -25,8 +25,6 @@ mavenCentral()
                     ?: System.getenv("GITLAB_MAVEN_URL")
                     ?: "https://gitlab.com/api/v4/projects/84113188/packages/maven",
             )
-
-
             content {
                 includeGroup("rustls")
             }
@@ -96,6 +94,7 @@ include(
     ":magisk-xposed-kit:diagnostics",
     ":magisk-xposed-kit:permission",
     ":magisk-xposed-kit:entitlement",
+    ":magisk-xposed-kit:keepalive",
     ":features:matrix_e2ee",
     ":features:matrix_e2ee_plugin",
 )
@@ -114,6 +113,7 @@ project(":magisk-xposed-kit:logging-core").projectDir = file("magisk-xposed-kit/
 project(":magisk-xposed-kit:diagnostics").projectDir = file("magisk-xposed-kit/diagnostics")
 project(":magisk-xposed-kit:permission").projectDir = file("magisk-xposed-kit/permission")
 project(":magisk-xposed-kit:entitlement").projectDir = file("magisk-xposed-kit/entitlement")
+project(":magisk-xposed-kit:keepalive").projectDir = file("magisk-xposed-kit/keepalive")
 project(":magisk-ui-kit:billing").projectDir = file("magisk-ui-kit/billing")
 project(":magisk-ui-kit:update").projectDir = file("magisk-ui-kit/update")
 

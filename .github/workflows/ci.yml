@@ -35,6 +35,8 @@ jobs:
           submodules: recursive
           fetch-depth: 0
       - uses: ./.github/actions/resolve-ci-toolkit
+        with:
+          ref: 174d78104f79bb2073e7175125a0e0dbb989edb5
       - name: Setup Android CI
         uses: ./.magisk-ci-toolkit/.github/actions/setup-android-ci
         with:
@@ -68,7 +70,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mapfile -t selected_tasks < <(bash scripts/ci/select_android_test_tasks.sh "${MAGISK_CI_TOOLKIT_DIR:-.magisk-ci-toolkit}")
+          mapfile -t selected_tasks < <(
+            python3 "${MAGISK_CI_TOOLKIT_DIR:-.magisk-ci-toolkit}/ci/select_gradle_tasks.py" \
+              --root "$PWD" \
+              --toolkit "${MAGISK_CI_TOOLKIT_DIR:-.magisk-ci-toolkit}" \
+              --config scripts/config/android-test-tasks.json
+          )
           if ((${#selected_tasks[@]} == 0)); then
             echo "No Android test tasks selected for this change."
             exit 0

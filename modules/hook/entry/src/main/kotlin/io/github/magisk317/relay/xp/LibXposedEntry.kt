@@ -16,7 +16,7 @@ import io.github.magisk317.relay.xp.hook.code.SmsHandlerHook
 import io.github.magisk317.relay.xp.hook.forward.SmsForwardHook
 import io.github.magisk317.relay.xp.hook.me.ModuleUtilsHook
 import io.github.magisk317.relay.xp.hook.mms.MmsMessagesHook
-import io.github.magisk317.relay.xp.hook.keepalive.KeepAliveHook
+import io.github.magisk317.relay.xp.hook.keepalive.RelayKeepAliveHook
 import io.github.magisk317.relay.xp.hook.telephony.SmsProviderHook
 import io.github.magisk317.relay.xp.runtime.RuntimeBridgeFactory
 import io.github.magisk317.relay.xpbridge.XpAppConfigFacade
@@ -57,7 +57,7 @@ class LibXposedEntry : BaseLibXposedEntry {
         SystemInputInjectorHook(),
         NotificationManagerHook(),
         SmsProviderHook(),
-        KeepAliveHook(),
+        RelayKeepAliveHook(),
     )
 
     override fun installModuleRuntime(module: XposedModule, hookApi: LibXposedHookApi) {

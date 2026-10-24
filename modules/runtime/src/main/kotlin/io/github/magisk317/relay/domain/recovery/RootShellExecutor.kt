@@ -60,6 +60,7 @@ internal object RootShellExecutor {
             reason = reason,
             durationMs = elapsedMs(startedAt),
             statusOk = result.success,
+            exitCode = result.exitCode,
         )
         return result
     }
@@ -116,18 +117,34 @@ internal object RootShellExecutor {
         reason: String,
         durationMs: Long,
         statusOk: Boolean,
+        exitCode: Int? = null,
     ) {
         MagiskOtel.event(
             name = "app.recovery",
-            attributes = mapOf(
-                "result" to result,
-                "duration_ms" to durationMs.toString(),
-                "process" to "main",
-                "stage" to "root_shell",
-                "reason" to reason,
-                "source" to source,
+            attributes = rootShellTelemetryAttributes(
+                source = source,
+                result = result,
+                reason = reason,
+                durationMs = durationMs,
+                exitCode = exitCode,
             ),
             statusOk = statusOk,
         )
+    }
+
+    internal fun rootShellTelemetryAttributes(
+        source: String,
+        result: String,
+        reason: String,
+        durationMs: Long,
+        exitCode: Int? = null,
+    ): Map<String, String> = buildMap {
+        put("result", result)
+        put("duration_ms", durationMs.toString())
+        put("process", "main")
+        put("stage", "root_shell")
+        put("reason", reason)
+        put("source", source)
+        exitCode?.let { put("exit_code", it.toString()) }
     }
 }
