@@ -130,7 +130,7 @@ create_builder() {
   # check https://status.anye.xyz before swapping entries.
   local proxy="${HTTPS_PROXY:-${https_proxy:-${HTTP_PROXY:-${http_proxy:-}}}}"
   if [[ -n "$proxy" ]]; then
-    create_args+=(--driver-opt "env.http_proxy=$proxy" "env.https_proxy=$proxy")
+    create_args+=(--driver-opt "env.http_proxy=$proxy" --driver-opt "env.https_proxy=$proxy")
     echo "buildx builder: buildkitd egress routed through the job proxy"
   elif network_use_mirror; then
     config_file="$(mktemp)"
