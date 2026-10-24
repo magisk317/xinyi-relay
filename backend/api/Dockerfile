@@ -1,5 +1,5 @@
 # Stage 1: Build webui
-FROM --platform=$BUILDPLATFORM oven/bun:1.4-alpine AS webui-build
+FROM --platform=$BUILDPLATFORM oven/bun:1.4.3-alpine AS webui-build
 ARG HTTP_PROXY
 ARG HTTPS_PROXY
 ARG ALL_PROXY
@@ -57,7 +57,7 @@ COPY --from=webui-build /src/frontend/webui/dist ./webui_dist
 RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH:-amd64} go build -o /out/relayd ./cmd/relayd
 
 # Stage 3: Final image
-FROM alpine:3.24.2
+FROM alpine:3.24.3
 WORKDIR /app
 COPY --from=build /out/relayd /usr/local/bin/relayd
 EXPOSE 8080

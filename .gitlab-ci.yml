@@ -1,31 +1,31 @@
 include:
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "30dcb9c64facc024eb140a04a0f607dc07d21792"
+    ref: "5a9cef57abe852dc7798664e03ad50256a0204dd"
     file: /.gitlab/ci/android.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "30dcb9c64facc024eb140a04a0f607dc07d21792"
+    ref: "5a9cef57abe852dc7798664e03ad50256a0204dd"
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "30dcb9c64facc024eb140a04a0f607dc07d21792"
+    ref: "5a9cef57abe852dc7798664e03ad50256a0204dd"
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "30dcb9c64facc024eb140a04a0f607dc07d21792"
+    ref: "5a9cef57abe852dc7798664e03ad50256a0204dd"
     file: /.gitlab/ci/renovate.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "30dcb9c64facc024eb140a04a0f607dc07d21792"
+    ref: "5a9cef57abe852dc7798664e03ad50256a0204dd"
     file: /.gitlab/ci/cancel-mr-pipelines.yml
   # Utility-job anchor (alpine, pinned): the GitHub mirror and the README-badge
   # job extend it instead of pinning their own image. Language-tool jobs
   # (backend:go, webui:check, the docker/node jobs) keep their own pinned tool
   # images by design.
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "30dcb9c64facc024eb140a04a0f607dc07d21792"
+    ref: "5a9cef57abe852dc7798664e03ad50256a0204dd"
     file: /.gitlab/ci/utility.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "30dcb9c64facc024eb140a04a0f607dc07d21792"
+    ref: "5a9cef57abe852dc7798664e03ad50256a0204dd"
     file: /.gitlab/ci/github-sync.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "30dcb9c64facc024eb140a04a0f607dc07d21792"
+    ref: "5a9cef57abe852dc7798664e03ad50256a0204dd"
     file: /.gitlab/ci/readme-badges.yml
 
 workflow:
@@ -51,7 +51,7 @@ stages:
 
 variables:
   MAGISK_CI_TOOLKIT_REPOSITORY: "https://gitlab.com/magisk3171/shared/magisk-ci-toolkit.git"
-  MAGISK_CI_TOOLKIT_REF: "30dcb9c64facc024eb140a04a0f607dc07d21792"
+  MAGISK_CI_TOOLKIT_REF: "5a9cef57abe852dc7798664e03ad50256a0204dd"
   MAGISK_CANCEL_OLDER_MR_PIPELINES: "true"
   # Cancel the merged MR's own merge_request_event pipeline from the push
   # pipeline that lands the merge. GitLab has no cancel-on-merge hook and
@@ -462,7 +462,7 @@ desktop:release:gitlab:
 
 webui:check:
   extends: .xinyi_android_rules
-  image: "oven/bun:1.4-alpine"
+  image: "oven/bun:1.4.3-alpine"
   stage: quality
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
@@ -1113,6 +1113,11 @@ renovate:gitlab:
   stage: maintenance
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
+  variables:
+    # Renovate skips github-tags/github-releases deps when no GitHub token is
+    # present. GITHUB_PAT is a protected group variable, and this job only runs
+    # on the protected default branch (beta), so it is available here.
+    GITHUB_TOKEN: "$GITHUB_PAT"
 
 # Mirrors the GitLab-owned release to GitHub (tag, notes, release APKs).
 # Inert unless GITHUB_RELEASE_TOKEN is configured for the project.
