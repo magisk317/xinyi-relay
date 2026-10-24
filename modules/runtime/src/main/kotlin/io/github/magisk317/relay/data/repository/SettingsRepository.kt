@@ -5,7 +5,6 @@ import io.github.magisk317.relay.contract.constant.DispatchStrategy
 import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.settings.*
-import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.otel.MagiskOtelBootstrap
 import io.github.magisk317.relay.bootstrap.RuntimeDependencies
@@ -167,7 +166,6 @@ class SettingsRepository(
         update.verboseLogMode?.let { preferenceDataSource.setBoolean(PrefConst.KEY_VERBOSE_LOG_MODE, it) }
         update.sensitiveDebugLogMode?.let {
             preferenceDataSource.setBoolean(PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE, it)
-            SensitiveLogPolicy.setEnabled(it)
         }
         update.runtimeLogRetentionDays?.let {
             preferenceDataSource.setInt(

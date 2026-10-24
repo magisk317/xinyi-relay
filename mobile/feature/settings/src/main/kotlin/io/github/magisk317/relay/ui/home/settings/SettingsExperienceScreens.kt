@@ -54,7 +54,6 @@ import io.github.magisk317.relay.contract.repository.SettingsPreferencesReposito
 import io.github.magisk317.relay.contract.settings.VerificationSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.VerificationSettingsUpdate
 import io.github.magisk317.uikit.preference.StatusSettingsSection
-import io.github.magisk317.xposed.logging.VerboseLogEnableTracker
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
@@ -258,21 +257,6 @@ fun SettingsHomeScreen(
                 expanded = expandOthers,
                 onExpandedChange = { expandOthers = !expandOthers },
                 onRuntimeLogTitleClick = runtimeLogActions.onRuntimeLogTitleClick,
-                onVerboseLogModeChange = { enabled ->
-                    VerboseLogEnableTracker.onVerboseLogToggled(enabled)
-                    SensitiveLogPolicy.setEnabled(enabled)
-                    diagnostics = diagnostics?.copy(verboseLogMode = enabled)
-                    scope.launch {
-                        diagnostics = repository.updateDiagnosticsSettings(
-                            DiagnosticsSettingsUpdate(verboseLogMode = enabled),
-                        )
-                        RuntimeDiagnosticsBridge.ensureInstalled()
-                        RuntimeLogStore.setEnabled(enabled)
-                        XLog.setLogLevel(if (enabled) Log.VERBOSE else io.github.magisk317.relay.android.BuildConfig.LOG_LEVEL)
-                        notifySaved()
-                    }
-                },
-
                 onRuntimeLogRetentionClick = runtimeLogActions.onRuntimeLogRetentionClick,
                 onClearLog = runtimeLogActions.onClearLog,
                 onAnalyticsEnabledChange = { enabled ->

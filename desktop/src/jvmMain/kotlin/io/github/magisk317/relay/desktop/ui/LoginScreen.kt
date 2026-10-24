@@ -3,6 +3,7 @@ package io.github.magisk317.relay.desktop.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -45,6 +47,7 @@ fun LoginScreen(
     modifier: Modifier = Modifier,
 ) {
     var baseUrl by remember { mutableStateOf(session.activeProfile?.baseUrl ?: "") }
+    var allowSelfSigned by remember { mutableStateOf(session.activeProfile?.allowSelfSigned ?: false) }
     var error by remember { mutableStateOf("") }
     val hasProfile = session.activeProfile != null
 
@@ -95,6 +98,26 @@ fun LoginScreen(
                     )
                 }
 
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Checkbox(
+                        checked = allowSelfSigned,
+                        onCheckedChange = { checked ->
+                            allowSelfSigned = checked
+                            // An existing profile saves the override right
+                            // away; a new one carries it into saveProfile.
+                            session.setActiveProfileAllowSelfSigned(checked)
+                        },
+                    )
+                    Text(
+                        text = DesktopLocalStrings.t(locale, "allowSelfSigned"),
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+
                 if (error.isNotBlank()) {
                     Text(
                         text = error,
@@ -112,7 +135,7 @@ fun LoginScreen(
                             return@Button
                         }
                         if (!hasProfile) {
-                            session.saveProfile(baseUrl)
+                            session.saveProfile(baseUrl, allowSelfSigned = allowSelfSigned)
                         }
                         session.signIn { result ->
                             result.onFailure { error = it.message ?: DesktopMessages.t(locale, "login.failed") }

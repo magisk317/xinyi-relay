@@ -3,41 +3,27 @@ package io.github.magisk317.relay.android.common.utils
 import io.github.magisk317.relay.android.BuildConfig
 import io.github.magisk317.smscode.runtime.common.utils.StringUtils
 import io.github.magisk317.xposed.logging.DefaultLogSanitizer
-import io.github.magisk317.xposed.logging.LogSanitizerConfig
 import io.github.magisk317.xposed.logging.SecretRedactor
 
+/**
+ * Build-type-derived log sanitization. Debug/CI builds log raw (pure noop);
+ * release builds redact credentials, summarize API payloads, and deep-sanitize
+ * via [DefaultLogSanitizer].
+ */
 object SensitiveLogPolicy {
-    private const val ENABLED_LOG_MAX_LENGTH = 1200
-
-    @Volatile
-    private var enabled = false
-
-    @JvmStatic
-    fun isSupported(): Boolean = BuildConfig.DEBUG
-
-    @JvmStatic
-    fun isEnabled(): Boolean = isSupported() && enabled
-
-    @JvmStatic
-    fun setEnabled(value: Boolean) {
-        enabled = isSupported() && value
-        LogSanitizerConfig.syncFromVerboseMode(isEnabled())
-    }
+    private fun isPlaintextBuild(): Boolean =
+        BuildConfig.DEBUG || BuildConfig.IS_CI_BUILD
 
     @JvmStatic
     fun sanitizeLogMessage(message: String): String {
-        if (isEnabled()) {
-            return truncate(SecretRedactor.redact(message), ENABLED_LOG_MAX_LENGTH)
-        }
+        if (isPlaintextBuild()) return message
         return DefaultLogSanitizer.sanitize(message)
     }
 
     @JvmStatic
     fun sanitizeSenderLogMessage(message: String): String {
+        if (isPlaintextBuild()) return message
         var sanitized = SecretRedactor.redact(message)
-        if (isEnabled()) {
-            return truncate(sanitized, ENABLED_LOG_MAX_LENGTH)
-        }
         sanitized = summarizeAfterLabel(sanitized, "requestMsg:")
         sanitized = summarizeAfterLabel(sanitized, "Response:")
         sanitized = summarizeAfterLabel(sanitized, "response unexpected:")
@@ -53,10 +39,5 @@ object SensitiveLogPolicy {
         if (index < 0) return message
         val start = index + label.length
         return message.substring(0, start) + StringUtils.summarizePayload(message.substring(start).trim())
-    }
-
-    private fun truncate(value: String, max: Int): String {
-        if (value.length <= max) return value
-        return value.take(max) + "...(len=${value.length})"
     }
 }

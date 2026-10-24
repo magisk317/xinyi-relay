@@ -6,13 +6,14 @@ import io.github.magisk317.relay.android.common.utils.RelayLogger
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
-import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
 import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import io.github.magisk317.xposed.logging.MagiskOtel
+import io.github.magisk317.relay.android.BuildConfig
+import io.github.magisk317.xposed.logging.LogSanitizerConfig
 
 class DataStoreSyncInitializer : AppInitializer {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -23,8 +24,8 @@ class DataStoreSyncInitializer : AppInitializer {
 
             val preferenceDataSource = RuntimeGraph.from(application).preferenceDataSource
 
-            val verboseLog = preferenceDataSource.getBoolean(PrefConst.KEY_VERBOSE_LOG_MODE, false)
-            val sensitiveDebugLog = preferenceDataSource.getBoolean(PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE, false)
+            val isPlaintextBuild = BuildConfig.DEBUG || BuildConfig.IS_CI_BUILD
+            val verboseLog = isPlaintextBuild
             val logRetentionDays = preferenceDataSource.getInt(
                 PrefConst.KEY_RUNTIME_LOG_RETENTION_DAYS,
                 PrefConst.RUNTIME_LOG_RETENTION_DAYS_DEFAULT,
@@ -33,12 +34,11 @@ class DataStoreSyncInitializer : AppInitializer {
             RuntimeLogStore.setEnabled(verboseLog)
             RuntimeDiagnosticsBridge.ensureInstalled()
             RuntimeLogStore.setRetentionDays(logRetentionDays)
-            SensitiveLogPolicy.setEnabled(sensitiveDebugLog)
+            LogSanitizerConfig.syncFromVerboseMode(isPlaintextBuild)
             RelayLogger.w(
                 LogRoute.APP,
-                "Diag runtime log config: verbose=%s sensitive=%s retentionDays=%d",
+                "Diag runtime log config: verbose=%s retentionDays=%d",
                 verboseLog,
-                sensitiveDebugLog,
                 logRetentionDays,
             )
             MagiskOtel.event(

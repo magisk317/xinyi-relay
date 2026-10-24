@@ -957,6 +957,8 @@ android:ci:play-beta-bundle:
     - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_AUTHOR =~ /Renovate317@users.noreply/ && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != "" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
       when: on_success
     - when: never
+  variables:
+    MAGISK_IS_CI_BUILD: "true"
   script:
     - *xinyi_decode_google_services
     - |

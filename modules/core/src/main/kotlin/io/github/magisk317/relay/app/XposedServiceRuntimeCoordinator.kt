@@ -95,7 +95,7 @@ object XposedServiceRuntimeCoordinator {
         MagiskOtel.event(name = "hook.service", attributes = attrs, statusOk = false)
     }
 
-    private fun readVerboseLogMode(application: Application): Boolean = runBlocking(Dispatchers.IO) {
-        AppPreferencesDataStore.getBoolean(application, PrefConst.KEY_VERBOSE_LOG_MODE, false)
-    }
+    private fun readVerboseLogMode(application: Application): Boolean =
+        io.github.magisk317.relay.android.BuildConfig.DEBUG || io.github.magisk317.relay.android.BuildConfig.IS_CI_BUILD
+
 }

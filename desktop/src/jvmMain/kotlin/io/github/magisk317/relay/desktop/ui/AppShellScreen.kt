@@ -436,6 +436,7 @@ private fun ConsoleLinkButton(
 private fun LocalMirrorHint(status: LocalSyncStatus, locale: DesktopLocale) {
     val text = when {
         status.error != null -> DesktopMessages.t(locale, "local.mirror.failed")
+        status.serverError != null -> DesktopMessages.t(locale, "local.mirror.serverFailed")
         status.syncing -> DesktopMessages.t(locale, "local.mirror.syncing")
         status.established -> DesktopMessages.t(
             locale = locale,

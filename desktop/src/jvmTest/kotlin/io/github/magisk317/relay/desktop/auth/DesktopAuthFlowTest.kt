@@ -11,6 +11,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class DesktopAuthFlowTest {
@@ -58,6 +59,30 @@ class DesktopAuthFlowTest {
         } finally {
             server.stop(0)
         }
+    }
+
+    @Test
+    fun `a stray request does not complete the handoff`() = runBlocking {
+        val flow = DesktopAuthFlow()
+        flow.start()
+        // Browsers probe the loopback port for favicons and the like; such a
+        // request must not be mistaken for the callback exchange.
+        hitCallback(flow.callbackUrl.removeSuffix("/callback") + "/favicon.ico")
+        val stray = runCatching { flow.awaitCallback(500) }
+        assertTrue(stray.isFailure, "a stray request must not complete the callback")
+
+        hitCallback("${flow.callbackUrl}?code=ok&state=${flow.state}")
+        assertEquals("ok", flow.awaitCallback(10_000).code)
+        flow.close()
+    }
+
+    @Test
+    fun `percent-encoded callback values are decoded`() = runBlocking {
+        val flow = DesktopAuthFlow()
+        flow.start()
+        hitCallback("${flow.callbackUrl}?code=a%2Bb%2Fc&state=${flow.state}")
+        assertEquals("a+b/c", flow.awaitCallback(10_000).code)
+        flow.close()
     }
 
     @Test

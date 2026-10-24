@@ -18,7 +18,6 @@ class RelayLoggerTest {
     fun tearDown() {
         ContractXLog.resetForTest()
         RelayLogger.setRuntimeSinkForTest(null)
-        SensitiveLogPolicy.setEnabled(false)
     }
 
     @Test

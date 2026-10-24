@@ -59,8 +59,8 @@ func (s *Server) handleRealtimeWS(w http.ResponseWriter, r *http.Request, auth a
 	}
 	defer conn.Close()
 
-	s.hub.Register(auth.User.ID, conn)
-	defer s.hub.Unregister(auth.User.ID, conn)
+	client := s.hub.Register(auth.User.ID, conn)
+	defer s.hub.Unregister(auth.User.ID, client)
 
 	_ = conn.SetReadDeadline(time.Now().Add(60 * time.Second))
 	conn.SetPongHandler(func(string) error {

@@ -1,11 +1,11 @@
 package io.github.magisk317.relay.app
 
 import io.github.magisk317.relay.android.diagnostics.RuntimeDiagnosticsBridge
+import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
 import android.app.Application
 import android.content.Context
 import io.github.magisk317.relay.analytics.AnalyticsTracker
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
-import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.platform.sender.SenderLogBridge
 import io.github.magisk317.relay.android.platform.sender.SenderRuntimeBridge
@@ -25,7 +25,6 @@ object AppInfrastructureCoordinator {
         AnalyticsTracker.init(application)
         RuntimeDiagnosticsBridge.ensureInstalled()
         RuntimeLogStore.initialize(application, enableDetailedLogs = false)
-        SensitiveLogPolicy.setEnabled(false)
         SenderRuntimeBridge.install(application)
         SenderLogBridge.install()
         io.github.magisk317.xposed.logging.XLog.configure(

@@ -10,7 +10,12 @@ import io.github.magisk317.relay.desktop.core.model.Record
 import io.github.magisk317.relay.desktop.core.model.SyncResult
 import io.github.magisk317.relay.desktop.core.model.SystemInfo
 import io.github.magisk317.relay.desktop.core.store.RemoteStore
+import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -149,8 +154,68 @@ class DesktopLocalSyncTest {
         assertFalse(controller.status.syncing)
     }
 
+    @Test
+    fun `a tick round queues behind an in-flight push instead of failing`() = runBlocking {
+        val remote = GatedRemoteStore()
+        val controller = controller()
+        controller.start(remote)
+        try {
+            requireNotNull(controller.store).queueDeviceConfigCommand(
+                deviceId = 7L,
+                baseRevision = 4L,
+                summary = "apps:update",
+                mutation = JsonObject(mapOf("apps" to JsonPrimitive("x"))),
+            )
+            val push = launch { controller.push() }
+            withTimeout(5.seconds) { remote.pushEntered.await() }
+
+            // The tick starts while the push still holds the sync engine.
+            val tick = launch { controller.sync() }
+            delay(50)
+
+            remote.releasePush.complete(Unit)
+            push.join()
+            tick.join()
+
+            assertNull(
+                controller.status.error,
+                "a tick during a push must wait its turn, not collide with the running round",
+            )
+            assertEquals(1, remote.pushCalls)
+            assertNotNull(controller.lastReport, "the last completed round reports through lastReport")
+        } finally {
+            controller.stop()
+        }
+    }
+
     private fun controller() = DesktopLocalSyncController { remote ->
         DesktopLocalRuntime.createInMemory(remote)
+    }
+
+    /**
+     * The pull path of the fake backend, with the push direction gated so a
+     * test can hold a push in flight while it drives a tick round.
+     */
+    private class GatedRemoteStore(
+        private val delegate: RemoteStore = FakeRemoteStore(),
+    ) : RemoteStore by delegate {
+
+        val pushEntered = CompletableDeferred<Unit>()
+        val releasePush = CompletableDeferred<Unit>()
+        var pushCalls = 0
+            private set
+
+        override suspend fun queueDeviceConfigCommand(
+            deviceId: Long,
+            baseRevision: Long,
+            summary: String,
+            mutation: JsonElement,
+        ): DeviceConfigCommand {
+            pushCalls++
+            pushEntered.complete(Unit)
+            releasePush.await()
+            return delegate.queueDeviceConfigCommand(deviceId, baseRevision, summary, mutation)
+        }
     }
 
     private class FakeRemoteStore(var failDevices: Boolean = false) : RemoteStore {

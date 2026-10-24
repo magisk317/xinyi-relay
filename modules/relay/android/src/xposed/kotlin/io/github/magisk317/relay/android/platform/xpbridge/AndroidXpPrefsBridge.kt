@@ -14,7 +14,6 @@ object AndroidXpPrefsBridge : XpPrefsRuntimeBridge {
 
     override fun isEnabled(context: Context): Boolean = PrefsReader.isEnabled(context)
     override fun isVerboseLogMode(context: Context): Boolean = PrefsReader.isVerboseLogMode(context)
-    override fun isSensitiveDebugLogSupported(): Boolean = PrefsReader.isSensitiveDebugLogSupported()
     override fun isSensitiveDebugLogMode(context: Context): Boolean = PrefsReader.isSensitiveDebugLogMode(context)
     override fun relayFeaturesEnabled(context: Context): Boolean = PrefsReader.relayFeaturesEnabled(context)
     override fun mobileAutomationAllowed(context: Context): Boolean = PrefsReader.mobileAutomationAllowed(context)

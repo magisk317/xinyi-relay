@@ -26,10 +26,13 @@ android {
         consumerProguardFiles("consumer-rules.pro")
     }
 
+val magiskIsCiBuild: Boolean = (providers.gradleProperty("isCiBuild").orNull
+    ?: providers.environmentVariable("MAGISK_IS_CI_BUILD").orNull)?.toBooleanStrictOrNull() ?: false
+
     buildTypes {
         release {
             isMinifyEnabled = false
-            buildConfigField("int", "LOG_LEVEL", "5")
+            buildConfigField("int", "LOG_LEVEL", if (magiskIsCiBuild) "2" else "5")
             buildConfigField("boolean", "LOG_TO_XPOSED", "true")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

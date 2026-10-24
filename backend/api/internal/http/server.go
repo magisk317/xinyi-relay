@@ -87,10 +87,16 @@ func NewServer(ctx context.Context, cfg config.Config) (*Server, error) {
 	handler = s.withLogging(handler)
 	handler = observability.WrapHTTPHandler(handler)
 
+	// WebSocket upgrades hijack their connection, so the read/write
+	// deadlines below never apply to realtime sockets; their deadlines
+	// live in the realtime hub instead.
 	s.server = &http.Server{
 		Addr:              cfg.HTTPAddr,
 		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       60 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	return s, nil

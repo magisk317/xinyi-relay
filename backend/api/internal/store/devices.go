@@ -164,43 +164,24 @@ func (s *Store) UpdateDeviceHeartbeat(
 	return err
 }
 
+// PatchDevice updates only the fields that were actually supplied; a nil
+// argument leaves the stored value untouched. A single UPDATE ... RETURNING
+// keeps this atomic instead of reading the row first.
 func (s *Store) PatchDevice(ctx context.Context, userID, deviceID int64, displayName *string, enabled *bool) (Device, error) {
-	var current Device
-	rows, err := s.ListDevicesByUser(ctx, userID)
-	if err != nil {
-		return Device{}, err
-	}
-	for _, device := range rows {
-		if device.ID == deviceID {
-			current = device
-			break
-		}
-	}
-	if current.ID == 0 {
-		return Device{}, ErrNotFound
-	}
-
-	if displayName == nil {
-		displayName = &current.DisplayName
-	}
-	if enabled == nil {
-		enabled = &current.Enabled
-	}
-
 	var updated Device
-	err = s.db.Pool.QueryRow(
+	err := s.db.Pool.QueryRow(
 		ctx,
 		`UPDATE devices
-		    SET display_name = $3,
-		        enabled = $4,
-		        updated_at = NOW()
-		  WHERE user_id = $1 AND id = $2
-		  RETURNING id, user_id, device_name, device_model, platform, app_version, display_name, enabled,
-		            revoked_at, last_seen_at, local_addresses, capabilities, created_at, updated_at`,
+                    SET display_name = COALESCE($3::text, display_name),
+                        enabled = COALESCE($4::boolean, enabled),
+                        updated_at = NOW()
+                  WHERE user_id = $1 AND id = $2
+                  RETURNING id, user_id, device_name, device_model, platform, app_version, display_name, enabled,
+                            revoked_at, last_seen_at, local_addresses, capabilities, created_at, updated_at`,
 		userID,
 		deviceID,
-		*displayName,
-		*enabled,
+		displayName,
+		enabled,
 	).Scan(
 		&updated.ID,
 		&updated.UserID,

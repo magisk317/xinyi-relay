@@ -1,8 +1,11 @@
 package io.github.magisk317.relay.desktop.session
 
+import java.nio.ByteBuffer
+import java.nio.charset.StandardCharsets
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.nio.file.StandardOpenOption
 import java.nio.file.attribute.PosixFilePermissions
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -62,6 +65,7 @@ class ProfileStore(
     private val stateFile: Path get() = dir.resolve("profiles.json")
     private fun sessionFile(profileId: String): Path = dir.resolve("session-$profileId.json")
 
+    @Synchronized
     fun loadState(): PersistedDesktopState {
         val f = stateFile
         if (!Files.exists(f)) return PersistedDesktopState()
@@ -69,8 +73,19 @@ class ProfileStore(
             .getOrDefault(PersistedDesktopState())
     }
 
+    @Synchronized
     fun saveState(state: PersistedDesktopState) {
         writePrivate(stateFile, json.encodeToString(PersistedDesktopState.serializer(), state))
+    }
+
+    /**
+     * Applies [transform] to the persisted state and writes the result back
+     * while holding the state lock, so two concurrent read-modify-write callers
+     * cannot drop each other's changes.
+     */
+    @Synchronized
+    fun updateState(transform: (PersistedDesktopState) -> PersistedDesktopState) {
+        saveState(transform(loadState()))
     }
 
     fun loadSession(profileId: String): DesktopSession? {
@@ -133,9 +148,30 @@ class ProfileStore(
         )
     }
 
+    /**
+     * Writes [text] owner-only from the moment the file is created. Creating it
+     * first and tightening the permissions afterwards leaves a window in which
+     * the contents are readable by other local users.
+     */
     private fun writePrivate(path: Path, text: String) {
         Files.createDirectories(path.parent)
-        Files.writeString(path, text)
-        runCatching { Files.setPosixFilePermissions(path, PosixFilePermissions.fromString("rw-------")) }
+        val bytes = text.toByteArray(StandardCharsets.UTF_8)
+        val ownerOnly = runCatching {
+            PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"))
+        }.getOrNull()
+        if (ownerOnly == null) {
+            // Filesystem without POSIX modes: nothing to restrict, write plainly.
+            Files.write(path, bytes)
+            return
+        }
+        Files.newByteChannel(
+            path,
+            setOf(
+                StandardOpenOption.CREATE,
+                StandardOpenOption.WRITE,
+                StandardOpenOption.TRUNCATE_EXISTING,
+            ),
+            ownerOnly,
+        ).use { channel -> channel.write(ByteBuffer.wrap(bytes)) }
     }
 }
