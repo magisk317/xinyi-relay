@@ -11,10 +11,9 @@ import io.github.magisk317.relay.sender.SLog
 object MatrixE2eeBridge {
     private const val TAG = "MatrixE2eeBridge"
 
-    @Suppress("UNUSED_PARAMETER")
     @JvmStatic
     fun install(context: Context) {
-        MatrixE2eePlatform.initialize()
+        MatrixE2eePlatform.initialize(context)
         MatrixE2eeSenderProvider.install(MatrixE2eeRuntime)
         MatrixE2eeVerificationProvider.install(MatrixE2eeVerificationRuntime)
         SLog.i(TAG, "Matrix E2EE dynamic feature bridge installed")

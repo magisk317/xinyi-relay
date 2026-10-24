@@ -181,40 +181,60 @@ object MatrixE2eeRuntime : MatrixE2eeSender {
                     reason = "e2ee_sent",
                     durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
                 )
+            } catch (e: TimeoutCancellationException) {
+                throw failEncryptedSend(e, safeSetting, startedAt)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                // Step 4: Fallback to plaintext on any encryption/send failure
-                val fallbackReason = categorizeFailureReason(e)
-                SLog.w(
-                    TAG,
-                    "E2EE send failed, falling back to plaintext " +
-                        "(reason=$fallbackReason, roomId=${safeSetting.roomId}): " +
-                        "${e.javaClass.simpleName}: ${e.message}",
-                    e,
-                )
-                MatrixUtils.sendMsg(setting, msgInfo)
-                emitMatrixE2ee(
-                    result = "ok",
-                    reason = "fallback_${fallbackReason}",
-                    durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
-                )
+                throw failEncryptedSend(e, safeSetting, startedAt)
             }
         }
     }
 
     /**
+     * An encrypted room must never receive a plaintext downgrade: surface the
+     * failure to the dispatcher instead of reporting a successful fallback.
+     */
+    private fun failEncryptedSend(
+        error: Exception,
+        setting: MatrixSetting,
+        startedAt: Long,
+    ): IllegalStateException {
+        val reason = categorizeFailureReason(error)
+        SLog.e(
+            TAG,
+            "E2EE send failed; refusing plaintext downgrade for encrypted room " +
+                "(reason=$reason, roomId=${setting.roomId}): " +
+                "${error.javaClass.simpleName}: ${error.message}",
+            error,
+        )
+        emitMatrixE2ee(
+            result = "error",
+            reason = "e2ee_failed_$reason",
+            durationMs = ((System.nanoTime() - startedAt) / 1_000_000L).coerceAtLeast(0L),
+            statusOk = false,
+        )
+        return IllegalStateException(
+            "Matrix E2EE send failed (reason=$reason): " +
+                "${error.javaClass.simpleName}: ${error.message}",
+            error,
+        )
+    }
+
+    /**
      * Performs the actual encrypted send via matrix-rust-sdk Timeline.
-     * Throws on any failure so the caller can handle fallback.
+     * Throws on any failure; [sendMsg] converts it into a dispatch error instead
+     * of downgrading an encrypted room to plaintext.
      *
      * Retry logic: if timeline send fails, retry once with the same parameters.
-     * If the retry also fails, the exception propagates to the caller for plaintext fallback.
+     * If the retry also fails, the exception propagates to the caller.
      */
     private suspend fun sendEncrypted(
         context: Context,
         setting: MatrixSetting,
         msgInfo: MsgInfo,
     ) = withContext(Dispatchers.IO) {
+        MatrixE2eePlatform.initialize(context)
         val client = getOrCreateClient(context, setting)
         logClientSession(client, "after_client_restore")
         val diagnosticWindow = openDiagnosticWindow(client, setting.roomId)
@@ -708,14 +728,16 @@ object MatrixE2eeRuntime : MatrixE2eeSender {
                 client.syncOnceV2(SyncSettingsV2(timeoutMs = 0u.toULong()))
             }
             SLog.i(TAG, "Initial key sync completed successfully")
+        } catch (e: TimeoutCancellationException) {
+            throw IllegalStateException(
+                "Initial key sync timed out before E2EE send: ${e.message}",
+                e,
+            )
         } catch (e: Exception) {
-            // Sync timeout/failure is acceptable for send-only usage.
-            // The SDK's Timeline send will attempt to establish Megolm sessions
-            // and distribute keys inline if no prior sync has occurred.
-            SLog.w(
-                TAG,
-                "Initial sync skipped (${e.javaClass.simpleName}: ${e.message}). " +
-                    "Proceeding with Timeline send — SDK will handle key distribution inline.",
+            throw IllegalStateException(
+                "Initial key sync failed before E2EE send: " +
+                    "${e.javaClass.simpleName}: ${e.message}",
+                e,
             )
         }
 

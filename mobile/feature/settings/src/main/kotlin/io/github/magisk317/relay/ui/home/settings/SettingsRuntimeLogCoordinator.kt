@@ -16,6 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import io.github.magisk317.xposed.diagnostics.DiagnosticBundleNames
+import io.github.magisk317.xposed.logging.MagiskLogPolicy
 import io.github.magisk317.smscode.runtime.common.diagnostics.LogBundleExporter
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeDiagnosticsEnvironment
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
@@ -42,6 +43,17 @@ internal fun rememberSettingsRuntimeLogActions(
 ): SettingsRuntimeLogActions {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    // A release never reaches the export path: no launcher, no exporter call, no callback.
+    // Debug and CI builds are the capture channel and keep the full wiring below.
+    if (!MagiskLogPolicy.current().allowsLogExport) {
+        return remember {
+            SettingsRuntimeLogActions(
+                onRuntimeLogTitleClick = {},
+                onRuntimeLogRetentionClick = {},
+                onClearLog = {},
+            )
+        }
+    }
     var showRetentionDialog by remember { mutableStateOf(false) }
     var showClearConfirmDialog by remember { mutableStateOf(false) }
 

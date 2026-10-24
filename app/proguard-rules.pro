@@ -147,5 +147,8 @@
 # ==========================
 # rustls-platform-verifier start
 -keep, includedescriptorclasses class org.rustls.platformverifier.** { *; }
+# JNI name must survive R8: libmatrix_sdk_ffi.so exports
+# Java_org_matrix_rustsdk_Android_init and resolves it reflectively.
+-keep class org.matrix.rustsdk.Android { *; }
 # rustls-platform-verifier end
 # ==========================

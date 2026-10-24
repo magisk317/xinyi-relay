@@ -414,6 +414,18 @@
     <string name="pref_remote_agent_unbound">Device unbound</string>
     <string name="pref_remote_agent_scan_done">Bind code scanned</string>
     <string name="pref_remote_agent_bind_done">Phone connected to the web console (deviceId=%1$d)</string>
+    <string name="pref_remote_agent_scan_failed">Scanning failed. Check Google Play services, or enter the bind code manually.</string>
+    <string name="pref_remote_agent_link_filled">Scan result filled in. Tap Bind device to finish.</string>
+    <string name="pref_remote_agent_system_scan_hint">System scanner opened. Scan the bind QR code to return here.</string>
+    <string name="pref_remote_agent_install_scanner">Install scanner</string>
+    <string name="pref_remote_agent_bind_failed">Bind failed. Check the backend URL, network, and bind code.</string>
+    <string name="pref_remote_agent_save_failed">Could not save the backend URL.</string>
+    <string name="pref_remote_agent_heartbeat_failed">Heartbeat failed. Check the backend URL and network.</string>
+    <string name="pref_remote_agent_pull_failed">Pull failed. Check the backend URL and network.</string>
+    <string name="pref_remote_agent_push_failed">Push failed. Check the backend URL and network.</string>
+    <string name="pref_remote_agent_records_failed">Upload failed. Check the backend URL and network.</string>
+    <string name="pref_remote_agent_error_network">Cannot reach the backend. Check the URL and network.</string>
+    <string name="pref_remote_agent_error_invalid_base_url">The backend URL must start with http:// or https://</string>
     <string name="pref_remote_agent_status_title">Sync state</string>
     <string name="pref_remote_agent_bound_device_title">Bound device</string>
     <string name="pref_remote_agent_revision_title">Last applied revision</string>

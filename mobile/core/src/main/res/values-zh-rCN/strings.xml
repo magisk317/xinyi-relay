@@ -416,6 +416,18 @@
     <string name="pref_remote_agent_unbound">设备已解除绑定</string>
     <string name="pref_remote_agent_scan_done">已读取绑定二维码</string>
     <string name="pref_remote_agent_bind_done">手机已接入网页控制台（deviceId=%1$d）</string>
+    <string name="pref_remote_agent_scan_failed">扫码失败。请检查 Google Play 服务，或手动输入绑定码。</string>
+    <string name="pref_remote_agent_link_filled">已填入扫码结果，点击“绑定设备”完成绑定。</string>
+    <string name="pref_remote_agent_system_scan_hint">已打开系统扫一扫，扫描绑定二维码后会自动回到本页。</string>
+    <string name="pref_remote_agent_install_scanner">安装扫码组件</string>
+    <string name="pref_remote_agent_bind_failed">绑定失败，请检查后台地址、网络和绑定码。</string>
+    <string name="pref_remote_agent_save_failed">无法保存后台地址。</string>
+    <string name="pref_remote_agent_heartbeat_failed">心跳失败，请检查后台地址与网络。</string>
+    <string name="pref_remote_agent_pull_failed">拉取失败，请检查后台地址与网络。</string>
+    <string name="pref_remote_agent_push_failed">推送失败，请检查后台地址与网络。</string>
+    <string name="pref_remote_agent_records_failed">上传失败，请检查后台地址与网络。</string>
+    <string name="pref_remote_agent_error_network">无法连接后台，请检查后台地址与网络。</string>
+    <string name="pref_remote_agent_error_invalid_base_url">后台地址必须以 http:// 或 https:// 开头</string>
     <string name="pref_remote_agent_status_title">同步状态</string>
     <string name="pref_remote_agent_bound_device_title">绑定设备</string>
     <string name="pref_remote_agent_revision_title">最近应用 revision</string>

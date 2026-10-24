@@ -1,31 +1,31 @@
 include:
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "5a9cef57abe852dc7798664e03ad50256a0204dd"
+    ref: "32b04bbf4364ad3446ff4d296738fa77944a27af"
     file: /.gitlab/ci/android.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "5a9cef57abe852dc7798664e03ad50256a0204dd"
+    ref: "32b04bbf4364ad3446ff4d296738fa77944a27af"
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "5a9cef57abe852dc7798664e03ad50256a0204dd"
+    ref: "32b04bbf4364ad3446ff4d296738fa77944a27af"
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "5a9cef57abe852dc7798664e03ad50256a0204dd"
+    ref: "32b04bbf4364ad3446ff4d296738fa77944a27af"
     file: /.gitlab/ci/renovate.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "5a9cef57abe852dc7798664e03ad50256a0204dd"
+    ref: "32b04bbf4364ad3446ff4d296738fa77944a27af"
     file: /.gitlab/ci/cancel-mr-pipelines.yml
   # Utility-job anchor (alpine, pinned): the GitHub mirror and the README-badge
   # job extend it instead of pinning their own image. Language-tool jobs
   # (backend:go, webui:check, the docker/node jobs) keep their own pinned tool
   # images by design.
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "5a9cef57abe852dc7798664e03ad50256a0204dd"
+    ref: "32b04bbf4364ad3446ff4d296738fa77944a27af"
     file: /.gitlab/ci/utility.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "5a9cef57abe852dc7798664e03ad50256a0204dd"
+    ref: "32b04bbf4364ad3446ff4d296738fa77944a27af"
     file: /.gitlab/ci/github-sync.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "5a9cef57abe852dc7798664e03ad50256a0204dd"
+    ref: "32b04bbf4364ad3446ff4d296738fa77944a27af"
     file: /.gitlab/ci/readme-badges.yml
 
 workflow:
@@ -51,7 +51,7 @@ stages:
 
 variables:
   MAGISK_CI_TOOLKIT_REPOSITORY: "https://gitlab.com/magisk3171/shared/magisk-ci-toolkit.git"
-  MAGISK_CI_TOOLKIT_REF: "5a9cef57abe852dc7798664e03ad50256a0204dd"
+  MAGISK_CI_TOOLKIT_REF: "32b04bbf4364ad3446ff4d296738fa77944a27af"
   MAGISK_CANCEL_OLDER_MR_PIPELINES: "true"
   # Cancel the merged MR's own merge_request_event pipeline from the push
   # pipeline that lands the merge. GitLab has no cancel-on-merge hook and
@@ -363,6 +363,7 @@ backend:container:amd64:
     - .xinyi_backend_publish_rules
   resource_group: xinyi-backend-docker-amd64
   stage: build
+  allow_failure: true
   tags:
     - $XINYI_GITLAB_LINUX_AMD64_RUNNER_TAG
   needs:
@@ -378,6 +379,7 @@ backend:container:arm64:
     - .xinyi_backend_publish_rules
   resource_group: xinyi-backend-docker-arm64
   stage: build
+  allow_failure: true
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
@@ -393,6 +395,7 @@ backend:container:manifest:
     - .xinyi_backend_publish_rules
   resource_group: xinyi-backend-docker-manifest
   stage: release
+  allow_failure: true
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
@@ -462,7 +465,7 @@ desktop:release:gitlab:
 
 webui:check:
   extends: .xinyi_android_rules
-  image: "oven/bun:1.4.3-alpine"
+  image: "oven/bun:1.4.4-alpine"
   stage: quality
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
@@ -524,6 +527,7 @@ webui:check:
     paths:
       - frontend/webui/dist/
 
+# The in-app updater resolves this job by name; do not rename it.
 android:build:
   extends:
     - .magisk_android_build
@@ -550,9 +554,13 @@ android:build:
       -PbuildSplits
       -PminifyDebug
       -PskipGoogleServices=true
-    # Bind artifact versionCode to the pipeline iid so the in-app
-    # update check sees a monotonically increasing version axis.
-    MAGISK_GRADLE_ARGS: "--warning-mode all -PversionCode=$CI_PIPELINE_IID"
+    # Bind artifact versionCode to the shared allocator: the pipeline iid used to
+    # play this role, but Play's own scale runs ahead of it and Google Play compares
+    # versionCode, not versionName. The template appends the allocated
+    # -PversionCode itself (last one wins) and exports MAGISK_VERSION_CODE for
+    # staging.
+    MAGISK_VERSION_SCOPE: "gitlab:$CI_PROJECT_ID:$CI_PIPELINE_IID"
+    MAGISK_GRADLE_ARGS: "--warning-mode all"
   artifacts:
     name: "XinyiRelay-debug-$CI_COMMIT_REF_SLUG"
     when: always
@@ -561,6 +569,7 @@ android:build:
       - app/build/outputs/apk/github/debug/*.apk
       - ci-dist/app-ci.apk
       - ci-dist/version.txt
+      - ci-dist/app-ci-manifest.json
   # A job-level after_script replaces the one inherited from
   # .magisk_android_base, so the otel export is restated here before staging.
   after_script:
@@ -581,7 +590,16 @@ android:build:
       mkdir -p ci-dist
       cp app/build/outputs/apk/github/debug/universal_*.apk ci-dist/app-ci.apk
       apk_name=$(basename app/build/outputs/apk/github/debug/universal_*.apk)
-      echo "$apk_name" | sed -n 's/^universal_.*_v\(.*\)_debug\.apk$/\1/p' > ci-dist/version.txt
+      apk_version=$(echo "$apk_name" | sed -n 's/^universal_.*_v\(.*\)_debug\.apk$/\1/p')
+      echo "$apk_version" > ci-dist/version.txt
+      # The in-app updater judges a build by this manifest's versionCode, so it must
+      # carry the allocated number rather than the pipeline iid. Staging it also
+      # gates the download on the sha256 below.
+      apk_sha=$(sha256sum ci-dist/app-ci.apk | cut -d' ' -f1)
+      printf '{"schema":1,"variant":"github","versionName":"%s","versionCode":%s,"sha256":"%s","force":true,"minSupportedVersionCode":%s}\n' \
+        "$apk_version" "${MAGISK_VERSION_CODE:?version code was not allocated}" \
+        "$apk_sha" "${MAGISK_VERSION_CODE:?version code was not allocated}" \
+        > ci-dist/app-ci-manifest.json
 
 android:check:
   extends: .magisk_android_build
@@ -609,7 +627,7 @@ cancel:older:mr:pipelines:
   # stage still runs when the publish job is absent) instead of
   # consuming the release runner in parallel.
   needs:
-    - job: android:ci:play-beta
+    - job: android:ci:publish-play
       artifacts: false
       optional: true
   script:
@@ -655,7 +673,7 @@ android:detekt:
   # stage still runs when the publish job is absent) instead of
   # consuming the release runner in parallel.
   needs:
-    - job: android:ci:play-beta
+    - job: android:ci:publish-play
       artifacts: false
       optional: true
   allow_failure: true
@@ -835,7 +853,7 @@ android:release:guard:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs: []
 
-android:release:github-apk:
+android:release:apk:
   # Driven by the shared template. The project only declares what is
   # project-specific: the GitHub flavours and the split flag. Keystore
   # decoding, version resolution and signature validation are the template's
@@ -864,7 +882,7 @@ android:release:github-apk:
       - app/build/outputs/mapping/**/mapping.txt
       - play-release.env
 
-android:release:play-bundle:
+android:release:aab:
   extends:
     - .magisk_android_base
     - .magisk_android_release_tag_rules
@@ -924,13 +942,13 @@ android:release:gitlab:
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
-    - job: android:release:github-apk
+    - job: android:release:apk
       artifacts: true
-    - job: android:release:play-bundle
+    - job: android:release:aab
       artifacts: true
       optional: true
 
-android:release:play:
+android:release:publish-play:
   extends: .magisk_android_publish_play
   resource_group: xinyi-android-release-play
   stage: release
@@ -946,7 +964,7 @@ android:release:play:
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
-    - job: android:release:play-bundle
+    - job: android:release:aab
       artifacts: true
   artifacts:
     reports:
@@ -956,7 +974,7 @@ android:release:play:
     when: always
     expire_in: 1 day
 
-android:ci:play-beta-bundle:
+android:ci:aab:
   extends: .magisk_android_base
   resource_group: xinyi-android-release-play
   stage: build
@@ -997,7 +1015,7 @@ android:ci:play-beta-bundle:
       - app/build/outputs/mapping/**/mapping.txt
       - play-release.env
 
-android:ci:play-beta:
+android:ci:publish-play:
   extends: .magisk_utility_base
   resource_group: xinyi-android-release-play
   stage: release
@@ -1014,7 +1032,7 @@ android:ci:play-beta:
       when: on_success
     - when: never
   needs:
-    - job: android:ci:play-beta-bundle
+    - job: android:ci:aab
       artifacts: true
   # .magisk_utility_base ships the image only, and this job runs
   # release/publish_play.sh from the toolkit, so resolve the toolkit here with
@@ -1047,8 +1065,8 @@ android:ci:play-beta:
       - play-release-status.env
 
 android:release:modules-repo:
-  # The modules repo publishes release APKs, and only android:release:github-apk
-  # produces them (play-bundle emits an AAB). Pointing this at play-bundle made
+  # The modules repo publishes release APKs, and only android:release:apk
+  # produces them (android:release:aab emits an AAB). Pointing this at play-bundle made
   # the template's APK lookup fail with "no release APK files found".
   extends: .magisk_android_publish_modules_repo
   resource_group: xinyi-android-release-publish
@@ -1056,7 +1074,7 @@ android:release:modules-repo:
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   needs:
-    - job: android:release:github-apk
+    - job: android:release:apk
       artifacts: true
 
 
@@ -1074,7 +1092,7 @@ telegram:release:
     # TG_CHAT_ID (which retargets CI to the new room) does NOT override this.
     TG_RELEASE_CHAT_ID: "-1003532345372"
   needs:
-    - job: android:release:github-apk
+    - job: android:release:apk
       artifacts: true
     - job: backend:container:manifest
       artifacts: true
@@ -1133,7 +1151,7 @@ android:release:github:
     # block, so a global override here would be silently ignored.
     MAGISK_ANDROID_RELEASE_GITHUB_ASSET_PATTERN: "*.apk"
   needs:
-    - job: android:release:github-apk
+    - job: android:release:apk
       artifacts: true
     # gh release create would otherwise invent the tag at the GitHub default
     # branch HEAD while the mirror has not published it yet.

@@ -77,8 +77,6 @@ trap cleanup EXIT
 
 cd "$BACKEND_DIR"
 cp -f .env.example .env
-# Caddy 在容器内需要监听所有接口，否则 Docker 端口映射无法到达
-sed -i 's/^RELAY_HTTP_HOST=.*/RELAY_HTTP_HOST=0.0.0.0/' .env
 set -a
 # shellcheck disable=SC1091
 . ./.env
@@ -198,7 +196,7 @@ echo "[smoke] heartbeat"
 smoke_curl -X POST "$BASE_URL/api/v1/agent/heartbeat" \
   -H "Authorization: Bearer $DEVICE_TOKEN" \
   -H 'Content-Type: application/json' \
-  -d '{"appVersion":"0.0.4","localAddresses":["https://192.168.1.2:8443"],"capabilities":{"remoteConfig":true,"recordUpload":true}}' | jq .
+  -d '{"appVersion":"0.0.4","localAddresses":["http://192.168.1.2:8088"],"capabilities":{"remoteConfig":true,"recordUpload":true}}' | jq .
 
 echo "[smoke] fetch device config mirror"
 web_curl "$BASE_URL/api/v1/devices/$DEVICE_ID/config" >/tmp/relay_device_config.json

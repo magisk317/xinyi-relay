@@ -411,6 +411,18 @@
     <string name="pref_remote_agent_unbound">裝置已解除綁定</string>
     <string name="pref_remote_agent_scan_done">已讀取綁定 QR Code</string>
     <string name="pref_remote_agent_bind_done">手機已接入網頁控制台（deviceId=%1$d）</string>
+    <string name="pref_remote_agent_scan_failed">掃碼失敗。請檢查 Google Play 服務，或手動輸入綁定碼。</string>
+    <string name="pref_remote_agent_link_filled">已填入掃碼結果，點擊「綁定裝置」完成綁定。</string>
+    <string name="pref_remote_agent_system_scan_hint">已開啟系統掃一掃，掃描綁定 QR Code 後會自動回到本頁。</string>
+    <string name="pref_remote_agent_install_scanner">安裝掃碼元件</string>
+    <string name="pref_remote_agent_bind_failed">綁定失敗，請檢查後台位址、網路和綁定碼。</string>
+    <string name="pref_remote_agent_save_failed">無法儲存後台位址。</string>
+    <string name="pref_remote_agent_heartbeat_failed">心跳失敗，請檢查後台位址與網路。</string>
+    <string name="pref_remote_agent_pull_failed">拉取失敗，請檢查後台位址與網路。</string>
+    <string name="pref_remote_agent_push_failed">推送失敗，請檢查後台位址與網路。</string>
+    <string name="pref_remote_agent_records_failed">上傳失敗，請檢查後台位址與網路。</string>
+    <string name="pref_remote_agent_error_network">無法連線後台，請檢查後台位址與網路。</string>
+    <string name="pref_remote_agent_error_invalid_base_url">後台位址必須以 http:// 或 https:// 開頭</string>
     <string name="pref_remote_agent_status_title">同步狀態</string>
     <string name="pref_remote_agent_bound_device_title">綁定裝置</string>
     <string name="pref_remote_agent_revision_title">最近套用 revision</string>

@@ -1,6 +1,7 @@
 package http
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io/fs"
@@ -207,14 +208,30 @@ func (s *Server) handleWebUI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	serveWebUI(fSys, w, r)
+}
+
+func serveWebUI(fSys fs.FS, w http.ResponseWriter, r *http.Request) {
 	p := strings.TrimPrefix(r.URL.Path, "/")
 	if p == "" {
 		p = "index.html"
 	}
 
-	// Use fs.Stat to check existence
 	if stat, err := fs.Stat(fSys, p); err != nil || stat.IsDir() {
 		p = "index.html"
+	}
+
+	// http.FileServer redirects every path ending in /index.html to ./, which
+	// would loop forever for SPA routes. Serve the shell directly instead.
+	if p == "index.html" {
+		data, err := fs.ReadFile(fSys, p)
+		if err != nil {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Cache-Control", "no-cache")
+		http.ServeContent(w, r, p, time.Time{}, bytes.NewReader(data))
+		return
 	}
 
 	r.URL.Path = "/" + p

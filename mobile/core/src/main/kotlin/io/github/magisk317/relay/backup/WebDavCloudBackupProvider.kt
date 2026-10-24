@@ -35,7 +35,7 @@ class WebDavCloudBackupProvider(
 
     override suspend fun enableAutoBackup(enabled: Boolean) {
         CloudBackupSettingsStore.setAutoBackup(context, BackupSource.WEBDAV, enabled)
-        XLog.i("WebDAV auto backup setting changed: enabled=%s", enabled)
+        XLog.i("WebDAV auto backup setting changed: enabled=$enabled")
     }
 
     override fun isAutoBackupEnabled(): Boolean {

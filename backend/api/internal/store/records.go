@@ -143,7 +143,8 @@ func (s *Store) ListRelayRecords(ctx context.Context, userID int64, limit int32,
 	}
 	defer rows.Close()
 
-	var result []RelayRecord
+	// Non-nil so an empty page serializes as [] rather than null.
+	result := make([]RelayRecord, 0)
 	for rows.Next() {
 		var record RelayRecord
 		if err := rows.Scan(

@@ -41,8 +41,9 @@ class SmsCodeApplication : Application() {
         // Before anything logs or crashes: the policy decides both redaction and how much a
         // bundle collects, and the crash writer has to be in place to catch the rest of startup.
         MagiskLogPolicy.install(
-            isDebugBuild = BuildConfig.DEBUG,
-            isCiBuild = BuildConfig.IS_CI_BUILD,
+            // -PminifyDebug makes the debug variant non-debuggable, which clears
+            // BuildConfig.DEBUG; the build type still identifies the capture channel.
+            isDebugBuild = BuildConfig.BUILD_TYPE == "debug",
             allowPlaintextLogs = BuildConfig.ALLOW_PLAINTEXT_LOGS,
         )
         RuntimeCrashLogs.install(this)

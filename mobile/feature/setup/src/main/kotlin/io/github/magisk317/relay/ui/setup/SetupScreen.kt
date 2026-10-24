@@ -32,6 +32,10 @@ import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.relay.ui.common.PrivacyPolicyDialog
 import io.github.magisk317.relay.ui.common.PrivacyPolicyPage
 import io.github.magisk317.relay.ui.permission.StartupPermissionCollector
+import io.github.magisk317.uikit.onboarding.OnboardingActionRowCard
+import io.github.magisk317.uikit.onboarding.OnboardingItemState
+import io.github.magisk317.uikit.onboarding.OnboardingStatusRow
+import io.github.magisk317.uikit.onboarding.OnboardingSummaryHeader
 import io.github.magisk317.uikit.surface.AppCard
 import io.github.magisk317.uikit.surface.AppCircularProgressIndicator
 import io.github.magisk317.uikit.surface.AppPrimaryButton
@@ -358,57 +362,39 @@ private fun GrantManualStep(
 
 @Composable
 private fun DoneStep(state: SetupUiState) {
-    AppText(text = stringResource(R.string.setup_done_title), role = AppTextRole.Title)
-    if (state.permissionStatuses.isNotEmpty() || state.missing.isNotEmpty()) {
-        AppText(
-            text = stringResource(R.string.setup_done_granted, state.grantedCount),
-            role = AppTextRole.Body,
-        )
-    } else {
-        AppText(
-            text = stringResource(R.string.setup_done_all_ready),
-            role = AppTextRole.Body,
-        )
-    }
-    if (state.missing.isNotEmpty()) {
-        AppText(
-            text = stringResource(R.string.setup_done_missing, state.missing.size),
-            role = AppTextRole.BodySmall,
-        )
-    }
+    OnboardingSummaryHeader(
+        title = stringResource(R.string.setup_done_title),
+        grantedText = if (state.permissionStatuses.isNotEmpty() || state.missing.isNotEmpty()) {
+            stringResource(R.string.setup_done_granted, state.grantedCount)
+        } else {
+            stringResource(R.string.setup_done_all_ready)
+        },
+        missingText = if (state.missing.isNotEmpty()) {
+            stringResource(R.string.setup_done_missing, state.missing.size)
+        } else {
+            null
+        },
+    )
     if (state.permissionStatuses.isNotEmpty()) {
         SectionHeading(
             title = stringResource(R.string.setup_done_list_title),
         )
         state.permissionStatuses.forEach { status ->
-            AppCard {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    AppText(
-                        text = status.requirement.label,
-                        role = AppTextRole.Body,
-                        modifier = Modifier.weight(1f),
-                    )
-                    AppText(
-                        text = stringResource(
-                            if (status.granted) {
-                                R.string.setup_done_item_granted
-                            } else {
-                                R.string.setup_done_item_missing
-                            },
-                        ),
-                        role = AppTextRole.Footnote,
-                        color = appColor(
-                            if (status.granted) AppColorRole.Primary else AppColorRole.Error,
-                        ),
-                    )
-                }
-            }
+            OnboardingStatusRow(
+                label = status.requirement.label,
+                state = if (status.granted) {
+                    OnboardingItemState.Granted
+                } else {
+                    OnboardingItemState.Outstanding
+                },
+                stateText = stringResource(
+                    if (status.granted) {
+                        R.string.setup_done_item_granted
+                    } else {
+                        R.string.setup_done_item_missing
+                    },
+                ),
+            )
         }
     }
 }
@@ -420,28 +406,12 @@ private fun PermissionRow(
     actionText: String,
     onClick: () -> Unit,
 ) {
-    AppCard(onClick = onClick) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            AppText(
-                text = label,
-                role = AppTextRole.Body,
-                modifier = Modifier.weight(1f),
-            )
-            if (granted) {
-                AppText(
-                    text = stringResource(R.string.setup_done_item_granted),
-                    role = AppTextRole.Footnote,
-                    color = appColor(AppColorRole.Primary),
-                )
-            } else {
-                AppText(text = actionText, role = AppTextRole.Footnote)
-            }
-        }
-    }
+    OnboardingActionRowCard(
+        label = label,
+        actionText = if (granted) stringResource(R.string.setup_done_item_granted) else actionText,
+        onClick = onClick,
+        // An ungranted row keeps the neutral action hint: tinting it would read as an error
+        // on the row the user is about to fix.
+        state = if (granted) OnboardingItemState.Granted else null,
+    )
 }

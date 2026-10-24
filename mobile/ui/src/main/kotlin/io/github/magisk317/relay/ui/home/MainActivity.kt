@@ -8,6 +8,7 @@ import io.github.magisk317.uikit.surface.AppAlertDialog
 import io.github.magisk317.uikit.surface.AppPrimaryButton
 import io.github.magisk317.uikit.text.AppText
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
@@ -42,6 +43,8 @@ import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.smscode.runtime.common.utils.FrameworkCompatibilityMonitor
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.common.utils.relayPackageActions
+import io.github.magisk317.relay.common.utils.RelayBindLink
+import io.github.magisk317.relay.ui.nav.RemoteAgentRoute
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.uikit.update.AppUpdateController
 import io.github.magisk317.uikit.update.AppUpdateDialog
@@ -172,7 +175,15 @@ class MainActivity : ComponentActivity() {
 
             fun handleIncomingIntent(incoming: Intent?): Boolean {
                 viewModel.handleArguments(incoming?.extras)
-                val backupUri = incoming?.data ?: return true
+                val incomingData = incoming?.data ?: return true
+                RelayBindLink.fromUri(incomingData)?.let { payload ->
+                    requestedTab = RemoteAgentRoute(
+                        bindCode = payload.bindCode,
+                        baseUrl = payload.baseUrl,
+                    )
+                    return true
+                }
+                val backupUri = incomingData
                 return if (viewModel.handleBackupArguments(backupUri)) {
                     requestedTab = io.github.magisk317.relay.ui.nav.SettingsRoute
                     true
@@ -203,20 +214,7 @@ class MainActivity : ComponentActivity() {
             }
             LaunchedEffect(Unit) {
                 try {
-                    if (BuildConfig.ALLOW_CONFLICT_BYPASS) {
-                        XLog.w(
-                            "SmsCode conflict guard bypassed by build flag allowConflictBypass=true",
-                        )
-                    } else if (relayPackageActions.isPackageInstalled(context, Const.XPOSED_SMSCODE_PACKAGE_NAME)) {
-                        blockingStartupDialog = BlockingStartupDialog.SmsCodeConflict
-                        return@LaunchedEffect
-                    }
-                    val frameworkIssue = withContext(Dispatchers.IO) {
-                        relayPackageActions.inspectFrameworkIssue(context)
-                    }
-                    if (frameworkIssue != null) {
-                        blockingStartupDialog = BlockingStartupDialog.FrameworkIncompatibility(frameworkIssue)
-                    }
+                    blockingStartupDialog = inspectStartupCompatibility(context)
                 } finally {
                     startupCompatibilityChecked = true
                 }
@@ -460,6 +458,26 @@ class MainActivity : ComponentActivity() {
             }
         }
         installJankStatsIfDebug()
+    }
+
+    /**
+     * Inspect the install environment and surface a blocking dialog when push
+     * delivery cannot work here: a conflicting SMS-code hook package, or an
+     * Xposed framework incompatibility. Returns null when the environment is
+     * clean; the conflict-bypass build flag only skips the package check.
+     */
+    private suspend fun inspectStartupCompatibility(context: Context): BlockingStartupDialog? {
+        if (BuildConfig.ALLOW_CONFLICT_BYPASS) {
+            XLog.w(
+                "SmsCode conflict guard bypassed by build flag allowConflictBypass=true",
+            )
+        } else if (relayPackageActions.isPackageInstalled(context, Const.XPOSED_SMSCODE_PACKAGE_NAME)) {
+            return BlockingStartupDialog.SmsCodeConflict
+        }
+        val frameworkIssue = withContext(Dispatchers.IO) {
+            relayPackageActions.inspectFrameworkIssue(context)
+        }
+        return frameworkIssue?.let { BlockingStartupDialog.FrameworkIncompatibility(it) }
     }
 
     private fun installJankStatsIfDebug() {

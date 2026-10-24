@@ -5,10 +5,8 @@
 当前包含：
 
 - Docker Compose 基础编排
-- Go API 服务
+- Go API 服务（内嵌 WebUI）
 - PostgreSQL
-- Caddy 反向代理
-- Web 控制台托管入口
 - API 概览文档
 
 ## 快速开始
@@ -28,8 +26,8 @@ docker compose --env-file backend/.env -f backend/docker-compose.yml up -d
 3. 检查健康状态：
 
 ```bash
-curl -k https://localhost:8443/healthz
-curl -k https://localhost:8443/api/v1/system/info
+curl http://localhost:8088/healthz
+curl http://localhost:8088/api/v1/system/info
 ```
 
 4. 跑一遍本地闭环冒烟：
@@ -40,11 +38,10 @@ backend/scripts/smoke_local.sh
 
 说明：
 
-- `api` 容器仅在内部网络监听 `:8080`
+- `api` 容器内监听 `:8080`，compose 默认映射到宿主机 `:8088`
+- WebUI 已内嵌进 API 二进制，控制台页面与 `/api/*` 使用同一入口
 - `api` 默认直接拉取 `docker.io/alpha317/xinyi-relay-backend:beta`
-- 对外入口统一走 Caddy `https://localhost:8443`
-- 当前使用 `tls internal` 自签发证书；本地调试可先使用 `curl -k`
-- `webui/dist` 会由 Caddy 直接托管，同一入口同时提供前端页面和 `/api/*`
+- 默认入口是明文 HTTP，仅适合本机或可信内网；需要 HTTPS 时请在 API 前自行部署反向代理，并把 `RELAY_LOCAL_BASE_URL` / `RELAY_CORS_ORIGIN` 改成对外地址
 - 管理员账户可通过 `.env` 中的 `RELAY_ADMIN_USERNAME` / `RELAY_ADMIN_PASSWORD` 在首次启动时自动初始化
 
 如果你要临时切到某个固定版本或私有镜像，可以在 `backend/.env` 里覆盖：
@@ -157,27 +154,16 @@ grep -i "error\|fatal\|panic" backend/logs/backend.log
 2026/05/04 12:34:56.789123 main.go:45: relay backend starting on :8080
 ```
 
-## Android Agent 接入本地 HTTPS
+## 反向代理与 HTTPS（可选）
 
-如果 Android Agent 需要直连本地 `https://localhost:8443` 风格的自签发入口：
+compose 默认不包含 Caddy，API 直接监听宿主机 `8088`。如需 HTTPS，请在 API 前自行部署反向代理（Caddy、Nginx 等），并把 `RELAY_LOCAL_BASE_URL` 与 `RELAY_CORS_ORIGIN` 改成反向代理的对外地址，例如 `https://relay.example.com`。
 
-1. 先启动一次 Caddy，让内部 CA 生成根证书
-2. 根证书默认位于：
-
-```text
-backend/caddy-data/caddy/pki/authorities/local/root.crt
-```
-
-3. 把这张证书安装到 Android 的“用户证书”
-4. 当前 Android `network_security_config` 已显式信任 `system + user` 证书锚，装入后即可用于 Remote Agent 的本地 HTTPS 连接
-
-如果后续切到公网域名和正式证书，就不再需要这个步骤。
+Android Agent 使用自签证书时，需要把反向代理使用的根证书安装到 Android 的“用户证书”；当前 `network_security_config` 已信任 `system + user` 证书锚。
 
 ## 后续演进
 
 - 继续收敛 Web / Desktop 与手机端的功能 parity
-- 继续减少历史嵌入式 WebUI 代码残留
-- 逐步把前端静态资源也纳入远端镜像链，减少宿主机对本地 `webui/dist` 的依赖
+- 持续完善部署文档与多架构镜像发布流程
 
 ## 容器镜像托管
 
@@ -214,13 +200,15 @@ docker.io/alpha317/xinyi-relay-backend
 发布后的常见标签：
 
 - `beta`
-- `v0.0.4` 这类 tag 名
+- `v0.4.0` 这类 tag 名
 - `latest`：仅在 `v*` tag 发布时附带
 
 架构：
 
 - `linux/amd64`
 - `linux/arm64`
+
+每个架构会先推送 `<tag>-amd64` / `<tag>-arm64` 的临时标签；只有两个架构都构建成功，才会生成不带架构后缀的合并 tag。若某个架构任务失败，该发布 tag 不会出现，请检查对应流水线的 amd64/arm64 构建结果。
 
 拉取示例：
 

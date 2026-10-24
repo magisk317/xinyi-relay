@@ -377,9 +377,16 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
             }
             SLog.d(TAG, "Matrix verification E2EE init completed")
         } catch (e: TimeoutCancellationException) {
-            SLog.w(TAG, "Matrix verification E2EE init timed out: ${e.message}")
+            throw IllegalStateException(
+                "Matrix verification E2EE init timed out: ${e.message}",
+                e,
+            )
         } catch (e: Exception) {
-            SLog.w(TAG, "Matrix verification E2EE init failed: ${e.javaClass.simpleName}: ${e.message}")
+            throw IllegalStateException(
+                "Matrix verification E2EE init failed: " +
+                    "${e.javaClass.simpleName}: ${e.message}",
+                e,
+            )
         }
     }
 
@@ -396,9 +403,16 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
                     "user=${summarizeValue(session.userId)}",
             )
         } catch (e: TimeoutCancellationException) {
-            SLog.w(TAG, "Matrix verification own identity check timed out: ${e.message}")
+            throw IllegalStateException(
+                "Matrix verification own identity check timed out: ${e.message}",
+                e,
+            )
         } catch (e: Exception) {
-            SLog.w(TAG, "Matrix verification own identity check failed: ${e.javaClass.simpleName}: ${e.message}")
+            throw IllegalStateException(
+                "Matrix verification own identity check failed: " +
+                    "${e.javaClass.simpleName}: ${e.message}",
+                e,
+            )
         }
     }
 
@@ -409,17 +423,14 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
         }
 
         val room = runCatching { client.getRoom(setting.roomId) }.getOrElse { error ->
-            SLog.w(
-                TAG,
+            throw IllegalStateException(
                 "Matrix verification room lookup failed before key refresh: " +
                     "${error.javaClass.simpleName}: ${error.message}",
+                error,
             )
-            null
-        }
-        if (room == null) {
-            SLog.w(TAG, "Matrix verification device key refresh skipped: room not found")
-            return
-        }
+        } ?: throw IllegalStateException(
+            "Matrix verification device key refresh failed: room not found: ${setting.roomId}",
+        )
 
         try {
             val memberCount = withTimeout(VERIFICATION_INIT_TIMEOUT_MS) {
@@ -427,12 +438,15 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
             }
             SLog.d(TAG, "Matrix verification room members fetched for key refresh: count=$memberCount")
         } catch (e: TimeoutCancellationException) {
-            SLog.w(TAG, "Matrix verification member fetch timed out before key refresh: ${e.message}")
+            throw IllegalStateException(
+                "Matrix verification member fetch timed out before key refresh: ${e.message}",
+                e,
+            )
         } catch (e: Exception) {
-            SLog.w(
-                TAG,
+            throw IllegalStateException(
                 "Matrix verification member fetch failed before key refresh: " +
                     "${e.javaClass.simpleName}: ${e.message}",
+                e,
             )
         }
 
@@ -456,12 +470,15 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
                     "verificationState=$verificationState hasDevices=$hasDevices",
             )
         } catch (e: TimeoutCancellationException) {
-            SLog.w(TAG, "Matrix verification device key refresh sync timed out: ${e.message}")
+            throw IllegalStateException(
+                "Matrix verification device key refresh sync timed out: ${e.message}",
+                e,
+            )
         } catch (e: Exception) {
-            SLog.w(
-                TAG,
+            throw IllegalStateException(
                 "Matrix verification device key refresh sync failed: " +
                     "${e.javaClass.simpleName}: ${e.message}",
+                e,
             )
         }
     }
@@ -474,9 +491,16 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
             }
             SLog.d(TAG, "Matrix verification initial sync completed")
         } catch (e: TimeoutCancellationException) {
-            SLog.w(TAG, "Matrix verification initial sync timed out: ${e.message}")
+            throw IllegalStateException(
+                "Matrix verification initial sync timed out: ${e.message}",
+                e,
+            )
         } catch (e: Exception) {
-            SLog.w(TAG, "Matrix verification initial sync failed: ${e.javaClass.simpleName}: ${e.message}")
+            throw IllegalStateException(
+                "Matrix verification initial sync failed: " +
+                    "${e.javaClass.simpleName}: ${e.message}",
+                e,
+            )
         }
     }
 

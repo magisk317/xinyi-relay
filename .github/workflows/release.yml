@@ -1,619 +1,212 @@
+# GitHub fallback for the Android release axis.
+#
+# GitLab owns releases: .gitlab-ci.yml runs the same scripts through
+# .gitlab/ci/android-release.yml, gated by the $RELEASE_OWNER group variable.
+# This file exists for the one situation where that chain cannot run at all --
+# the GitLab runner fleet is down -- so a release can still be cut, published to
+# the GitHub Release, submitted to Play, and pushed to Xposed-Modules-Repo.
+#
+# The publishing itself lives in the toolkit
+# (magisk317/magisk-ci-toolkit/.github/workflows/release-android.yml,
+# .gitlab-ci.yml pins it at the same SHA the GitLab pipeline includes), so the
+# two hosts share one implementation instead of two that drift. See
+# docs/hosting-cutover.md, "GitHub fallback release chain".
+#
+# This file replaces the in-repo chain that duplicated those ~600 lines here.
+# Keep `name: Release` -- release-versioncode-recovery.yml fires on a completed
+# run of the workflow called "Release", and that recovery path is this project's
+# own (Play burns every versionCode it sees, so a collided code needs a bump PR).
+#
+# Deploying this file does not enable publishing. GitHub publishes only while the
+# repository variable RELEASE_OWNER is exactly `github`:
+#   Settings -> Secrets and variables -> Actions -> Repository variables
+# That equality is deliberate -- sync:github force-pushes every GitLab release
+# tag here, so an unset variable would make every mirrored tag a second publish
+# from the mirror's own pushes.
+#
+# Emergency sequence -- the full procedure, including the recovery checklist, is
+# docs/github-fallback-release.md in the toolkit. Short form:
+#   1. scripts/release/release_tag.sh creates the signed annotated tag locally
+#      (it sources the toolkit's release/release_tag.sh; no signing key exists
+#      on GitHub and none is created here).
+#   2. push the branch and the tag to github only. sync:github cannot run while
+#      the fleet is down, so the mirror push is manual -- and pushing the tag to
+#      GitLab now would queue a tag pipeline that publishes a second time as
+#      soon as a runner returns. The tag goes back during recovery.
+#   3. set RELEASE_OWNER=github on this repository.
+#   4. Run workflow -> Release, tag name, publish switches as required.
+#      Steps 3 and 4 are the only actions that produce external side effects, so
+#      rehearse first with dry_run=true and RELEASE_OWNER left as `gitlab`: a dry
+#      run builds and verifies and writes nothing outside the runner. It does not
+#      need a tag that exists yet, because the guard compares the tag name with
+#      versionName -- so the next version is a valid rehearsal target.
+#   5. When GitLab runners are back, run the toolkit's
+#      release/reconcile_github_refs.sh (read-only first, then --apply) and only
+#      then set RELEASE_OWNER back, or the next sync:github force-push overwrites
+#      whatever this chain published.
+#
+# What this chain does not cover, and why that is acceptable in an outage:
+#   * Telegram. The release card is reviewed by a human before it goes out
+#     (notification.yml stays workflow_dispatch only), so nothing here sends it.
+#   * desktop:release:gitlab and the backend container images. They publish to a
+#     GitLab release and to a registry, not to the GitHub Release, and both need
+#     a Linux ARM runner; the Android artifact set -- what the app update channel
+#     and Xposed-Modules-Repo consume -- is what has to keep working.
+#
+# Project-specific choices below:
+#   * bun_manifest is deliberately left empty. frontend/webui is the relay's own
+#     web UI, served by the Go backend (backend:go stages a webui_dist directory
+#     into the container image); it is not an Android asset. `dist/` is
+#     gitignored, no gradle file reads it, and GitLab's android:release:apk job
+#     never installs Bun, so a Bun step here would be work the reference pipeline
+#     does not do.
+#   * google_services_paths mirrors the .xinyi_decode_google_services anchor. Note
+#     one asymmetry: GitLab fails the job when GOOGLE_SERVICES_JSON is unset
+#     (`:?` in the anchor), while the chain logs and continues. The secret is set
+#     on this repository, and a rehearsal run is what proves the flavoured build
+#     actually consumes it.
+#   * keystore_path stays at the template default (repo-root release.jks), which
+#     is what GitLab's android:release:apk writes. GitLab's hand-rolled
+#     android:release:aab writes the same bytes to app/release.jks; both jobs
+#     export KEYSTORE_FILE to wherever they put it, so the path is not an input
+#     to the artifact.
 name: Release
 
 on:
   push:
     tags:
-      - 'v*.*.*'  # Semantic version tag, e.g. v3.1.4
+      - 'v*.*.*'
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Signed release tag to publish (created locally with scripts/release/release_tag.sh)'
+        required: true
+        type: string
+      publish_github_release:
+        description: 'Create or update the GitHub Release'
+        type: boolean
+        default: true
+      publish_play:
+        description: 'Submit the Play bundle to Google Play'
+        type: boolean
+        default: true
+      publish_modules_repo:
+        description: 'Publish the channel tag to Xposed-Modules-Repo'
+        type: boolean
+        default: true
+      dry_run:
+        description: 'Build and verify only; no GitHub Release, Play or Xposed-Modules-Repo side effects'
+        type: boolean
+        default: false
 
 permissions:
-  packages: read
   contents: read
 
-env:
-  GITHUB_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || secrets.GITHUB_TOKEN }}
-
+# A half-finished publish must never be cancelled out from under a re-run: the
+# GitHub Release would exist without the Xposed-Modules-Repo channel tag, and the
+# next run would upload into that mixture.
 concurrency:
-  group: ${{ github.workflow }}
-  cancel-in-progress: true
+  group: release-${{ inputs.release_tag || github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  validate-release:
-    name: Validate Release Metadata
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
-    runs-on: ubuntu-26.04
-    steps:
-      - name: Configure GitLab submodule credentials
-        env:
-          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
-        run: |
-          if [[ -z "$GITLAB_TOKEN" ]]; then
-            echo "::error::GITLAB_TOKEN secret is not set; cannot clone gitlab.com submodules"
-            exit 1
-          fi
-          git config --global http.https://gitlab.com/.extraheader "AUTHORIZATION: basic $(printf 'oauth2:%s' "$GITLAB_TOKEN" | base64 -w0)"
-      - uses: actions/checkout@v7
-        with:
-          submodules: recursive
-          fetch-depth: 0
-      - uses: ./.github/actions/resolve-ci-toolkit
-        with:
-          ref: 5a9cef57abe852dc7798664e03ad50256a0204dd
-      - name: Setup Android CI
-        uses: ./.magisk-ci-toolkit/.github/actions/setup-android-ci
-        with:
-          checkout: 'false'
-
-      - name: Validate release notes and tag/version consistency
-        run: |
-          chmod +x scripts/release/check_release_guard.sh
-          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            scripts/release/check_release_guard.sh "${GITHUB_REF_NAME}"
-          else
-            scripts/release/check_release_guard.sh
-          fi
-
-  build-github-apk:
-    name: Build GitHub APK
-    needs: [validate-release]
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
-    runs-on: ubuntu-26.04
-    env:
-      HAS_RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE != '' }}
-      HAS_GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
-    steps:
-      - name: Configure GitLab submodule credentials
-        env:
-          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
-        run: |
-          if [[ -z "$GITLAB_TOKEN" ]]; then
-            echo "::error::GITLAB_TOKEN secret is not set; cannot clone gitlab.com submodules"
-            exit 1
-          fi
-          git config --global http.https://gitlab.com/.extraheader "AUTHORIZATION: basic $(printf 'oauth2:%s' "$GITLAB_TOKEN" | base64 -w0)"
-      - uses: actions/checkout@v7
-        with:
-          submodules: recursive
-          fetch-depth: 0
-      - uses: ./.github/actions/resolve-ci-toolkit
-        with:
-          ref: 5a9cef57abe852dc7798664e03ad50256a0204dd
-      - name: Setup Android CI
-        uses: ./.magisk-ci-toolkit/.github/actions/setup-android-ci
-        with:
-          checkout: 'false'
-
-      - name: Set up Bun
-        shell: bash
-        run: |
-          set -euo pipefail
-          bash .magisk-ci-toolkit/ci/ensure_bun.sh frontend/webui/package.json
-      - name: Install WebUI dependencies
-        run: bun -C frontend/webui install --frozen-lockfile --ignore-scripts
-
-      - name: Decode Keystore
-        if: env.HAS_RELEASE_KEYSTORE == 'true'
-        run: echo "${{ secrets.RELEASE_KEYSTORE }}" | base64 --decode > release.jks
-
-      - name: Decode Google Services
-        if: env.HAS_GOOGLE_SERVICES_JSON == 'true'
-        run: |
-          mkdir -p app/src/github app/src/play
-          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/github/google-services.json
-          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/play/google-services.json
-
-      - name: Build GitHub APK with Splits
-        uses: ./.magisk-ci-toolkit/.github/actions/run-gradle-with-retry
-        with:
-          arguments: >
-            assembleGithubRelease
-            -PbuildSplits
-        env:
-          KEYSTORE_FILE: release.jks
-          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: apks-github
-          path: app/build/outputs/apk/**/release/*.apk
-
-      - name: Detect GitHub Native Symbols
-        id: github_symbols
-        shell: bash
-        run: |
-          shopt -s nullglob
-          files=(app/build/outputs/native-debug-symbols/github*Release/native-debug-symbols.zip)
-          if (( ${#files[@]} == 0 )); then
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          echo "exists=true" >> "$GITHUB_OUTPUT"
-          {
-            echo "paths<<EOF"
-            printf '%s\n' "${files[@]}"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Upload Native Symbols Artifact
-        if: steps.github_symbols.outputs.exists == 'true'
-        uses: actions/upload-artifact@v7
-        with:
-          name: native-symbols-github
-          path: ${{ steps.github_symbols.outputs.paths }}
-
-  build-aab:
-    name: Build Bundle
-    needs: [validate-release]
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
+  # Decides, and says out loud why. A fallback workflow that silently produced an
+  # empty green run is how a release gets "published" by nobody.
+  release-eligibility:
+    name: Check release ownership
     runs-on: ubuntu-26.04
     outputs:
-      has_play_native_symbols: ${{ steps.play_symbols.outputs.exists }}
-    env:
-      HAS_RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE != '' }}
-      HAS_GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
+      proceed: ${{ steps.gate.outputs.proceed }}
+      publishes: ${{ steps.gate.outputs.publishes }}
     steps:
-      - name: Configure GitLab submodule credentials
-        env:
-          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
-        run: |
-          if [[ -z "$GITLAB_TOKEN" ]]; then
-            echo "::error::GITLAB_TOKEN secret is not set; cannot clone gitlab.com submodules"
-            exit 1
-          fi
-          git config --global http.https://gitlab.com/.extraheader "AUTHORIZATION: basic $(printf 'oauth2:%s' "$GITLAB_TOKEN" | base64 -w0)"
-      - uses: actions/checkout@v7
-        with:
-          submodules: recursive
-          fetch-depth: 0
-      - uses: ./.github/actions/resolve-ci-toolkit
-        with:
-          ref: 5a9cef57abe852dc7798664e03ad50256a0204dd
-      - name: Setup Android CI
-        uses: ./.magisk-ci-toolkit/.github/actions/setup-android-ci
-        with:
-          checkout: 'false'
-
-      - name: Set up Bun
+      - id: gate
         shell: bash
+        env:
+          OWNER: ${{ vars.RELEASE_OWNER }}
+          EVENT: ${{ github.event_name }}
+          DRY_RUN: ${{ inputs.dry_run }}
         run: |
           set -euo pipefail
-          bash .magisk-ci-toolkit/ci/ensure_bun.sh frontend/webui/package.json
-      - name: Install WebUI dependencies
-        run: bun -C frontend/webui install --frozen-lockfile --ignore-scripts
-
-      - name: Decode Keystore
-        if: env.HAS_RELEASE_KEYSTORE == 'true'
-        run: echo "${{ secrets.RELEASE_KEYSTORE }}" | base64 --decode > release.jks
-
-      - name: Decode Google Services
-        if: env.HAS_GOOGLE_SERVICES_JSON == 'true'
-        run: |
-          mkdir -p app/src/github app/src/play
-          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/github/google-services.json
-          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 --decode > app/src/play/google-services.json
-
-      - name: Build App Bundle
-        uses: ./.magisk-ci-toolkit/.github/actions/run-gradle-with-retry
-        with:
-          arguments: bundlePlayRelease
-        env:
-          KEYSTORE_FILE: release.jks
-          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-
-      - name: Upload AAB Artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: bundle-assets
-          path: |
-            app/build/outputs/bundle/playRelease/*.aab
-            app/build/outputs/mapping/playRelease/mapping.txt
-
-      - name: Detect Play Native Symbols
-        id: play_symbols
-        shell: bash
-        run: |
-          file="app/build/outputs/native-debug-symbols/playRelease/native-debug-symbols.zip"
-          if [[ -f "$file" ]]; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "path=$file" >> "$GITHUB_OUTPUT"
+          proceed=false
+          publishes=false
+          mode=''
+          if [[ "$OWNER" == "github" ]]; then
+            proceed=true
+            if [[ "$DRY_RUN" == "true" ]]; then
+              mode='dry run while RELEASE_OWNER=github'
+            else
+              publishes=true
+              mode='publishing (RELEASE_OWNER=github)'
+            fi
+          elif [[ "$EVENT" == "workflow_dispatch" && "$DRY_RUN" == "true" ]]; then
+            # A rehearsal writes nothing outside the runner, so it is allowed
+            # while GitLab still owns the release.
+            proceed=true
+            mode="dry run (RELEASE_OWNER=${OWNER:-unset})"
+          elif [[ "$EVENT" == "workflow_dispatch" ]]; then
+            echo "::error::GitHub is not the release owner (RELEASE_OWNER=${OWNER:-unset})."
+            echo "   Either set RELEASE_OWNER=github on this repository to publish from here,"
+            echo "   or re-run with dry_run checked to rehearse without side effects."
+            exit 1
           else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
+            mode="not the owner (RELEASE_OWNER=${OWNER:-unset}); tag ref left unhandled"
           fi
-
-      - name: Upload Play Native Symbols Artifact
-        if: steps.play_symbols.outputs.exists == 'true'
-        uses: actions/upload-artifact@v7
-        with:
-          name: native-symbols-play
-          path: ${{ steps.play_symbols.outputs.path }}
+          echo "proceed=$proceed" >> "$GITHUB_OUTPUT"
+          echo "publishes=$publishes" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Release eligibility"
+            echo ""
+            echo "- Event: \`$EVENT\`"
+            echo "- RELEASE_OWNER: \`${OWNER:-unset}\`"
+            echo "- Decision: **$mode**"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   release:
-    name: Create Release
-    needs: [build-github-apk, build-aab]
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/'))
-    runs-on: ubuntu-26.04
+    name: Release (toolkit chain)
+    needs: release-eligibility
+    if: needs.release-eligibility.outputs.proceed == 'true'
     permissions:
       contents: write
-    env:
-      HAS_RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE != '' }}
-      HAS_GOOGLE_PLAY_CREDENTIALS: ${{ secrets.ANDROID_PUBLISHER_CREDENTIALS != '' }}
-    steps:
-      - name: Configure GitLab submodule credentials
-        env:
-          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
-        run: |
-          if [[ -z "$GITLAB_TOKEN" ]]; then
-            echo "::error::GITLAB_TOKEN secret is not set; cannot clone gitlab.com submodules"
-            exit 1
-          fi
-          git config --global http.https://gitlab.com/.extraheader "AUTHORIZATION: basic $(printf 'oauth2:%s' "$GITLAB_TOKEN" | base64 -w0)"
-      - uses: actions/checkout@v7
-        with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - uses: actions/download-artifact@v8
-        with:
-          name: apks-github
-          path: artifacts/apks
-
-      - uses: actions/download-artifact@v8
-        with:
-          name: bundle-assets
-          path: artifacts/bundle
-
-      - uses: actions/download-artifact@v8
-        if: needs.build-aab.outputs.has_play_native_symbols == 'true'
-        with:
-          name: native-symbols-play
-          path: artifacts/symbols-play
-
-      - name: Parse release tag
-        id: release_meta
-        if: startsWith(github.ref, 'refs/tags/')
-        shell: bash
-        run: |
-          eval "$(bash scripts/release/release_ref.sh parse-ref "${GITHUB_REF_TYPE}" "${GITHUB_REF_NAME}")"
-          {
-            echo "release_kind=$release_kind"
-            echo "release_version=$release_version"
-            echo "release_tag=$release_tag"
-            echo "release_title<<EOF"
-            echo "$release_title"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Extract Release Notes from CHANGELOG
-        id: release_notes
-        if: startsWith(github.ref, 'refs/tags/')
-        shell: bash
-        run: |
-          set -euo pipefail
-          release_name="${{ steps.release_meta.outputs.release_version }}"
-          notes_file="release-notes.md"
-          changelog_file="release-changelog.md"
-          cat > "$notes_file" <<'EOF'
-          <div align="center">
-            <a href="https://play.google.com/store/apps/details?id=io.github.magisk317.xinyi.relay">
-              <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="80"/>
-            </a>
-            <a href="https://github.com/magisk317/xinyi-relay/releases/tag/${{ steps.release_meta.outputs.release_tag }}">
-              <img src="https://raw.githubusercontent.com/machiav3lli/oandbackupx/master/badge_github.png" alt="Get it on GitHub" height="80"/>
-            </a>
-          </div>
-          EOF
-          printf '\n' >> "$notes_file"
-          awk -v version="$release_name" '
-            $0 == "---" && found { exit }
-            found { print; next }
-            index($0, "## [" version "]") == 1 { found = 1; print; next }
-            END { if (!found) exit 1 }
-          ' docs/CHANGELOG.md > "$changelog_file"
-          previous_tag=""
-          compare_range="$(sed -nE 's#.*compare/([^[:space:]]+)\.\.\.([^[:space:]]+).*#\1 \2#p' "$changelog_file" | head -n 1)"
-          if [[ -n "$compare_range" ]]; then
-            read -r previous_tag compare_to <<< "$compare_range"
-            if [[ "$compare_to" != "${{ steps.release_meta.outputs.release_tag }}" ]]; then
-              previous_tag=""
-            fi
-          fi
-          if [[ -z "$previous_tag" ]]; then
-            previous_tag="$(git describe --tags --abbrev=0 "${{ steps.release_meta.outputs.release_tag }}^{commit}^" 2>/dev/null || true)"
-          fi
-          generate_args=(-X POST -f "tag_name=${{ steps.release_meta.outputs.release_tag }}")
-          if [[ -n "$previous_tag" ]]; then
-            generate_args+=(-f "previous_tag_name=${previous_tag}")
-          fi
-          generated_notes="$(gh api "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
-            "${generate_args[@]}" \
-            --jq '.body' 2>/dev/null || true)"
-          if [[ -n "$generated_notes" ]]; then
-            sed -i '/^[[:space:]]*>[[:space:]]*Full Changelog:/d' "$changelog_file"
-          fi
-          cat "$changelog_file" >> "$notes_file"
-          if [[ -n "$generated_notes" ]]; then
-            printf '\n%s\n' "$generated_notes" >> "$notes_file"
-          fi
-          if [[ ! -s "$notes_file" ]]; then
-            echo "ERROR: empty release notes for $release_name" >&2
-            exit 1
-          fi
-          echo "notes_file=$notes_file" >> "$GITHUB_OUTPUT"
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
-
-      - name: Publish Release
-        if: startsWith(github.ref, 'refs/tags/') && env.HAS_RELEASE_KEYSTORE == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          tag_name="${{ steps.release_meta.outputs.release_tag }}"
-          release_name="${{ steps.release_meta.outputs.release_title }}"
-          notes_file="${{ steps.release_notes.outputs.notes_file }}"
-
-          mapfile -d '' release_assets < <(
-            find artifacts/apks artifacts/bundle -type f \( -name '*.apk' -o -name '*.aab' \) -print0 | sort -z
-          )
-          if [[ ${#release_assets[@]} -eq 0 ]]; then
-            echo "ERROR: no release assets found under artifacts/apks or artifacts/bundle" >&2
-            find artifacts/apks artifacts/bundle -maxdepth 6 -type f | sort >&2 || true
-            exit 1
-          fi
-
-          if gh release view "$tag_name" >/dev/null 2>&1; then
-            gh release upload "$tag_name" "${release_assets[@]}" --clobber
-            gh release edit "$tag_name" \
-              --title "$release_name" \
-              --draft=false \
-              --notes-file "$notes_file"
-          else
-            gh release create "$tag_name" "${release_assets[@]}" \
-              --title "$release_name" \
-              --verify-tag \
-              --notes-file "$notes_file"
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
-
-      - name: Determine Release Track
-        id: determine_track
-        if: startsWith(github.ref, 'refs/tags/')
-        run: |
-          TAG_NAME="${{ steps.release_meta.outputs.release_tag }}"
-          if [[ "$TAG_NAME" == *"-beta"* ]]; then
-            echo "track=beta" >> $GITHUB_OUTPUT
-          elif [[ "$TAG_NAME" == *"-alpha"* ]]; then
-            echo "track=alpha" >> $GITHUB_OUTPUT
-          elif [[ "$TAG_NAME" == *"-internal"* ]]; then
-            echo "track=internal" >> $GITHUB_OUTPUT
-          else
-            echo "track=production" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Resolve Play Publish Inputs
-        id: resolve_play
-        shell: bash
-        run: |
-          aab_file=$(find artifacts/bundle -type f -name 'XinyiRelay_v*.aab' | sort | head -n 1)
-          if [[ -z "$aab_file" ]]; then
-            aab_file=$(find artifacts/bundle -type f -name '*.aab' | sort | head -n 1)
-          fi
-          if [[ -z "$aab_file" ]]; then
-            echo "ERROR: no .aab found under artifacts/bundle" >&2
-            find artifacts/bundle -maxdepth 4 -type f | sort >&2 || true
-            exit 1
-          fi
-
-          mapping_file=$(find artifacts/bundle -type f -name mapping.txt | head -n 1 || true)
-          symbols_file=$(find artifacts/symbols-play -type f -name native-debug-symbols.zip 2>/dev/null | head -n 1 || true)
-
-          echo "aab_file=$aab_file" >> "$GITHUB_OUTPUT"
-          if [[ -n "$mapping_file" ]]; then
-            echo "has_mapping=true" >> "$GITHUB_OUTPUT"
-            echo "mapping_file=$mapping_file" >> "$GITHUB_OUTPUT"
-          else
-            echo "mapping.txt not found under artifacts/bundle; skipping ProGuard mapping upload."
-            echo "has_mapping=false" >> "$GITHUB_OUTPUT"
-          fi
-          if [[ -n "$symbols_file" ]]; then
-            echo "has_symbols=true" >> "$GITHUB_OUTPUT"
-            echo "symbols_file=$symbols_file" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_symbols=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Set up Ruby
-        if: startsWith(github.ref, 'refs/tags/') && env.HAS_GOOGLE_PLAY_CREDENTIALS == 'true'
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: 'ruby'
-
-      - name: Install fastlane
-        if: startsWith(github.ref, 'refs/tags/') && env.HAS_GOOGLE_PLAY_CREDENTIALS == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          ruby --version
-          gem --version
-          gem_user_dir="$(ruby -r rubygems -e 'print Gem.user_dir')"
-          echo "$gem_user_dir/bin" >> "$GITHUB_PATH"
-          gem install --user-install fastlane --no-document
-
-      - name: Publish to Google Play
-        if: startsWith(github.ref, 'refs/tags/') && env.HAS_GOOGLE_PLAY_CREDENTIALS == 'true'
-        shell: bash
-
-        run: |
-          set -euo pipefail
-
-          cmd=(
-            fastlane supply
-            --aab "${{ steps.resolve_play.outputs.aab_file }}"
-            --package_name "io.github.magisk317.xinyi.relay"
-            --track "${{ steps.determine_track.outputs.track }}"
-            --release_status "completed"
-            --json_key_data "$ANDROID_PUBLISHER_CREDENTIALS"
-            --skip_upload_metadata true
-            --skip_upload_changelogs true
-            --skip_upload_images true
-            --skip_upload_screenshots true
-          )
-
-          if [[ "${{ steps.resolve_play.outputs.has_mapping }}" == "true" && "${{ steps.resolve_play.outputs.has_symbols }}" == "true" ]]; then
-            cmd+=(--mapping_paths "${{ steps.resolve_play.outputs.mapping_file }},${{ steps.resolve_play.outputs.symbols_file }}")
-          elif [[ "${{ steps.resolve_play.outputs.has_mapping }}" == "true" ]]; then
-            cmd+=(--mapping "${{ steps.resolve_play.outputs.mapping_file }}")
-          elif [[ "${{ steps.resolve_play.outputs.has_symbols }}" == "true" ]]; then
-            cmd+=(--mapping_paths "${{ steps.resolve_play.outputs.symbols_file }}")
-          fi
-
-          "${cmd[@]}"
-        env:
-          FASTLANE_OPT_OUT_USAGE: "1"
-          ANDROID_PUBLISHER_CREDENTIALS: ${{ secrets.ANDROID_PUBLISHER_CREDENTIALS }}
-          FASTLANE_SKIP_UPDATE_CHECK: '1'
-          FASTLANE_DISABLE_COLORS: '1'
-          CI: 'true'
-
-  publish-to-modules-repo:
-    name: Publish to Xposed-Modules-Repo
-    needs: [release]
-    runs-on: ubuntu-26.04
-    if: startsWith(github.ref, 'refs/tags/')
-    env:
-      HAS_MODULES_REPO_TOKEN: ${{ secrets.XPOSED_MODULES_REPO_TOKEN != '' }}
-      HAS_RELEASE_KEYSTORE: ${{ secrets.RELEASE_KEYSTORE != '' }}
-      MODULES_REPO: Xposed-Modules-Repo/io.github.magisk317.xinyi.relay
-    steps:
-      - name: Configure GitLab submodule credentials
-        env:
-          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
-        run: |
-          if [[ -z "$GITLAB_TOKEN" ]]; then
-            echo "::error::GITLAB_TOKEN secret is not set; cannot clone gitlab.com submodules"
-            exit 1
-          fi
-          git config --global http.https://gitlab.com/.extraheader "AUTHORIZATION: basic $(printf 'oauth2:%s' "$GITLAB_TOKEN" | base64 -w0)"
-      - uses: actions/checkout@v7
-        with:
-          submodules: recursive
-          fetch-depth: 0
-
-      - name: Download APK Artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: apks-github
-          path: artifacts/apks
-
-      - name: Parse release tag
-        id: release_meta
-        shell: bash
-        run: |
-          eval "$(bash scripts/release/release_ref.sh parse-ref "${GITHUB_REF_TYPE}" "${GITHUB_REF_NAME}")"
-          {
-            echo "release_kind=$release_kind"
-            echo "release_tag=$release_tag"
-            echo "release_version=$release_version"
-            echo "release_title<<EOF"
-            echo "$release_title"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Extract Release Notes from CHANGELOG
-        id: release_notes
-        shell: bash
-        run: |
-          set -euo pipefail
-          release_name="${{ steps.release_meta.outputs.release_version }}"
-          notes_file="release-notes.md"
-          changelog_file="release-changelog.md"
-          cat > "$notes_file" <<'EOF'
-          <div align="center">
-            <a href="https://play.google.com/store/apps/details?id=io.github.magisk317.xinyi.relay">
-              <img src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" alt="Get it on Google Play" height="80"/>
-            </a>
-            <a href="https://github.com/magisk317/xinyi-relay/releases/tag/${{ steps.release_meta.outputs.release_tag }}">
-              <img src="https://raw.githubusercontent.com/machiav3lli/oandbackupx/master/badge_github.png" alt="Get it on GitHub" height="80"/>
-            </a>
-          </div>
-          EOF
-          printf '\n' >> "$notes_file"
-          awk -v version="$release_name" '
-            $0 == "---" && found { exit }
-            found { print; next }
-            index($0, "## [" version "]") == 1 { found = 1; print; next }
-            END { if (!found) exit 1 }
-          ' docs/CHANGELOG.md > "$changelog_file"
-          previous_tag=""
-          compare_range="$(sed -nE 's#.*compare/([^[:space:]]+)\.\.\.([^[:space:]]+).*#\1 \2#p' "$changelog_file" | head -n 1)"
-          if [[ -n "$compare_range" ]]; then
-            read -r previous_tag compare_to <<< "$compare_range"
-            if [[ "$compare_to" != "${{ steps.release_meta.outputs.release_tag }}" ]]; then
-              previous_tag=""
-            fi
-          fi
-          if [[ -z "$previous_tag" ]]; then
-            previous_tag="$(git describe --tags --abbrev=0 "${{ steps.release_meta.outputs.release_tag }}^{commit}^" 2>/dev/null || true)"
-          fi
-          generate_args=(-X POST -f "tag_name=${{ steps.release_meta.outputs.release_tag }}")
-          if [[ -n "$previous_tag" ]]; then
-            generate_args+=(-f "previous_tag_name=${previous_tag}")
-          fi
-          generated_notes="$(gh api "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
-            "${generate_args[@]}" \
-            --jq '.body' 2>/dev/null || true)"
-          if [[ -n "$generated_notes" ]]; then
-            sed -i '/^[[:space:]]*>[[:space:]]*Full Changelog:/d' "$changelog_file"
-          fi
-          cat "$changelog_file" >> "$notes_file"
-          if [[ -n "$generated_notes" ]]; then
-            printf '\n%s\n' "$generated_notes" >> "$notes_file"
-          fi
-          if [[ ! -s "$notes_file" ]]; then
-            echo "ERROR: empty release notes for $release_name" >&2
-            exit 1
-          fi
-          echo "notes_file=$notes_file" >> "$GITHUB_OUTPUT"
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT != '' && secrets.GH_PAT || github.token }}
-
-      - name: Publish Release in Xposed-Modules-Repo
-        if: env.HAS_MODULES_REPO_TOKEN == 'true' && env.HAS_RELEASE_KEYSTORE == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          tag_name="${{ steps.release_meta.outputs.release_version }}"
-          release_name="${{ steps.release_meta.outputs.release_title }}"
-          notes_file="${{ steps.release_notes.outputs.notes_file }}"
-
-          mapfile -d '' apk_files < <(find artifacts/apks -type f -name '*.apk' -print0 | sort -z)
-          if [[ ${#apk_files[@]} -eq 0 ]]; then
-            echo "ERROR: no APK files found under artifacts/apks" >&2
-            find artifacts/apks -maxdepth 6 -type f | sort >&2 || true
-            exit 1
-          fi
-          if gh release view "$tag_name" --repo "${{ env.MODULES_REPO }}" >/dev/null 2>&1; then
-            gh release upload "$tag_name" "${apk_files[@]}" \
-              --repo "${{ env.MODULES_REPO }}" \
-              --clobber
-            gh release edit "$tag_name" \
-              --repo "${{ env.MODULES_REPO }}" \
-              --title "$release_name" \
-              --draft=false \
-              --notes-file "$notes_file"
-          else
-            gh release create "$tag_name" \
-              "${apk_files[@]}" \
-              --repo "${{ env.MODULES_REPO }}" \
-              --title "$release_name" \
-              --notes-file "$notes_file"
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.XPOSED_MODULES_REPO_TOKEN }}
+    uses: magisk317/magisk-ci-toolkit/.github/workflows/release-android.yml@32b04bbf4364ad3446ff4d296738fa77944a27af
+    with:
+      # Must equal the ref above, MAGISK_CI_TOOLKIT_REF and every GitLab
+      # include.ref; ci/verify_toolkit_pin.sh in the toolkit checks it.
+      toolkit_ref: 32b04bbf4364ad3446ff4d296738fa77944a27af
+      release_tag: ${{ inputs.release_tag }}
+      package_name: io.github.magisk317.xinyi.relay
+      release_cert_sha256: 027b936e1d82a606d83599548b8b11e49a2c8ae2588c4a9fbe8311e2c54f103a
+      # The same project-specific values .gitlab-ci.yml passes to the GitLab
+      # release templates, under the input names that mirror those variables.
+      apk_tasks: :app:assembleGithubRelease
+      gradle_extra_args: -PbuildSplits
+      aab_tasks: :app:bundlePlayRelease
+      play_track_override: production
+      initial_version_code: '46'
+      modules_repo: Xposed-Modules-Repo/io.github.magisk317.xinyi.relay
+      play_url: https://play.google.com/store/apps/details?id=io.github.magisk317.xinyi.relay
+      gitlab_project_url: https://gitlab.com/magisk3171/xinyi-relay
+      google_services_paths: app/src/github app/src/play
+      keystore_path: release.jks
+      # github_repository is left at its default: the calling repository already
+      # is magisk317/xinyi-relay, and the GitLab value exists only because that
+      # pipeline runs somewhere else.
+      #
+      # MAGISK_ANDROID_RELEASE_GITHUB_ASSET_PATTERN is overridden to *.apk at job
+      # level in .gitlab-ci.yml, because this app ships every ABI to the GitHub
+      # Release; the toolkit default publishes only the arm64 artifact.
+      github_asset_pattern: '*.apk'
+      # GitLab's android:release:github attaches APKs only; the bundle goes to
+      # Play, and the desktop archives go to a GitLab release instead.
+      attach_aab: false
+      # On a tag push every channel is on, exactly as the old chain behaved. On a
+      # dispatch the operator picks; dry_run still turns all of them off inside
+      # the chain.
+      publish_github_release: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_github_release }}
+      publish_play: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_play }}
+      publish_modules_repo: ${{ github.event_name != 'workflow_dispatch' || inputs.publish_modules_repo }}
+      dry_run: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+      enabled: ${{ needs.release-eligibility.outputs.proceed == 'true' }}
+      # Submodules are GitLab-hosted, so the chain needs GITLAB_TOKEN to check
+      # them out; it arrives through `secrets: inherit`.
+      checkout_submodules: recursive
+    secrets: inherit

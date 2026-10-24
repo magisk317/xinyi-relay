@@ -86,6 +86,7 @@ import io.github.magisk317.relay.ui.nav.ROUTE_ORIGIN_SETTINGS
 import io.github.magisk317.relay.ui.nav.RecordsRoute
 import io.github.magisk317.relay.ui.nav.RelayConfigRoute
 import io.github.magisk317.relay.ui.nav.RemoteAgentRoute
+import io.github.magisk317.relay.common.utils.RelayBindPayload
 import io.github.magisk317.relay.ui.nav.RuleConfigRoute
 import io.github.magisk317.relay.ui.nav.RulesRoute
 import io.github.magisk317.relay.ui.nav.ScheduledReminderRoute
@@ -388,6 +389,7 @@ fun MainScreen(
             is RecordsRoute -> navController.navigate(RecordsRoute)
             is AdvancedRoute -> navController.navigate(AdvancedRoute)
             is SettingsRoute -> navController.navigate(SettingsRoute)
+            is RemoteAgentRoute -> navController.navigate(initialTab)
             is SmsCodeRulesRoute -> navController.navigate(initialTab)
             is SmsCodeRuleEditorRoute -> navController.navigate(initialTab)
             else -> Unit
@@ -521,7 +523,7 @@ fun MainScreen(
                         },
                         onForwardKeepAliveClick = { navController.navigate(ForwardKeepAliveRoute) },
                         onScheduledReminderClick = { navController.navigate(ScheduledReminderRoute) },
-                        onRemoteAgentClick = { navController.navigate(RemoteAgentRoute) },
+                        onRemoteAgentClick = { navController.navigate(RemoteAgentRoute()) },
                         onNavigateToScheduledTasks = if (BuildConfig.ENABLE_SMS_CHANNEL) {
                             { navController.navigate(ScheduledTasksRoute) }
                         } else {
@@ -898,8 +900,16 @@ fun MainScreen(
                             },
                         )
                     }
-                    composable<RemoteAgentRoute> {
-                        RemoteAgentScreen(onBack = { navController.popBackStack() })
+                    composable<RemoteAgentRoute> { backStackEntry ->
+                        val route = backStackEntry.toRoute<RemoteAgentRoute>()
+                        RemoteAgentScreen(
+                            onBack = { navController.popBackStack() },
+                            bindRequest = if (route.bindCode.isBlank()) {
+                                null
+                            } else {
+                                RelayBindPayload(bindCode = route.bindCode, baseUrl = route.baseUrl)
+                            },
+                        )
                     }
                     composable<DeviceControlRoute> {
                         DeviceControlScreen(onBack = { navController.popBackStack() })

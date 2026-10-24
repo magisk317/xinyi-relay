@@ -123,8 +123,12 @@ export function createConsoleApiClient(transport: ConsoleApiTransport) {
         `/api/v1/devices/${deviceId}/actions?${buildQuery({ limit, offset })}`
       ),
 
-    getRecords: (limit = 80, deviceId?: number) =>
-      transport.request<RecordsResponse>(`/api/v1/records?${buildQuery({ limit, device_id: deviceId })}`),
+    getRecords: async (limit = 80, deviceId?: number) => {
+      const response = await transport.request<RecordsResponse>(
+        `/api/v1/records?${buildQuery({ limit, device_id: deviceId })}`
+      )
+      return { ...response, records: response.records ?? [] }
+    },
 
     getRecord: (recordId: number) => transport.request<RecordItem>(`/api/v1/records/${recordId}`)
   }
