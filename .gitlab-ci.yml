@@ -1,31 +1,31 @@
 include:
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "65505809acb199c24ae9e63df1975cdea2ab494b"
+    ref: "c15b73cc8c6a1fff7b1254a2ac088b4096ac805c"
     file: /.gitlab/ci/android.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "65505809acb199c24ae9e63df1975cdea2ab494b"
+    ref: "c15b73cc8c6a1fff7b1254a2ac088b4096ac805c"
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "65505809acb199c24ae9e63df1975cdea2ab494b"
+    ref: "c15b73cc8c6a1fff7b1254a2ac088b4096ac805c"
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "65505809acb199c24ae9e63df1975cdea2ab494b"
+    ref: "c15b73cc8c6a1fff7b1254a2ac088b4096ac805c"
     file: /.gitlab/ci/renovate.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "65505809acb199c24ae9e63df1975cdea2ab494b"
+    ref: "c15b73cc8c6a1fff7b1254a2ac088b4096ac805c"
     file: /.gitlab/ci/cancel-mr-pipelines.yml
   # Utility-job anchor (alpine, pinned): the GitHub mirror and the README-badge
   # job extend it instead of pinning their own image. Language-tool jobs
   # (backend:go, webui:check, the docker/node jobs) keep their own pinned tool
   # images by design.
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "65505809acb199c24ae9e63df1975cdea2ab494b"
+    ref: "c15b73cc8c6a1fff7b1254a2ac088b4096ac805c"
     file: /.gitlab/ci/utility.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "65505809acb199c24ae9e63df1975cdea2ab494b"
+    ref: "c15b73cc8c6a1fff7b1254a2ac088b4096ac805c"
     file: /.gitlab/ci/github-sync.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "65505809acb199c24ae9e63df1975cdea2ab494b"
+    ref: "c15b73cc8c6a1fff7b1254a2ac088b4096ac805c"
     file: /.gitlab/ci/readme-badges.yml
 
 workflow:
