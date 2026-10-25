@@ -14,6 +14,8 @@ RUNTIME_BUILD="$ROOT_DIR/modules/runtime/build.gradle.kts"
 RUNTIME_SRC="$ROOT_DIR/modules/runtime/src"
 RELAY_ANDROID_BUILD="$ROOT_DIR/modules/relay/android/build.gradle.kts"
 RELAY_CONTRACT_SRC="$ROOT_DIR/modules/relay/contract/src"
+RELAY_CONTRACT_BUILD="$ROOT_DIR/modules/relay/contract/build.gradle.kts"
+RELAY_ENGINE_API_BUILD="$ROOT_DIR/modules/relay/engine/api/build.gradle.kts"
 RELAY_MATRIX_E2EE_BUILD="$ROOT_DIR/modules/relay/matrix-e2ee/build.gradle.kts"
 RELAY_SENDER_BUILD="$ROOT_DIR/modules/relay/sender/build.gradle.kts"
 RELAY_SENDER_SRC="$ROOT_DIR/modules/relay/sender/src"
@@ -82,6 +84,10 @@ check_mobile_feature_dependencies() {
   done < <(find "$MOBILE_FEATURE_DIR" -mindepth 2 -maxdepth 2 -name build.gradle.kts -print0)
 }
 
+forbid_pattern "$RELAY_CONTRACT_BUILD" 'api\(project\(":smscode-core:' \
+  ":relay:contract must not expose smscode domain modules through api; the cross-platform contract API stays domain-pure and consumers declare their own deps"
+forbid_pattern "$RELAY_ENGINE_API_BUILD" 'api\(project\(":smscode-core:' \
+  ":relay:engine:api must not expose smscode domain modules through api; consumers declare their own deps"
 require_pattern "$APP_BUILD" 'implementation\(project\(":mobile:core"\)\)' \
   "app must depend directly on :mobile:core"
 require_pattern "$APP_BUILD" 'implementation\(project\(":relay:android"\)\)' \
