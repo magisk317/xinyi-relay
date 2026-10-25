@@ -17,6 +17,8 @@ kotlin {
             api(libs.kotlinx.coroutines.core)
         }
         androidMain.dependencies {
+            // api, deliberately: the policy API surface exposes smscode runtime
+            // contract types (PrefRead et al) to its consumers by design.
             api(project(":smscode-core:runtime"))
             implementation(libs.androidx.core.ktx)
         }

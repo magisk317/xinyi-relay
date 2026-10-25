@@ -22,9 +22,11 @@ kotlin {
     implementation(libs.kotlinx.datetime)
         }
         androidMain.dependencies {
-            api(project(":smscode-core:contract"))
-            api(project(":smscode-core:verification"))
-            api(project(":smscode-core:runtime"))
+            // implementation, not api: smscode domain types must not leak through the
+            // cross-platform contract API surface; consumers declare their own deps.
+            implementation(project(":smscode-core:contract"))
+            implementation(project(":smscode-core:verification"))
+            implementation(project(":smscode-core:runtime"))
             implementation(libs.androidx.core.ktx)
         }
     }
