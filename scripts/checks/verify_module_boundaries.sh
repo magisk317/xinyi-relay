@@ -182,6 +182,14 @@ forbid_pattern "$MOBILE_FEATURE_DIR" '^\s*import\s+androidx\.navigation\.' \
   "mobile feature modules must not own navigation graphs or controllers; route composition stays in :mobile:ui"
 forbid_pattern "$VERSION_CATALOG" '(^haze\s*=|^haze-|dev\.chrisbanes\.haze)' \
   "version catalog must not keep haze/blur aliases after the lightweight shell migration"
+# Entities are the shared smscode domain model (SmsMsg implements
+# runtime.contract.record.SmsMsgRecord), so UI modules may hold entity types -
+# but the Room API itself must stay behind the repositories.
+for ui_src in "$MOBILE_UI_SRC" "$MOBILE_FEATURE_DIR"/*/src; do
+  forbid_pattern "$ui_src" '^\s*import\s+androidx\.room\.' \
+    "mobile UI must not import androidx.room; persistence API stays behind AppConfigRepository"
+done
+
 for source_dir in "${MOBILE_SOURCE_DIRS[@]}"; do
   forbid_pattern "$source_dir" '^\s*import\s+dev\.chrisbanes\.haze\.' \
     "mobile source must not import Haze; use static surfaces/scrims in the lightweight shell"
