@@ -10,6 +10,8 @@ import io.github.magisk317.xposed.logging.AnonymousInstallationId
 import io.github.magisk317.xposed.logging.MagiskOtel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import io.github.magisk317.xposed.logging.getOrCreate
+import io.github.magisk317.xposed.logging.configureForInstallation
 
 /**
  * Gates MagiskOtel (and aligns with local analytics pref):
