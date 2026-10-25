@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.relay.mobilefeature.settings.BuildConfig
-import io.github.magisk317.relay.ui.theme.ThemeAccent
+import io.github.magisk317.uikit.theme.ThemeAccent
 import io.github.magisk317.uikit.preference.SectionCard
 import io.github.magisk317.uikit.preference.SettingsChoiceRow
 import io.github.magisk317.uikit.preference.StateSwitchItem
