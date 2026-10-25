@@ -2,8 +2,6 @@ package io.github.magisk317.relay.sender.config
 
 import kotlinx.serialization.Serializable as KotlinSerializable
 
-@Suppress("SENSELESS_COMPARISON")
-
 @KotlinSerializable
 data class FeishuAppSetting(
     var appId: String = "",

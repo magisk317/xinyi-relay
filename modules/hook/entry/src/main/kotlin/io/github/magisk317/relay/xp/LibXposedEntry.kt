@@ -43,6 +43,8 @@ import io.github.magisk317.xposed.LoadParam
 
 class LibXposedEntry : BaseLibXposedEntry {
 
+    // libxposed instantiates this constructor reflectively, so nothing in the module ever
+    // calls it -- "unused"/"UnusedParameter" silence the IDE inspection, not a compiler warning.
     @Suppress("unused", "UnusedParameter")
     constructor(xposed: XposedInterface, loadedParam: ModuleLoadedParam) : super(xposed, loadedParam)
     constructor() : super()
