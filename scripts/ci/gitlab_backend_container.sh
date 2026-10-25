@@ -121,25 +121,31 @@ create_builder() {
   local config_file=""
 
   # The buildkitd container behind the docker-container driver resolves and
-  # dials registry-1.docker.io itself: neither ~/.docker/config.json proxies on
-  # the job side nor the build-args reach it, and a direct dial dies on a
-  # poisoned DNS answer for docker.io (observed 2026-10-24 on the amd64
-  # runner: 31.13.95.35, a Meta range, i/o timeout). Route its egress through
-  # the job proxy when one is set; otherwise fall back to a docker.io mirror,
-  # same spirit as the goproxy.cn/npmmirror choices above. Mirrors rotate —
-  # check https://status.anye.xyz before swapping entries.
+  # dials the registry itself: neither ~/.docker/config.json proxies on the job
+  # side nor the build-args reach it, and a direct dial dies on the poisoned DNS
+  # answers this network returns for docker.io / auth.docker.io (observed
+  # 31.13.95.35 and 108.160.170.26, both foreign ranges, i/o timeout).
+  #
+  # Measured 2026-10-25 on the amd64 runner with the same two branches and no
+  # --push: the proxy branch still failed, because buildkitd fetches its
+  # anonymous token from auth.docker.io before any proxy-aware registry request
+  # happens, so `--driver-opt env.http_proxy` does not cover that dial; the
+  # mirror branch pulled oven/bun fine (115 MB tar). The mirror is therefore the
+  # primary route and the job proxy only a secondary for hosts that disable
+  # mirrors via MAGISK_LINUX_USE_MIRROR. Mirrors rotate -- check
+  # https://status.anye.xyz before swapping entries.
   local proxy="${HTTPS_PROXY:-${https_proxy:-${HTTP_PROXY:-${http_proxy:-}}}}"
-  if [[ -n "$proxy" ]]; then
-    create_args+=(--driver-opt "env.http_proxy=$proxy" --driver-opt "env.https_proxy=$proxy")
-    echo "buildx builder: buildkitd egress routed through the job proxy"
-  elif network_use_mirror; then
+  if network_use_mirror; then
     config_file="$(mktemp)"
     cat > "$config_file" <<'BKC'
 [registry."docker.io"]
   mirrors = ["docker.m.daocloud.io", "docker.1ms.run"]
 BKC
     create_args+=(--buildkitd-config "$config_file")
-    echo "buildx builder: no proxy; buildkitd egress falls back to the docker.io mirror"
+    echo "buildx builder: buildkitd egress uses the docker.io mirror (verified route)"
+  elif [[ -n "$proxy" ]]; then
+    create_args+=(--driver-opt "env.http_proxy=$proxy" --driver-opt "env.https_proxy=$proxy")
+    echo "buildx builder: mirrors disabled here; falling back to the job proxy (does not cover the auth.docker.io token fetch)"
   else
     echo "buildx builder: direct egress (no proxy, mirrors disabled by MAGISK_LINUX_USE_MIRROR)"
   fi
