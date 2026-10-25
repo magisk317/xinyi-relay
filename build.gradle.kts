@@ -142,7 +142,7 @@ subprojects {
     pluginManager.withPlugin("org.jetbrains.kotlin.jvm") {
         configureDetekt()
     }
-    // Multiplatform modules (the kit's logging/logging-core/keepalive, magisk-ui-kit and the
+    // Multiplatform modules (the kit's logging/keepalive, magisk-ui-kit and the
     // desktop modules) matched none of the hooks above, so they got no detekt task at all and
     // their findings were never computed. Same treatment as the Android modules: analysed, and
     // non-blocking until each one is measured.
