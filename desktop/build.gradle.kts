@@ -19,7 +19,7 @@ kotlin {
             implementation(project(":relay:sender:api"))
             implementation(project(":relay:net"))
             implementation(project(":desktop:core"))
-            implementation(project(":magisk-xposed-kit:logging-core"))
+            implementation(project(":magisk-xposed-kit:logging"))
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.okhttp)
