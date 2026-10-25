@@ -168,7 +168,9 @@ object EmailUtils {
                 transport.connect(host, port, fromEmail, password)
                 transport.sendMessage(message, message.allRecipients)
             } finally {
-                runCatching { transport.close() }
+                runCatching { transport.close() }.onFailure { error ->
+                    // ignored here: no logger is reachable from this file and the failure has no remedy at this point
+                }
             }
         }.getOrThrow()
     }

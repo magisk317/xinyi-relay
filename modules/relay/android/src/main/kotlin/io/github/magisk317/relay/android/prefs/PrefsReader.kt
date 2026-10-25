@@ -166,15 +166,21 @@ object PrefsReader {
     }
 
     private fun safeWarn(message: String, vararg args: Any?) {
-        runCatching { XLog.w(message, *args) }
+        runCatching { XLog.w(message, *args) }.onFailure {
+            XLog.w("prefs-bridge: the warn log call itself failed: ${it.message}", it)
+        }
     }
 
     private fun safeWarn(message: String, error: Throwable?) {
-        runCatching { XLog.w(message, error) }
+        runCatching { XLog.w(message, error) }.onFailure {
+            XLog.w("prefs-bridge: the warn log call itself failed: ${it.message}", it)
+        }
     }
 
     private fun safeInfo(message: String, vararg args: Any?) {
-        runCatching { XLog.i(message, *args) }
+        runCatching { XLog.i(message, *args) }.onFailure {
+            XLog.w("prefs-bridge: the info log call itself failed: ${it.message}", it)
+        }
     }
 
     private fun getBooleanViaProvider(context: Context, key: String, defaultValue: Boolean): Boolean {

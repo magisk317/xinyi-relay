@@ -106,6 +106,8 @@ object SenderLogger {
                 Log.ERROR -> if (throwable == null) Log.e(tag, message) else Log.e(tag, message, throwable)
                 else -> Log.println(priority, tag, message)
             }
+        }.onFailure { error ->
+            // ignored here: no logger is reachable from this file and the failure has no remedy at this point
         }
     }
 

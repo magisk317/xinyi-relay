@@ -76,6 +76,8 @@ object AppInitExecution {
         application: Application,
         receiver: BroadcastReceiver,
     ) {
-        runCatching { application.unregisterReceiver(receiver) }
+        runCatching { application.unregisterReceiver(receiver) }.onFailure { error ->
+            XLog.w("unregisterReceiverSafely: unregisterReceiver failed: ${error.message}", error)
+        }
     }
 }

@@ -174,7 +174,9 @@ internal object SmsSendBackend {
                 )
             }
         } finally {
-            runCatching { context.unregisterReceiver(receiver) }
+            runCatching { context.unregisterReceiver(receiver) }.onFailure { error ->
+                // ignored here: no logger is reachable from this file and the failure has no remedy at this point
+            }
             resultChannel.close()
         }
 

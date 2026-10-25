@@ -163,6 +163,13 @@ tasks.register<Exec>("verifyDependencyGovernance") {
     commandLine("bash", "${rootProject.projectDir}/scripts/checks/verify_dependency_governance.sh")
 }
 
+tasks.register<Exec>("verifyNoGlobalWarningMute") {
+    group = "verification"
+    description = "Ensure the Kotlin discarded-result diagnostics stay enabled; tolerated failures must be explicit at the call site."
+    workingDir = rootProject.projectDir
+    commandLine("bash", "${rootProject.projectDir}/scripts/checks/verify_no_global_warning_mute.sh")
+}
+
 tasks.register("check") {
     group = "verification"
     description = "Run root project architecture and localized dependency governance checks."
@@ -171,21 +178,8 @@ tasks.register("check") {
         "verifyStructureBoundaries",
         "verifyEmbeddedSubmodules",
         "verifyDependencyGovernance",
+        "verifyNoGlobalWarningMute",
     )
 }
 
 
-// Kotlin 2.5 added the RETURN_VALUE_NOT_USED / _COERCION diagnostics. This
-// codebase intentionally ignores many best-effort `runCatching` results
-// (cleanup paths, probe helpers); disable the two diagnostics here until the
-// call sites are converted to an explicit helper. Revisit in the 2.5 cleanup.
-subprojects {
-    tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-        compilerOptions {
-            freeCompilerArgs.addAll(
-                "-Xwarning-level=RETURN_VALUE_NOT_USED:disabled",
-                "-Xwarning-level=RETURN_VALUE_NOT_USED_COERCION:disabled",
-            )
-        }
-    }
-}

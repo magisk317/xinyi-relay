@@ -333,7 +333,10 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
         stopSync()
         stopVerificationStateListener()
         controller?.setDelegate(null)
-        runCatching { controller?.close() }
+        runCatching { controller?.close() }.onFailure {
+            // The controller is dropped on the next line; a session that is already
+            // gone has nothing left to release.
+        }
         controller = null
         delegate = null
         resetPendingRequestAcknowledgement(cancelActiveJob = true)
@@ -347,7 +350,10 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
         stopSync()
         stopVerificationStateListener()
         controller?.setDelegate(null)
-        runCatching { controller?.close() }
+        runCatching { controller?.close() }.onFailure {
+            // The controller is dropped on the next line; a session that is already
+            // gone has nothing left to release.
+        }
         controller = null
         delegate = null
         resetPendingRequestAcknowledgement(cancelActiveJob = true)
@@ -552,7 +558,10 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
         }
         stopVerificationStateListener()
         controller?.setDelegate(null)
-        runCatching { controller?.close() }
+        runCatching { controller?.close() }.onFailure {
+            // The controller is dropped on the next line; a session that is already
+            // gone has nothing left to release.
+        }
 
         val nextController = client.getSessionVerificationController()
         val nextDelegate = createDelegate()
@@ -611,16 +620,24 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
             SLog.d(TAG, "Matrix verification sync stopping: ${summarizeClientSession(client)}")
         }
         syncHandle?.let { handle ->
-            runCatching { handle.cancel() }
-            runCatching { handle.close() }
+            runCatching { handle.cancel() }.onFailure {
+                // Tearing down a subscription that already ended is the normal case.
+            }
+            runCatching { handle.close() }.onFailure {
+                // Same here: the handle is dropped immediately after this block.
+            }
         }
         syncHandle = null
     }
 
     private fun stopVerificationStateListener() {
         verificationStateHandle?.let { handle ->
-            runCatching { handle.cancel() }
-            runCatching { handle.close() }
+            runCatching { handle.cancel() }.onFailure {
+                // Tearing down a subscription that already ended is the normal case.
+            }
+            runCatching { handle.close() }.onFailure {
+                // Same here: the handle is dropped immediately after this block.
+            }
         }
         verificationStateHandle = null
     }

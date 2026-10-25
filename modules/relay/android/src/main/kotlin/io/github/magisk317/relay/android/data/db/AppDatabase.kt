@@ -1185,7 +1185,9 @@ abstract class AppDatabase : RoomDatabase() {
         @JvmStatic
         fun closeInstance() {
             synchronized(this) {
-                runCatching { instance?.close() }
+                runCatching { instance?.close() }.onFailure { error ->
+                    XLog.w("closeInstance: close failed: ${error.message}", error)
+                }
                 instance = null
             }
         }

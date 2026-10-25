@@ -101,13 +101,22 @@ internal class SmsForwardBlockHandler(
         }
         if (reason == SmsBlockEvaluator.BLOCK_REASON_PREF_BLOCK) {
             evaluation.smsMsg?.let { smsMsg ->
-                parsedCodeForwarder(
+                // The forwarder answers whether it took the message. On the block path a false
+                // means the suppressed SMS produced no forwarded copy, so it is logged instead of
+                // being dropped on the floor.
+                val forwarded = parsedCodeForwarder(
                     request.pluginContext,
                     request.phoneContext,
                     smsMsg,
                     request.intent,
                     request.eventId,
                 )
+                if (!forwarded) {
+                    XLog.w(
+                        message = "SmsForwardHook block: code-sms forwarder took nothing event_id=%s",
+                        request.eventId,
+                    )
+                }
             }
         }
         emit(result = "ok", reason = reason)

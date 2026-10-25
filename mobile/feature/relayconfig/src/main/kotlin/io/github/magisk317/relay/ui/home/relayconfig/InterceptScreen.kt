@@ -109,7 +109,7 @@ fun InterceptScreen(
 
     val notSetText = context.getString(R.string.blacklist_not_set)
     val savedSnackbarText = context.getString(R.string.pref_sync_snackbar)
-    val notifySaved = {
+    val notifySaved: () -> Unit = {
         scope.launch {
             snackbarHostState.showLatestSnackbar(savedSnackbarText)
         }

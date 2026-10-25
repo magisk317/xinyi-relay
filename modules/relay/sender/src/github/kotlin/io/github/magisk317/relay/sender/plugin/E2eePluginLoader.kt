@@ -380,9 +380,8 @@ internal class E2eePluginLoader {
     private fun reinstallThroughResident(resident: ResidentPlugin, context: Context) {
         val senderBefore = MatrixE2eeSenderProvider.getOrNull()
         val verificationBefore = MatrixE2eeVerificationProvider.getOrNull()
-        runCatching {
-            resident.installEntry.invoke(null, context.applicationContext)
-        }.getOrElse { failure ->
+        val reinstall = runCatching { resident.installEntry.invoke(null, context.applicationContext) }
+        reinstall.exceptionOrNull()?.let { failure ->
             // The resident loader is wedged (its native libraries were opened
             // by this class loader and no other one can open them again); only
             // a process restart can produce a fresh loader.

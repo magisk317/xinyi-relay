@@ -655,7 +655,9 @@ private fun MatrixE2eeVerificationSection(
         // Refresh verification state when entering the page
         if (credentialsReady) {
             scope.launch {
-                runCatching { verification.prepare(context, setting) }
+                runCatching { verification.prepare(context, setting) }.onFailure {
+                    // ignored here: no logger is reachable from this file and the failure has no remedy at this point
+                }
             }
         }
         onDispose {

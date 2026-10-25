@@ -117,10 +117,14 @@ object RelayLogger {
             return
         }
 
-        runCatching { Log.println(priority, LOG_TAG, logMessage) }
+        runCatching { Log.println(priority, LOG_TAG, logMessage) }.onFailure {
+            // best-effort: nothing here can act on the failure
+        }
 
         if (LOG_TO_XPOSED) {
-            runCatching { Log.println(priority, "LSPosed-Bridge", "$LOG_TAG: $logMessage") }
+            runCatching { Log.println(priority, "LSPosed-Bridge", "$LOG_TAG: $logMessage") }.onFailure {
+                // best-effort: nothing here can act on the failure
+            }
         }
 
         val resolvedRoute = route ?: RuntimeLogStore.ROUTE_APP

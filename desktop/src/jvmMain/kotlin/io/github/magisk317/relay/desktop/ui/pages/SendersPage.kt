@@ -75,6 +75,7 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonPrimitive
+import io.github.magisk317.relay.desktop.platform.DesktopLog
 
 /** Sender types the webUI offers in the new-sender picker, in webUI order. */
 private val SENDER_TYPE_OPTIONS = listOf(3, 4, 5, 9, 13, 7, 16, 18, 19, 11, 10, 0, 12, 1, 2, 6, 8, 14, 15)
@@ -183,6 +184,13 @@ fun SendersPage(
 
     LaunchedEffect(console.selectedDeviceId) {
         runCatching { console.refreshConfig() }
+        .onFailure { error ->
+            DesktopLog.warn(
+                key = "senders.refreshConfig",
+                message = "config refresh from the senders page failed",
+                fields = mapOf("error" to (error::class.simpleName ?: "Throwable")),
+            )
+            }
     }
 
     val senders = console.root.senders
@@ -208,6 +216,13 @@ fun SendersPage(
                     "senders:update",
                 )
             }
+                .onFailure { error ->
+                    DesktopLog.warn(
+                        key = "senders.update-mutation",
+                        message = "sender replacement could not be queued",
+                        fields = mapOf("error" to (error::class.simpleName ?: "Throwable")),
+                    )
+                    }
         }
     }
 
@@ -215,7 +230,18 @@ fun SendersPage(
         LiveBadge(connected = feed.connected, locale = locale)
         ActionButton(
             text = DesktopMessages.t(locale, "senders.refresh"),
-            onClick = { scope.launch { runCatching { console.refreshConfig() } } },
+            onClick = {
+                scope.launch {
+                    runCatching { console.refreshConfig() }
+                    .onFailure { error ->
+                        DesktopLog.warn(
+                            key = "senders.refreshConfig",
+                            message = "config refresh from the senders page failed",
+                            fields = mapOf("error" to (error::class.simpleName ?: "Throwable")),
+                        )
+                        }
+                }
+            },
             tone = ActionTone.NEUTRAL,
         )
     }

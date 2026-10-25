@@ -41,6 +41,8 @@ class CustomMessageReceiver : BroadcastReceiver() {
                         pendingResult.setResultData(
                             "reason=$reason;${CustomMessageBroadcastContract.EXTRA_EVENT_ID}=${traceId.ifBlank { "<none>" }}",
                         )
+                    }.onFailure { error ->
+                        XLog.w("setting the ordered broadcast result failed: ${error.message}", error)
                     }
                 }
                 pendingResult.finish()

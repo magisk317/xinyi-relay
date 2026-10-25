@@ -41,7 +41,7 @@ class AwtNotifier(
         val tray = tray ?: return false
         val trayIcon = sharedIcon() ?: icon ?: TrayIcon(placeholderImage, TOOLTIP).also { created ->
             created.isImageAutoSize = true
-            runCatching { tray.add(created) }
+            runCatching { tray.add(created) }.onFailure { /* Best-effort: the caller has no remedy for a failure here. */}
             icon = created
         }
         return runCatching {
@@ -52,7 +52,7 @@ class AwtNotifier(
 
     override fun close() {
         icon?.let { existing ->
-            runCatching { tray?.remove(existing) }
+            runCatching { tray?.remove(existing) }.onFailure { /* Teardown: nothing can act on a failure once we are here. */}
             icon = null
         }
     }

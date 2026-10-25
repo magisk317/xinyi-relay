@@ -130,7 +130,9 @@ object SocketUtils {
             emitSocket(method = "MQTT", statusOk = true, reason = "sent", startedAt = startedAt)
         }.onFailure {
             SLog.e(TAG, "MQTT send failed", it)
-            runCatching { if (client.isConnected) client.disconnect() }
+            runCatching { if (client.isConnected) client.disconnect() }.onFailure { error ->
+                // ignored here: no logger is reachable from this file and the failure has no remedy at this point
+            }
             emitSocket(
                 method = "MQTT",
                 statusOk = false,

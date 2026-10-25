@@ -63,7 +63,8 @@ object MatrixE2eePlatform {
      * not in the host application classloader.
      */
     private class PluginClassLoaderContext(base: Context) : ContextWrapper(base) {
-        private val pluginClassLoader: ClassLoader = MatrixE2eePlatform::class.java.classLoader
+        // getClassLoader() must never hand back null: rustls resolves its verifier through it.
+        private val pluginClassLoader: ClassLoader = MatrixE2eePlatform::class.java.classLoader ?: base.classLoader
 
         override fun getClassLoader(): ClassLoader = pluginClassLoader
     }

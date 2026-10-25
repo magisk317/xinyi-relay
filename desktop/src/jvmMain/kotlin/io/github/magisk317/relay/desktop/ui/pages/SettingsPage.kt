@@ -39,6 +39,7 @@ import io.github.magisk317.relay.desktop.ui.RelaySelect
 import io.github.magisk317.relay.desktop.ui.SurfaceCard
 import io.github.magisk317.relay.desktop.ui.formatTimestamp
 import kotlinx.coroutines.launch
+import io.github.magisk317.relay.desktop.platform.DesktopLog
 
 /**
  * Desktop port of the webUI settings page: the config state of the selected
@@ -63,7 +64,18 @@ fun SettingsPage(
         LiveBadge(connected = feed.connected, locale = locale)
         ActionButton(
             text = DesktopMessages.t(locale, "settings.refresh"),
-            onClick = { scope.launch { runCatching { console.refreshConfig() } } },
+            onClick = {
+                scope.launch {
+                    runCatching { console.refreshConfig() }
+                    .onFailure { error ->
+                        DesktopLog.warn(
+                            key = "settings.refreshConfig",
+                            message = "config refresh from the settings page failed",
+                            fields = mapOf("error" to (error::class.simpleName ?: "Throwable")),
+                        )
+                        }
+                }
+            },
             tone = ActionTone.NEUTRAL,
         )
     }

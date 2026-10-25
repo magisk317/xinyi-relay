@@ -756,109 +756,120 @@ class SenderSettingSanitizerTest {
         }
     }
 
+    /**
+     * Decoding has to leave every required property as a real object. Checking each one by
+     * name here turns a smuggled null into a named test failure instead of a crash later in
+     * the sender pipeline, which is what this helper exists to guard.
+     */
+    private fun assertReadable(name: String, value: Any?) {
+        if (value == null) {
+            throw AssertionError("'$name' was decoded as null after sanitizing")
+        }
+    }
+
     private fun assertNoDangerousNullAccess(type: Int, json: String) {
         when (type) {
             SenderType.DINGTALK_GROUP_ROBOT -> {
                 val setting = SenderSettingJson.decode<DingtalkGroupRobotSetting>(json)
-                setting.token.length
-                setting.msgtype.length
+                assertReadable("token", setting.token)
+                assertReadable("msgtype", setting.msgtype)
             }
             SenderType.EMAIL -> {
                 val setting = SenderSettingJson.decode<EmailSetting>(json)
-                setting.mailType.length
-                setting.fromEmail.length
-                setting.toEmail.length
-                setting.recipients.isEmpty()
+                assertReadable("mailType", setting.mailType)
+                assertReadable("fromEmail", setting.fromEmail)
+                assertReadable("toEmail", setting.toEmail)
+                assertReadable("recipients", setting.recipients)
             }
             SenderType.BARK -> {
                 val setting = SenderSettingJson.decode<BarkSetting>(json)
-                setting.server.length
-                setting.level.length
+                assertReadable("server", setting.server)
+                assertReadable("level", setting.level)
             }
             SenderType.WEBHOOK -> {
                 val setting = SenderSettingJson.decode<WebhookSetting>(json)
-                setting.method.length
-                setting.webServer.length
-                setting.webParams.length
-                setting.proxyType.name.length
-                setting.headers.isEmpty()
+                assertReadable("method", setting.method)
+                assertReadable("webServer", setting.webServer)
+                assertReadable("webParams", setting.webParams)
+                assertReadable("proxyType.name", setting.proxyType.name)
+                assertReadable("headers", setting.headers)
             }
             SenderType.WEWORK_ROBOT -> {
                 val setting = SenderSettingJson.decode<WeworkRobotSetting>(json)
-                setting.webHook.length
-                setting.msgType.length
+                assertReadable("webHook", setting.webHook)
+                assertReadable("msgType", setting.msgType)
             }
             SenderType.WEWORK_AGENT -> {
                 val setting = SenderSettingJson.decode<WeworkAgentSetting>(json)
-                setting.corpID.length
-                setting.agentID.length
-                setting.secret.length
-                setting.proxyType.name.length
+                assertReadable("corpID", setting.corpID)
+                assertReadable("agentID", setting.agentID)
+                assertReadable("secret", setting.secret)
+                assertReadable("proxyType.name", setting.proxyType.name)
             }
             SenderType.SERVERCHAN -> {
                 val setting = SenderSettingJson.decode<ServerchanSetting>(json)
-                setting.sendKey.length
+                assertReadable("sendKey", setting.sendKey)
             }
             SenderType.PUSHPLUS -> {
                 val setting = SenderSettingJson.decode<PushplusSetting>(json)
-                setting.website.length
-                setting.token.length
+                assertReadable("website", setting.website)
+                assertReadable("token", setting.token)
             }
             SenderType.TELEGRAM -> {
                 val setting = SenderSettingJson.decode<TelegramSetting>(json)
-                setting.method.length
-                setting.apiBase.length
-                setting.apiToken.length
-                setting.chatId.length
-                setting.parseMode.length
-                setting.proxyType.name.length
+                assertReadable("method", setting.method)
+                assertReadable("apiBase", setting.apiBase)
+                assertReadable("apiToken", setting.apiToken)
+                assertReadable("chatId", setting.chatId)
+                assertReadable("parseMode", setting.parseMode)
+                assertReadable("proxyType.name", setting.proxyType.name)
             }
             SenderType.SMS -> {
                 val setting = SenderSettingJson.decode<SmsSetting>(json)
-                setting.mobiles.length
-                setting.simSlot.toString().length
+                assertReadable("mobiles", setting.mobiles)
+                assertReadable("simSlot", setting.simSlot)
             }
             SenderType.FEISHU -> {
                 val setting = SenderSettingJson.decode<FeishuSetting>(json)
-                setting.webhook.length
-                setting.msgType.length
+                assertReadable("webhook", setting.webhook)
+                assertReadable("msgType", setting.msgType)
             }
             SenderType.GOTIFY -> {
                 val setting = SenderSettingJson.decode<GotifySetting>(json)
-                setting.webServer.length
-                setting.title.length
+                assertReadable("webServer", setting.webServer)
+                assertReadable("title", setting.title)
             }
             SenderType.NTFY -> {
                 val setting = SenderSettingJson.decode<NtfySetting>(json)
-                setting.server.length
-                setting.topic.length
-                setting.priority.length
-                setting.tags.length
+                assertReadable("server", setting.server)
+                assertReadable("topic", setting.topic)
+                assertReadable("priority", setting.priority)
+                assertReadable("tags", setting.tags)
             }
             SenderType.DINGTALK_INNER_ROBOT -> {
                 val setting = SenderSettingJson.decode<DingtalkInnerRobotSetting>(json)
-                setting.agentID.length
-                setting.appKey.length
-                setting.appSecret.length
-                setting.proxyType.name.length
+                assertReadable("agentID", setting.agentID)
+                assertReadable("appKey", setting.appKey)
+                assertReadable("appSecret", setting.appSecret)
+                assertReadable("proxyType.name", setting.proxyType.name)
             }
             SenderType.FEISHU_APP -> {
                 val setting = SenderSettingJson.decode<FeishuAppSetting>(json)
-                setting.appId.length
-                setting.appSecret.length
-                setting.receiveId.length
-                setting.msgType.length
+                assertReadable("appId", setting.appId)
+                assertReadable("appSecret", setting.appSecret)
+                assertReadable("receiveId", setting.receiveId)
+                assertReadable("msgType", setting.msgType)
             }
             SenderType.URL_SCHEME -> {
                 val setting = SenderSettingJson.decode<UrlSchemeSetting>(json)
-                setting.urlScheme.length
+                assertReadable("urlScheme", setting.urlScheme)
             }
             SenderType.SOCKET -> {
                 val setting = SenderSettingJson.decode<SocketSetting>(json)
-                setting.method.length
-                setting.address.length
-                setting.uriType.length
-                setting.outCharset.length
+                assertReadable("method", setting.method)
+                assertReadable("address", setting.address)
+                assertReadable("uriType", setting.uriType)
+                assertReadable("outCharset", setting.outCharset)
             }
         }
     }

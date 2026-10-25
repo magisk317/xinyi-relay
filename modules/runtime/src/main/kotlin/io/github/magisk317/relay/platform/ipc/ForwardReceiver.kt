@@ -697,6 +697,8 @@ class ForwardReceiver : BroadcastReceiver() {
             pendingResult.setResultData(
                 "reason=$reason;${ForwardBroadcastContract.EXTRA_EVENT_ID}=${eventId.ifBlank { "<none>" }}",
             )
+        }.onFailure { error ->
+            XLog.w(TAG, "forward broadcast failed: ${error.message}", error)
         }
     }
 

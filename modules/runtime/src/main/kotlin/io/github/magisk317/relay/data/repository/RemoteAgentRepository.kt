@@ -59,6 +59,7 @@ import kotlinx.serialization.json.put
 import java.security.MessageDigest
 import java.time.Instant
 import java.util.concurrent.atomic.AtomicBoolean
+import io.github.magisk317.xposed.logging.XLog
 
 class RemoteAgentRepository(
     private val appContext: Context,
@@ -211,7 +212,9 @@ class RemoteAgentRepository(
             recordAgentFailure(it)
         }.getOrThrow()
         }
-        runCatching { pushInstalledAppCatalogIfNeeded() }
+        runCatching { pushInstalledAppCatalogIfNeeded() }.onFailure { error ->
+            XLog.w("bindDevice: pushInstalledAppCatalogIfNeeded failed: ${error.message}", error)
+        }
         val snapshot = getSnapshot()
         scheduleBackgroundSync("bind")
         emitAgent(
@@ -675,14 +678,22 @@ class RemoteAgentRepository(
             try {
                 val snapshot = getSnapshot()
                 if (!snapshot.bound) return@launch
-                runCatching { sendHeartbeat() }
+                runCatching { sendHeartbeat() }.onFailure { error ->
+                    XLog.w("scheduleBackgroundSync: sendHeartbeat failed: ${error.message}", error)
+                }
                 val localState = runCatching { localConfigRepository.getDirtyState() }.getOrNull()
                 if (preferConfigPush && localState?.dirty == true) {
-                    runCatching { pushLocalMirror() }
+                    runCatching { pushLocalMirror() }.onFailure { error ->
+                        XLog.w("scheduleBackgroundSync: pushLocalMirror failed: ${error.message}", error)
+                    }
                 }
-                runCatching { pullPendingCommands() }
-                runCatching { pushInstalledAppCatalogIfNeeded() }
-                runCatching { uploadRecentRecords() }
+                runCatching { pullPendingCommands() }.onFailure { error ->
+                    XLog.w("scheduleBackgroundSync: pullPendingCommands failed: ${error.message}", error)
+                }
+                runCatching { pushInstalledAppCatalogIfNeeded() }.onFailure { error ->
+                    XLog.w("scheduleBackgroundSync: pushInstalledAppCatalogIfNeeded failed: ${error.message}", error)
+                }
+                runCatching { uploadRecentRecords() }.onFailure { XLog.w("recent-record upload failed: ${it.message}", it) }
             } finally {
                 backgroundSyncInFlight.set(false)
                 if (backgroundSyncQueued.compareAndSet(true, false)) {

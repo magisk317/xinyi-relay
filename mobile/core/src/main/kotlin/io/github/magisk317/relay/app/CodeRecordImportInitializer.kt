@@ -5,6 +5,7 @@ import android.content.Context
 import io.github.magisk317.relay.ui.record.CodeRecordRestoreManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import io.github.magisk317.xposed.logging.XLog
 import kotlinx.coroutines.SupervisorJob
 
 class CodeRecordImportInitializer(
@@ -20,7 +21,10 @@ class CodeRecordImportInitializer(
 
     override fun init(application: Application) {
         initRunner(application, scope, "CodeRecordImportInitializer") {
-            recordImporter(application)
+            val imported = recordImporter(application)
+            if (!imported) {
+                XLog.w("CodeRecordImportInitializer: no code records were imported from the backup")
+            }
         }
     }
 }

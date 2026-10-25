@@ -138,6 +138,12 @@ class SmsCodeApplication : Application() {
                     if (entitlementForegroundPrimed) {
                         applicationScope.launch {
                             runCatching { MobileEntitlementCoordinator.refresh(this@SmsCodeApplication) }
+                                .onFailure { error ->
+                                    io.github.magisk317.xposed.logging.XLog.w(
+                                        message = "entitlement refresh on foreground failed: ${error.message}",
+                                        error,
+                                    )
+                                }
                         }
                     } else {
                         // initialize() covers the first process start.

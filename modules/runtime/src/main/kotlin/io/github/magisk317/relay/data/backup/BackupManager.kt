@@ -52,6 +52,8 @@ object BackupManager {
         beforeDatabaseSnapshot = { context ->
             runCatching {
                 AppDatabase.getInstance(context).openHelper.writableDatabase.execSQL("PRAGMA wal_checkpoint(FULL)")
+            }.onFailure {
+                XLog.w("wal checkpoint before snapshot failed: ${it.message}", it)
             }
         },
         beforeDatabaseRestore = {
@@ -195,7 +197,9 @@ object BackupManager {
                 if (!foundMainDb) return BackupDatabaseInspection(false, 0, 0, 0)
                 return inspectSenderConfigsFromDatabase(File(tmpDir, config.databaseFileName))
             } finally {
-                runCatching { tmpDir.deleteRecursively() }
+                runCatching { tmpDir.deleteRecursively() }.onFailure {
+                    XLog.w("inspectBackupDatabase: deleteRecursively failed: ${it.message}", it)
+                }
             }
         }
         return null

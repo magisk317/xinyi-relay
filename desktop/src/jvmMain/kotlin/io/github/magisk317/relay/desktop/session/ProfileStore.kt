@@ -9,6 +9,7 @@ import java.nio.file.StandardOpenOption
 import java.nio.file.attribute.PosixFilePermissions
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import io.github.magisk317.relay.desktop.platform.DesktopLog
 
 @Serializable
 data class DesktopProfile(
@@ -130,7 +131,14 @@ class ProfileStore(
 
     fun clearSession(profileId: String) {
         credentials.clear(profileId)
-        runCatching { Files.deleteIfExists(sessionFile(profileId)) }
+        val deleted = runCatching { Files.deleteIfExists(sessionFile(profileId)) }.getOrDefault(false)
+        if (!deleted) {
+            DesktopLog.warn(
+                key = "profile.clearSession",
+                message = "session file could not be deleted during clearSession",
+                fields = mapOf("path" to sessionFile(profileId).toString()),
+            )
+        }
     }
 
     private fun writeMetadata(session: DesktopSession) {

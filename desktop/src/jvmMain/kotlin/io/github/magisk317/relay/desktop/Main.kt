@@ -1,7 +1,3 @@
-// Compose 1.x painterResource/TextField deprecations; migrate with Compose Resources and
-// the state-based text-field APIs in a dedicated pass.
-@file:Suppress("DEPRECATION")
-
 package io.github.magisk317.relay.desktop
 
 import androidx.compose.ui.res.painterResource
@@ -25,6 +21,8 @@ import kotlin.system.exitProcess
  * releases it when the holder dies, so a crashed instance never wedges the
  * next launch the way a stale PID file would).
  */
+// Compose Resources are not wired for this module (no composeResources source set anywhere in the repo), so the classpath-resource overload stays; suppressed here rather than file-wide so every other deprecation in this file is still reported.
+@Suppress("DEPRECATION")
 fun main() {
     // A GUI that dies on a background thread otherwise fails silently: route
     // every uncaught throwable through the structured desktop log first.

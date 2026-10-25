@@ -5,6 +5,7 @@ import io.github.magisk317.relay.desktop.remote.ConsoleClient
 import io.github.magisk317.relay.desktop.remote.SelfSignedTls
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import io.github.magisk317.relay.desktop.platform.DesktopLog
 
 /** Keeps the ConsoleClient token in sync with the persisted session. */
 class SessionManager(private val store: ProfileStore) {
@@ -46,7 +47,17 @@ class SessionManager(private val store: ProfileStore) {
     }
 
     suspend fun logout(profile: DesktopProfile, client: ConsoleClient) {
-        store.loadSession(profile.id)?.let { runCatching { client.desktopLogout(it.refreshToken) } }
+        store.loadSession(profile.id)?.let { session ->
+            runCatching { client.desktopLogout(session.refreshToken) }
+
+            .onFailure { error ->
+                DesktopLog.warn(
+                    key = "session.logout",
+                    message = "server-side desktop logout call failed",
+                    fields = mapOf("error" to (error::class.simpleName ?: "Throwable")),
+                )
+                }
+        }
         store.clearSession(profile.id)
         client.accessToken = null
     }

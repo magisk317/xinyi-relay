@@ -168,6 +168,8 @@ private fun OAuth2DeviceAuthSection(
                 coroutineScope.launch {
                     runCatching {
                         withContext(Dispatchers.IO) { oauthService.deleteCredentials(credentialId) }
+                    }.onFailure { error ->
+                        // ignored here: no logger is reachable from this file and the failure has no remedy at this point
                     }
                     onDraftChange(draft.withString("oauth2CredentialId", ""))
                     snackbarHostState.showLatestSnackbar(

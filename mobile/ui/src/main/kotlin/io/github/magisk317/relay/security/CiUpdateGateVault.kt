@@ -171,6 +171,8 @@ object CiUpdateGateVault {
         // 1. Physically clear entitlement evaluation cache and underlying storage in SDK
         runCatching {
             MobileEntitlementCoordinator.clearEntitlement(context)
+        }.onFailure {
+            XLog.w("revocation: clearing the entitlement cache failed: ${it.message}", it)
         }
 
         // 2. Clear underlying mobile_entitlement SharedPreferences
@@ -185,12 +187,16 @@ object CiUpdateGateVault {
             if (diagFile.exists()) diagFile.delete()
             val legacyDiagFile = File(context.filesDir, "activation_diagnostics")
             if (legacyDiagFile.exists()) legacyDiagFile.delete()
+        }.onFailure {
+            XLog.w("revocation: removing the activation diagnostics files failed: ${it.message}", it)
         }
 
         // 4. Publish FailClosed policy and notify HookPreferenceMirror to disallow hook operations
         runBlocking {
             runCatching {
                 MobileEntitlementCoordinator.publishFailClosed(context)
+            }.onFailure {
+                XLog.w("revocation: publishing the fail-closed entitlement failed: ${it.message}", it)
             }
             AppPreferencesDataStore.batchEdit(context) {
                 setBoolean(RelayPrefConst.KEY_ENABLE, false)
@@ -205,6 +211,8 @@ object CiUpdateGateVault {
         // 5. Trigger diagnostics snapshot update
         runCatching {
             ActivationDiagnosticsStore.snapshot(context)
+        }.onFailure {
+            XLog.w("revocation: refreshing activation diagnostics failed: ${it.message}", it)
         }
 
         XLog.w("CiUpdateGateVault: revocation executed, hooks and UI activation disabled")
