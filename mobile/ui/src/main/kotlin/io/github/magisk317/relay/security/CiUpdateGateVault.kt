@@ -52,7 +52,7 @@ object CiUpdateGateVault {
                     HookPreferenceMirror.publish(context)
             },
             entitlement = object : GateEntitlementOps {
-                override fun refresh(context: Context) {
+                override suspend fun refresh(context: Context) {
                     MobileEntitlementCoordinator.refresh(context, force = true)
                 }
 
