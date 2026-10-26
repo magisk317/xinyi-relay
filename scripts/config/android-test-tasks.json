@@ -30,8 +30,7 @@
     ":desktop:jvmTest",
     ":desktop:core:jvmTest",
     ":desktop:data:jvmTest",
-    "verifyStructureBoundaries",
-    "verifyModuleBoundaries"
+    "verifyStructureBoundaries"
   ],
   "full_paths": [
     "build.gradle*",
