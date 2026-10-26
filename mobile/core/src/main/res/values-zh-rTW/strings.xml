@@ -749,7 +749,6 @@
     <!-- code parsing notification end -->
 
     <!-- faq -->
-    <string name="action_home_faq_title">常見問題</string>
     <string name="simplified_question">問：</string>
     <string name="simplified_answer">答：</string>
     <!-- faq end -->
@@ -776,26 +775,6 @@
 
 
     <!-- faq -->
-    <string-array name="question_list">
-        <item>模組未啟用怎麼辦？</item>
-        <item>Android 15 會不定期閃退？</item>
-        <item>手機發燙正常嗎？</item>
-        <item>自動輸入不完整，怎麼辦？</item>
-        <item>模組失效怎麼辦？</item>
-        <item>標記簡訊為已讀或者刪除簡訊，為什麼不生效？</item>
-        <item>這個模組適用於什麼樣的 Rom 呢？</item>
-        <item>產品初衷是什麼？</item>
-    </string-array>
-    <string-array name="answer_list">
-        <item>在模組清單中重新勾選本模組，強行停止本應用程式之後重新開啟即可，必要時需要重啟手機。</item>
-        <item>Android 15 引入了新的系統機制，請確保使用最新版的 LSPosed 並正確配置作用域。</item>
-        <item>本模組極輕量，若發燙嚴重請檢查是否與其他模組衝突。</item>
-        <item>自動輸入不完整，一般是因為自動輸入的過程中焦點被搶占。通常的解決方案是：檢查是否有監控剪貼簿的應用在背景工作，然後關閉這些應用對剪貼簿的監控，或者關閉本模組的「複製到剪貼簿」選項。</item>
-        <item>1. 因為使用到 ContentProvider，所以需要放入應用控制類軟體(黑域、應用管理、綠色守護等)的白名單中。\n\n2. 檢查模組組件是否被禁用。\n\n3. 檢查系統是否開啟了驗證碼保護開關。\n\n4. 請聯繫開發者，反饋問題。</item>
-        <item>如果您設備上預設的簡訊 App 使用的是它自己的簡訊資料庫，而不是系統的簡訊資料庫，那麼標記為已讀或者刪除操作可能不會生效。</item>
-        <item>適用於基於 AOSP 的原生類 Rom，在其他高度客製化的 Rom 可能運作效果不佳。</item>
-        <item>不做毒瘤，綠色 Android。</item>
-    </string-array>
     <!-- faq end -->
 
     <!-- privacy policy start -->

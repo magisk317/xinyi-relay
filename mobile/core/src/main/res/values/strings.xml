@@ -778,7 +778,6 @@
     <!-- code parsing notification end -->
 
     <!-- faq -->
-    <string name="action_home_faq_title">FAQ</string>
     <string name="simplified_question">Q:\u00A0</string>
     <string name="simplified_answer">A:\u00A0</string>
     <!-- faq end -->
@@ -806,18 +805,6 @@
 
 
     <!-- faq -->
-    <string-array name="question_list">
-        <item>Module inactive after being updated.</item>
-        <item>Which Rom is this module suitable for?</item>
-        <item>Why can\'t it mark SMS as read or delete SMS?</item>
-        <item>What\'s the original intention of this App?</item>
-    </string-array>
-    <string-array name="answer_list">
-        <item>Re-check this module in module list, and re-launch this app, and reboot system if it\'s necessary</item>
-        <item>It\'s suitable for AOSP Rom, may not be suitable for other third-party heavily customized Rom.</item>
-        <item>If the system default SMS app uses its own SMS database instead of the system\'s, it will not take effect for marking SMS as read or deleting SMS. If this happens, it may not work well on your device.</item>
-        <item>Don\'t be evil. Green Android.</item>
-    </string-array>
     <!-- faq end -->
 
     <!-- privacy policy start -->

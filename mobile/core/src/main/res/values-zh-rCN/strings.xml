@@ -754,7 +754,6 @@
     <!-- code parsing notification end -->
 
     <!-- faq -->
-    <string name="action_home_faq_title">常见问题</string>
     <string name="simplified_question">问：</string>
     <string name="simplified_answer">答：</string>
     <!-- faq end -->
@@ -783,26 +782,6 @@
 
 
     <!-- faq -->
-    <string-array name="question_list">
-        <item>更新后发现显示模块未激活？</item>
-        <item>Android 15 系统不定期闪退？</item>
-        <item>手机发烫是怎么回事？</item>
-        <item>自动输入不完整，怎么办？</item>
-        <item>模块失效怎么办？</item>
-        <item>短信标记为已读或者删除短信，为什么不生效？</item>
-        <item>这个模块适用的Rom是什么？</item>
-        <item>产品初衷是什么？</item>
-    </string-array>
-    <string-array name="answer_list">
-        <item>重新在模块列表勾选本模块，强行停止本应用并重新打开，或者重启手机。</item>
-        <item>Android 15 引入了新的系统机制，请确保使用最新版 LSPosed 并正确配置作用域。</item>
-        <item>本模块极轻量，如果严重发烫请排查是否与其他模块冲突。</item>
-        <item>自动输入不完整，一般是因为自动输入的过程中焦点被抢占。通常的解决方案是：检查是否有监控剪切板的应用在后台工作(比如fv悬浮球)，然后关闭这些应用对剪贴板的监控，或者关闭本模块的“复制到剪切板”选项。</item>
-        <item>1. 因为使用到ContentProvider，所以需要放在应用控制类软件(黑域、应用管理、绿色守护等)白名单中。\n\n2. 检查模块的组件(ContentProvider)是否被禁用。\n\n3. 检查是否打开验证码安全保护开关(华为，OPPO等国内Rom)。\n\n4. 联系开发者，反馈问题。</item>
-        <item>如果您设备上默认的短信 App 使用的是它自己的短信数据库，而不是系统的短信数据库，那么标记为已读或者删除短信操作可能不会生效。</item>
-        <item>适用于基于 AOSP 的原生类 Rom，在其他重度定制的 Rom 可能运行效果不佳。</item>
-        <item>不做毒瘤，绿色 Android。</item>
-    </string-array>
     <!-- faq end -->
 
     <!-- privacy policy start -->

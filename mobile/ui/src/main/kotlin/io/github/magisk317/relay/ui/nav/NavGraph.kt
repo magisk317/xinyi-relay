@@ -25,8 +25,6 @@ object SettingsRoute
 @Serializable
 object ThemeSettingsRoute
 
-@Serializable
-object FaqRoute
 
 @Serializable
 object InterceptRoute
