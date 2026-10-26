@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.ui.record
 
 import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.smscode.runtime.contract.record.SmsMsgRecordData
 import io.github.magisk317.smscode.runtime.common.utils.JsonUtils
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -27,7 +28,7 @@ class CodeRecordRestoreManagerTest {
                 msgType = SmsMsg.MSG_TYPE_SMS,
             ),
         )
-        var insertedRecords: List<SmsMsg>? = null
+        var insertedRecords: List<SmsMsgRecordData>? = null
 
         val result = runBlocking {
             CodeRecordRestoreManager.importRecordFiles(

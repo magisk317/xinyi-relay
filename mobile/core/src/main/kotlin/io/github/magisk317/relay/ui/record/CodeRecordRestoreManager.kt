@@ -3,6 +3,7 @@ package io.github.magisk317.relay.ui.record
 import android.content.Context
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.smscode.runtime.contract.record.SmsMsgRecordData
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toRecordData
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.system.RuntimeCodeRecordFileStore
@@ -30,7 +31,7 @@ object CodeRecordRestoreManager {
 
     internal suspend fun importRecordFiles(
         recordFiles: Array<File>?,
-        insertRecords: suspend (List<SmsMsg>) -> Unit,
+        insertRecords: suspend (List<SmsMsgRecordData>) -> Unit,
         logSuccess: (String) -> Unit = XLog::d,
         logError: (String, Throwable) -> Unit = XLog::e,
     ): Boolean = RuntimeCodeRecordFileStore.importRecordFiles(

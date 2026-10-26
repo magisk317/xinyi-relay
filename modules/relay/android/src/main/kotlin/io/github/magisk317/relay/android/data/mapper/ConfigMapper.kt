@@ -5,6 +5,7 @@ import io.github.magisk317.smscode.db.entity.ForwardFilterRule
 import io.github.magisk317.smscode.db.entity.Rule
 import io.github.magisk317.smscode.db.entity.Sender
 import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.smscode.runtime.contract.record.SmsMsgRecordData
 import io.github.magisk317.smscode.db.entity.SmsCodeRule
 import io.github.magisk317.smscode.db.entity.NotifyRouteRule
 import io.github.magisk317.relay.engine.model.AppInfoData
@@ -167,6 +168,29 @@ object ConfigMapper {
     )
 
     fun SmsMsg.toRecordData(): ReadRecordData = ReadRecordDataImpl(
+        id = id ?: 0L,
+        sender = sender,
+        body = body,
+        date = date,
+        processedTime = processedTime,
+        company = company,
+        smsCode = smsCode,
+        packageName = packageName,
+        notifyChannelId = notifyChannelId,
+        simSlot = simSlot,
+        subId = subId,
+        contactName = contactName,
+        phoneArea = phoneArea,
+        forwardStatus = forwardStatus,
+        forwardTarget = forwardTarget,
+        forwardMessage = forwardMessage,
+        forwardTime = forwardTime,
+        msgType = msgType,
+        callType = callType,
+        sessionKey = sessionKey,
+    )
+
+    fun SmsMsgRecordData.toRecordData(): ReadRecordData = ReadRecordDataImpl(
         id = id ?: 0L,
         sender = sender,
         body = body,
