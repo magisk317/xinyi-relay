@@ -12,9 +12,8 @@ import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.smscode.runtime.common.utils.JsonUtils
 import io.github.magisk317.xposed.logging.XLog
-import io.github.magisk317.smscode.db.entity.SmsMsg
-import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toRecordData
 import io.github.magisk317.relay.engine.model.ReadRecordData
+import io.github.magisk317.smscode.runtime.contract.record.SmsMsgRecordData
 import io.github.magisk317.relay.engine.service.MessageRecordRepository
 import io.github.magisk317.relay.android.platform.icon.AppIconEncoder
 import io.github.magisk317.relay.ui.common.AppIconCache
@@ -39,7 +38,7 @@ import java.util.concurrent.atomic.AtomicLong
 
 @Immutable
 data class CodeRecordUiState(
-    val smsList: ImmutableList<SmsMsg> = persistentListOf(),
+    val smsList: ImmutableList<ReadRecordData> = persistentListOf(),
     val queryState: RecordQueryState = RecordQueryState(),
     val packageLabels: Map<String, String> = emptyMap(),
     val defaultSmsPackage: String? = null,
@@ -50,12 +49,12 @@ data class CodeRecordUiState(
 
 @Immutable
 data class RecordQueryState(
-    val codeRecords: ImmutableList<SmsMsg> = persistentListOf(),
-    val plainSmsRecords: ImmutableList<SmsMsg> = persistentListOf(),
-    val appNotifyRecords: ImmutableList<SmsMsg> = persistentListOf(),
-    val callNotifyRecords: ImmutableList<SmsMsg> = persistentListOf(),
+    val codeRecords: ImmutableList<ReadRecordData> = persistentListOf(),
+    val plainSmsRecords: ImmutableList<ReadRecordData> = persistentListOf(),
+    val appNotifyRecords: ImmutableList<ReadRecordData> = persistentListOf(),
+    val callNotifyRecords: ImmutableList<ReadRecordData> = persistentListOf(),
 ) {
-    fun recordsForTab(tab: Int): ImmutableList<SmsMsg> = when (tab) {
+    fun recordsForTab(tab: Int): ImmutableList<ReadRecordData> = when (tab) {
         0 -> codeRecords
         1 -> plainSmsRecords
         2 -> appNotifyRecords
@@ -63,35 +62,35 @@ data class RecordQueryState(
     }
 }
 
-private fun ReadRecordData.toSmsMsg(): SmsMsg = SmsMsg(
-        id = id,
-        sender = sender,
-        body = body,
-        date = date,
-        processedTime = processedTime,
-        company = company,
-        smsCode = smsCode,
-        packageName = packageName,
-        notifyChannelId = notifyChannelId,
-        simSlot = simSlot,
-        subId = subId,
-        contactName = contactName,
-        phoneArea = phoneArea,
-        forwardStatus = forwardStatus,
-        forwardTarget = forwardTarget,
-        forwardMessage = forwardMessage,
-        forwardTime = forwardTime,
-        msgType = msgType,
-        callType = callType,
-        sessionKey = sessionKey,
+private fun ReadRecordData.toRecordFileData(): SmsMsgRecordData = SmsMsgRecordData(
+    id = id,
+    sender = sender,
+    body = body,
+    date = date,
+    processedTime = processedTime,
+    company = company,
+    smsCode = smsCode,
+    packageName = packageName,
+    notifyChannelId = notifyChannelId,
+    simSlot = simSlot,
+    subId = subId,
+    contactName = contactName,
+    phoneArea = phoneArea,
+    forwardStatus = forwardStatus,
+    forwardTarget = forwardTarget,
+    forwardMessage = forwardMessage,
+    forwardTime = forwardTime,
+    msgType = msgType,
+    callType = callType,
+    sessionKey = sessionKey,
 )
 
 @Serializable
 private data class RecordExportPayload(
-    val codeRecords: List<SmsMsg>,
-    val plainSmsRecords: List<SmsMsg>,
-    val appNotifyRecords: List<SmsMsg>,
-    val callNotifyRecords: List<SmsMsg>,
+    val codeRecords: List<SmsMsgRecordData>,
+    val plainSmsRecords: List<SmsMsgRecordData>,
+    val appNotifyRecords: List<SmsMsgRecordData>,
+    val callNotifyRecords: List<SmsMsgRecordData>,
 )
 
 private const val CODE_RECORD_DEDUP_WINDOW_MS = CodeRecordSimilarityUtils.DEFAULT_WINDOW_MS
@@ -104,25 +103,25 @@ internal fun <T> activePageFlow(
     if (isActive) source() else emptyFlow()
 }
 
-internal fun buildRecordQueryState(records: List<SmsMsg>): RecordQueryState {
+internal fun buildRecordQueryState(records: List<ReadRecordData>): RecordQueryState {
     val codeRecords = records.filter {
-        it.msgType == SmsMsg.MSG_TYPE_SMS && !it.smsCode.isNullOrBlank()
+        it.msgType == ReadRecordData.MSG_TYPE_SMS && !it.smsCode.isNullOrBlank()
     }
     return RecordQueryState(
         codeRecords = deduplicateCodeRecords(codeRecords).toImmutableList(),
         plainSmsRecords = records.filter {
-            it.msgType == SmsMsg.MSG_TYPE_SMS && it.smsCode.isNullOrBlank()
+            it.msgType == ReadRecordData.MSG_TYPE_SMS && it.smsCode.isNullOrBlank()
         }.toImmutableList(),
         appNotifyRecords = records.filter {
-            it.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY
+            it.msgType == ReadRecordData.MSG_TYPE_APP_NOTIFY
         }.toImmutableList(),
         callNotifyRecords = records.filter {
-            it.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY
+            it.msgType == ReadRecordData.MSG_TYPE_CALL_NOTIFY
         }.toImmutableList(),
     )
 }
 
-private fun deduplicateCodeRecords(records: List<SmsMsg>): List<SmsMsg> {
+private fun deduplicateCodeRecords(records: List<ReadRecordData>): List<ReadRecordData> {
     return CodeRecordSimilarityUtils.deduplicateRecords(
         records = records,
         projection = { record ->
@@ -159,11 +158,11 @@ class CodeRecordViewModel(
     private var refreshGeneration = 0L
     private var refreshJob: Job? = null
 
-    private val recordsWithLabelsFlow: Flow<Triple<ImmutableList<SmsMsg>, RecordQueryState, Map<String, String>>> =
+    private val recordsWithLabelsFlow: Flow<Triple<ImmutableList<ReadRecordData>, RecordQueryState, Map<String, String>>> =
         activePageFlow(pageActive) {
             repository.queryAllFlow().mapLatest { smsList ->
                 val (records, queryState) = withContext(Dispatchers.Default) {
-                    val normalized = smsList.map { it.toSmsMsg() }.toImmutableList()
+                    val normalized = smsList.toImmutableList()
                     normalized to buildRecordQueryState(normalized)
                 }
                 Triple(records, queryState, resolvePackageLabels(records))
@@ -268,11 +267,11 @@ class CodeRecordViewModel(
         job.start()
     }
 
-    fun removeSmsMsg(smsMsgList: List<SmsMsg>) {
+    fun removeSmsMsg(smsMsgList: List<ReadRecordData>) {
         viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) {
-                    repository.removeList(smsMsgList.map { it.toRecordData() })
+                    repository.removeList(smsMsgList)
                 }
             } catch (ignored: Throwable) {
                 XLog.e("Error occurs when remove SMS records", ignored)
@@ -280,11 +279,11 @@ class CodeRecordViewModel(
         }
     }
 
-    fun restoreSmsMsgList(smsMsgList: List<SmsMsg>) {
+    fun restoreSmsMsgList(smsMsgList: List<ReadRecordData>) {
         viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) {
-                    repository.insertList(smsMsgList.map { it.toRecordData() })
+                    repository.insertList(smsMsgList)
                 }
             } catch (ignored: Throwable) {
                 XLog.e("Error occurs when restore SMS records", ignored)
@@ -292,7 +291,7 @@ class CodeRecordViewModel(
         }
     }
 
-    fun refund(context: Context, smsMsg: SmsMsg) {
+    fun refund(context: Context, smsMsg: ReadRecordData) {
         viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) {
@@ -306,8 +305,8 @@ class CodeRecordViewModel(
                         putExtra("packageName", smsMsg.packageName ?: "")
                         putExtra("notify_channel_id", smsMsg.notifyChannelId)
                         putExtra("msgType", when (smsMsg.msgType) {
-                            SmsMsg.MSG_TYPE_APP_NOTIFY -> "app_notify"
-                            SmsMsg.MSG_TYPE_CALL_NOTIFY -> "call_notify"
+                            ReadRecordData.MSG_TYPE_APP_NOTIFY -> "app_notify"
+                            ReadRecordData.MSG_TYPE_CALL_NOTIFY -> "call_notify"
                             else -> "sms"
                         })
                         putExtra("forward_source", "manual_refund")
@@ -328,16 +327,16 @@ class CodeRecordViewModel(
             try {
                 val allRecords = uiState.value.smsList.toList()
                 val codeRecords = allRecords.filter {
-                    it.msgType == SmsMsg.MSG_TYPE_SMS && !it.smsCode.isNullOrBlank()
+                    it.msgType == ReadRecordData.MSG_TYPE_SMS && !it.smsCode.isNullOrBlank()
                 }
                 val plainSmsRecords = allRecords.filter {
-                    it.msgType == SmsMsg.MSG_TYPE_SMS && it.smsCode.isNullOrBlank()
+                    it.msgType == ReadRecordData.MSG_TYPE_SMS && it.smsCode.isNullOrBlank()
                 }
                 val appNotifyRecords = allRecords.filter {
-                    it.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY
+                    it.msgType == ReadRecordData.MSG_TYPE_APP_NOTIFY
                 }
                 val callNotifyRecords = allRecords.filter {
-                    it.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY
+                    it.msgType == ReadRecordData.MSG_TYPE_CALL_NOTIFY
                 }
                 withContext(Dispatchers.IO) {
                     context.contentResolver.openOutputStream(uri)?.use { os ->
@@ -345,10 +344,10 @@ class CodeRecordViewModel(
                             if (exportAllTabs) {
                                 JsonUtils.toJson(
                                     RecordExportPayload(
-                                        codeRecords = codeRecords,
-                                        plainSmsRecords = plainSmsRecords,
-                                        appNotifyRecords = appNotifyRecords,
-                                        callNotifyRecords = callNotifyRecords,
+                                        codeRecords = codeRecords.map { it.toRecordFileData() },
+                                        plainSmsRecords = plainSmsRecords.map { it.toRecordFileData() },
+                                        appNotifyRecords = appNotifyRecords.map { it.toRecordFileData() },
+                                        callNotifyRecords = callNotifyRecords.map { it.toRecordFileData() },
                                     ),
                                     osw,
                                 )
@@ -359,7 +358,7 @@ class CodeRecordViewModel(
                                     2 -> appNotifyRecords
                                     else -> callNotifyRecords
                                 }
-                                JsonUtils.toJson(currentRecords, osw)
+                                JsonUtils.toJson(currentRecords.map { it.toRecordFileData() }, osw)
                             }
                         }
                     }
@@ -372,7 +371,7 @@ class CodeRecordViewModel(
         }
     }
 
-    private suspend fun resolvePackageLabels(records: List<SmsMsg>): Map<String, String> = withContext(Dispatchers.IO) {
+    private suspend fun resolvePackageLabels(records: List<ReadRecordData>): Map<String, String> = withContext(Dispatchers.IO) {
         val packages = records
             .mapNotNull { it.packageName?.trim() }
             .filter { it.isNotEmpty() }

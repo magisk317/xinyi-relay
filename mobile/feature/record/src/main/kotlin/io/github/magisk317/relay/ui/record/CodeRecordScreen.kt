@@ -59,7 +59,7 @@ import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.settings.RecordSettingsUpdate
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
-import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.relay.engine.model.ReadRecordData
 import io.github.magisk317.relay.ui.common.AppIconBitmapImage
 import io.github.magisk317.uikit.foundation.LoadingIndicatorTokens
 import io.github.magisk317.uikit.foundation.PolygonMorphLoadingIndicator
@@ -298,7 +298,7 @@ fun CodeRecordScreen(
     }
 
     // Detail Dialog State
-    var detailSmsMsg by remember { mutableStateOf<SmsMsg?>(null) }
+    var detailSmsMsg by remember { mutableStateOf<ReadRecordData?>(null) }
 
     // Logic to toggle selection mode
     fun toggleSelection(id: Long) {
@@ -322,7 +322,7 @@ fun CodeRecordScreen(
 
     // Move deleteAndUndo outside items block and remember it
     val deleteAndUndo = remember(viewModel, scope, context, snackbarHostState) {
-        { target: SmsMsg ->
+        { target: ReadRecordData ->
             viewModel.removeSmsMsg(listOf(target))
             // The Job is only the undo snackbar's lifetime; the call sites need the side
             // effect, so it is bound rather than left as the lambda's return value.
@@ -602,8 +602,8 @@ fun CodeRecordScreen(
             addAll(activeSmsList.mapNotNull { record ->
                 record.packageName?.takeIf(String::isNotBlank)
                     ?: when (record.msgType) {
-                        SmsMsg.MSG_TYPE_CALL_NOTIFY -> defaultDialerPackage
-                        SmsMsg.MSG_TYPE_SMS -> defaultSmsPackage
+                        ReadRecordData.MSG_TYPE_CALL_NOTIFY -> defaultDialerPackage
+                        ReadRecordData.MSG_TYPE_SMS -> defaultSmsPackage
                         else -> null
                     }
             })
@@ -890,7 +890,7 @@ fun CodeRecordScreen(
                 },
                 onRefund = {
                     viewModel.refund(context, sms)
-                    val message = if (sms.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY) {
+                    val message = if (sms.msgType == ReadRecordData.MSG_TYPE_APP_NOTIFY) {
                         context.getString(R.string.prompt_notification_refunded)
                     } else {
                         context.getString(R.string.prompt_sms_refunded)
@@ -911,7 +911,7 @@ fun CodeRecordScreen(
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun RecordDetailOverlay(
-    sms: SmsMsg,
+    sms: ReadRecordData,
     packageLabels: Map<String, String>,
     onDismiss: () -> Unit,
     onCopy: (label: String, value: String, message: String) -> Unit,
@@ -919,7 +919,7 @@ private fun RecordDetailOverlay(
     onRefund: () -> Unit,
 ) {
     val context = LocalContext.current
-    val isAppNotification = sms.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY
+    val isAppNotification = sms.msgType == ReadRecordData.MSG_TYPE_APP_NOTIFY
     val detailDateFormatter = remember { SimpleDateFormat(RECORD_DATE_FORMAT, Locale.getDefault()) }
     val sender = sms.sender ?: sms.company ?: context.getString(R.string.unknown)
     val originalTime = formatDetailTime(detailDateFormatter, sms.date)
@@ -1283,26 +1283,26 @@ private data class ForwardStatusSnapshot(
 )
 
 @Composable
-private fun resolveForwardStatusSnapshot(smsMsg: SmsMsg): ForwardStatusSnapshot {
+private fun resolveForwardStatusSnapshot(smsMsg: ReadRecordData): ForwardStatusSnapshot {
     val parsed = parseForwardCountsFromMessage(smsMsg.forwardMessage)
     val targetCount = countForwardTargets(smsMsg.forwardTarget)
     val statusForDisplay = when {
-        parsed.success > 0 && parsed.failed > 0 -> SmsMsg.FORWARD_STATUS_PARTIAL
-        parsed.success > 0 -> SmsMsg.FORWARD_STATUS_SUCCESS
-        parsed.failed > 0 -> SmsMsg.FORWARD_STATUS_FAILED
-        smsMsg.forwardStatus == SmsMsg.FORWARD_STATUS_FAILED &&
+        parsed.success > 0 && parsed.failed > 0 -> ReadRecordData.FORWARD_STATUS_PARTIAL
+        parsed.success > 0 -> ReadRecordData.FORWARD_STATUS_SUCCESS
+        parsed.failed > 0 -> ReadRecordData.FORWARD_STATUS_FAILED
+        smsMsg.forwardStatus == ReadRecordData.FORWARD_STATUS_FAILED &&
             targetCount == 0 &&
-            !smsMsg.forwardMessage.isNullOrBlank() -> SmsMsg.FORWARD_STATUS_NONE
+            !smsMsg.forwardMessage.isNullOrBlank() -> ReadRecordData.FORWARD_STATUS_NONE
         else -> smsMsg.forwardStatus
     }
     val successCount = when {
         parsed.success > 0 -> parsed.success
-        statusForDisplay == SmsMsg.FORWARD_STATUS_SUCCESS -> maxOf(targetCount, 1)
+        statusForDisplay == ReadRecordData.FORWARD_STATUS_SUCCESS -> maxOf(targetCount, 1)
         else -> 0
     }
     val failedCount = when {
         parsed.failed > 0 -> parsed.failed
-        statusForDisplay == SmsMsg.FORWARD_STATUS_FAILED -> maxOf(targetCount, 1)
+        statusForDisplay == ReadRecordData.FORWARD_STATUS_FAILED -> maxOf(targetCount, 1)
         else -> 0
     }
     return ForwardStatusSnapshot(
@@ -1313,20 +1313,20 @@ private fun resolveForwardStatusSnapshot(smsMsg: SmsMsg): ForwardStatusSnapshot 
 }
 
 @Composable
-private fun resolveForwardStatusText(smsMsg: SmsMsg): String {
+private fun resolveForwardStatusText(smsMsg: ReadRecordData): String {
     val snapshot = resolveForwardStatusSnapshot(smsMsg)
     return when (snapshot.status) {
-        SmsMsg.FORWARD_STATUS_BLOCKED -> stringResource(R.string.forward_status_none)
-        SmsMsg.FORWARD_STATUS_PARTIAL -> stringResource(
+        ReadRecordData.FORWARD_STATUS_BLOCKED -> stringResource(R.string.forward_status_none)
+        ReadRecordData.FORWARD_STATUS_PARTIAL -> stringResource(
             R.string.forward_status_partial,
             maxOf(snapshot.successCount, 1),
             maxOf(snapshot.failedCount, 1),
         )
-        SmsMsg.FORWARD_STATUS_SUCCESS -> stringResource(
+        ReadRecordData.FORWARD_STATUS_SUCCESS -> stringResource(
             R.string.forward_status_success_count,
             maxOf(snapshot.successCount, 1),
         )
-        SmsMsg.FORWARD_STATUS_FAILED -> stringResource(
+        ReadRecordData.FORWARD_STATUS_FAILED -> stringResource(
             R.string.forward_status_failed_count,
             maxOf(snapshot.failedCount, 1),
         )
@@ -1335,22 +1335,22 @@ private fun resolveForwardStatusText(smsMsg: SmsMsg): String {
 }
 
 @Composable
-private fun resolveForwardStatusColor(smsMsg: SmsMsg): Color {
+private fun resolveForwardStatusColor(smsMsg: ReadRecordData): Color {
     return when (resolveForwardStatusSnapshot(smsMsg).status) {
-        SmsMsg.FORWARD_STATUS_SUCCESS -> FORWARD_SUCCESS_COLOR
-        SmsMsg.FORWARD_STATUS_FAILED -> FORWARD_FAILED_COLOR
-        SmsMsg.FORWARD_STATUS_PARTIAL,
-        SmsMsg.FORWARD_STATUS_BLOCKED,
-        SmsMsg.FORWARD_STATUS_NONE,
+        ReadRecordData.FORWARD_STATUS_SUCCESS -> FORWARD_SUCCESS_COLOR
+        ReadRecordData.FORWARD_STATUS_FAILED -> FORWARD_FAILED_COLOR
+        ReadRecordData.FORWARD_STATUS_PARTIAL,
+        ReadRecordData.FORWARD_STATUS_BLOCKED,
+        ReadRecordData.FORWARD_STATUS_NONE,
         -> FORWARD_WARNING_COLOR
         else -> FORWARD_WARNING_COLOR
     }
 }
 
 @Composable
-private fun resolveForwardStatusAnnotated(smsMsg: SmsMsg): AnnotatedString {
+private fun resolveForwardStatusAnnotated(smsMsg: ReadRecordData): AnnotatedString {
     val snapshot = resolveForwardStatusSnapshot(smsMsg)
-    return if (snapshot.status == SmsMsg.FORWARD_STATUS_PARTIAL) {
+    return if (snapshot.status == ReadRecordData.FORWARD_STATUS_PARTIAL) {
         val successText = stringResource(
             R.string.forward_status_success_count,
             maxOf(snapshot.successCount, 1),
@@ -1384,7 +1384,7 @@ private fun resolveForwardStatusAnnotated(smsMsg: SmsMsg): AnnotatedString {
 private fun RecordSplitColumn(
     title: String,
     emptyHint: String,
-    list: List<SmsMsg>,
+    list: List<ReadRecordData>,
     recordTab: Int,
     packageLabels: Map<String, String>,
     recordIcons: Map<String, Bitmap>,
@@ -1394,9 +1394,9 @@ private fun RecordSplitColumn(
     selectedIds: Set<Long>,
     onToggleSelection: (Long) -> Unit,
     onActivateSelection: (Long) -> Unit,
-    onCopyCode: (SmsMsg) -> Unit,
-    onShowDetail: (SmsMsg) -> Unit,
-    onDelete: (SmsMsg) -> Unit,
+    onCopyCode: (ReadRecordData) -> Unit,
+    onShowDetail: (ReadRecordData) -> Unit,
+    onDelete: (ReadRecordData) -> Unit,
     modifier: Modifier = Modifier,
     showHeader: Boolean = true,
     listContentPadding: PaddingValues = PaddingValues(0.dp),
@@ -1462,15 +1462,15 @@ private fun RecordSplitColumn(
                     verticalArrangement = Arrangement.spacedBy(if (isMiuix) 12.dp else 0.dp),
                     contentPadding = listContentPadding,
                 ) {
-                    items(list, key = { it.id ?: 0L }) { smsMsg ->
+                    items(list, key = { it.id }) { smsMsg ->
                         val isSelected = selectedIds.contains(smsMsg.id)
                         if (isSelectionMode) {
-                            if (smsMsg.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY) {
+                            if (smsMsg.msgType == ReadRecordData.MSG_TYPE_APP_NOTIFY) {
                                 AppNotificationItem(
                                     smsMsg = smsMsg,
                                     isSelectionMode = true,
                                     isSelected = isSelected,
-                                    onClick = { onToggleSelection(smsMsg.id ?: 0L) },
+                                    onClick = { onToggleSelection(smsMsg.id) },
                                     onLongClick = {},
                                     onDetailClick = { onShowDetail(smsMsg) },
                                     packageLabels = packageLabels,
@@ -1485,7 +1485,7 @@ private fun RecordSplitColumn(
                                     defaultDialerPackage = defaultDialerPackage,
                                     isSelectionMode = true,
                                     isSelected = isSelected,
-                                    onClick = { onToggleSelection(smsMsg.id ?: 0L) },
+                                    onClick = { onToggleSelection(smsMsg.id) },
                                     onLongClick = {},
                                     onDetailClick = { onShowDetail(smsMsg) },
                                     recordIcons = recordIcons,
@@ -1528,13 +1528,13 @@ private fun RecordSplitColumn(
                                     }
                                 },
                                 content = {
-                                    if (smsMsg.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY) {
+                                    if (smsMsg.msgType == ReadRecordData.MSG_TYPE_APP_NOTIFY) {
                                         AppNotificationItem(
                                             smsMsg = smsMsg,
                                             isSelectionMode = false,
                                             isSelected = false,
                                             onClick = { onCopyCode(smsMsg) },
-                                            onLongClick = { onActivateSelection(smsMsg.id ?: 0L) },
+                                            onLongClick = { onActivateSelection(smsMsg.id) },
                                             onDetailClick = { onShowDetail(smsMsg) },
                                             packageLabels = packageLabels,
                                             recordIcons = recordIcons,
@@ -1549,7 +1549,7 @@ private fun RecordSplitColumn(
                                             isSelectionMode = false,
                                             isSelected = false,
                                             onClick = { onCopyCode(smsMsg) },
-                                            onLongClick = { onActivateSelection(smsMsg.id ?: 0L) },
+                                            onLongClick = { onActivateSelection(smsMsg.id) },
                                             onDetailClick = { onShowDetail(smsMsg) },
                                             recordIcons = recordIcons,
                                             modifier = Modifier.animateItem(),
@@ -1585,7 +1585,7 @@ internal fun recordRowContainerColor(): Color =
 
 @Composable
 fun CodeRecordItem(
-    smsMsg: SmsMsg,
+    smsMsg: ReadRecordData,
     recordTab: Int,
     defaultSmsPackage: String?,
     defaultDialerPackage: String?,
@@ -1612,8 +1612,8 @@ fun CodeRecordItem(
     ) {
         when {
             showAppIcon && !smsMsg.packageName.isNullOrBlank() -> smsMsg.packageName
-            smsMsg.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY -> defaultDialerPackage
-            smsMsg.msgType == SmsMsg.MSG_TYPE_SMS -> defaultSmsPackage
+            smsMsg.msgType == ReadRecordData.MSG_TYPE_CALL_NOTIFY -> defaultDialerPackage
+            smsMsg.msgType == ReadRecordData.MSG_TYPE_SMS -> defaultSmsPackage
             else -> null
         }
     }
@@ -1634,7 +1634,7 @@ fun CodeRecordItem(
                 size = RECORD_ICON_SIZE,
                 contentDescription = stringResource(R.string.sms_icon_description),
                 fallbackIcon = when {
-                    smsMsg.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY -> Icons.Default.Call
+                    smsMsg.msgType == ReadRecordData.MSG_TYPE_CALL_NOTIFY -> Icons.Default.Call
                     else -> Icons.Default.Email
                 },
             )
@@ -1703,7 +1703,7 @@ fun CodeRecordItem(
 
 @Composable
 fun AppNotificationItem(
-    smsMsg: SmsMsg,
+    smsMsg: ReadRecordData,
     isSelectionMode: Boolean,
     isSelected: Boolean,
     onClick: () -> Unit,
