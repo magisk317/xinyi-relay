@@ -193,6 +193,7 @@
     <string name="record_clear_dialog_message">确认要清空%1$s吗？</string>
     <string name="record_settings_clear_current_tab">清空当前页记录</string>
     <string name="record_export_dialog_title">导出记录</string>
+    <string name="record_chart_entry_title">统计图表</string>
     <string name="record_export_current_tab_option">导出当前页（%1$s）</string>
     <string name="record_export_all_tabs_option">导出所有</string>
     <string name="title_notification_rules">通知转发</string>
@@ -937,7 +938,6 @@
     <string name="framework_incompatibility_known_framework_message">检测到当前使用的是 %1$s。该框架已出现较多兼容性问题，可能导致模块异常、闪退或功能失效。建议尽快更换为官方 LSPosed 框架；你可以自行获取，或到群组内获取对应版本。</string>
     <string name="framework_incompatibility_hooker_annotation_message">当前框架与模块不兼容，Hook 注册失败。请下载最新 it 版，或滑到底部加入社群获取。</string>
     <string name="home_card_status_title">工作状态</string>
-    <string name="home_card_chart_title">统计</string>
     <string name="home_card_appinfo_title">应用信息</string>
     <string name="home_card_deviceinfo_title">设备信息</string>
     <string name="home_card_links_title">交流社区</string>

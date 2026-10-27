@@ -192,6 +192,7 @@
     <string name="record_clear_dialog_message">Are you sure you want to clear %1$s?</string>
     <string name="record_settings_clear_current_tab">Clear current tab records</string>
     <string name="record_export_dialog_title">Export records</string>
+    <string name="record_chart_entry_title">Statistics chart</string>
     <string name="record_export_current_tab_option">Export current tab (%1$s)</string>
     <string name="record_export_all_tabs_option">Export all</string>
     <string name="title_notification_rules">Notification Forwarding</string>
@@ -935,7 +936,6 @@
     <string name="framework_incompatibility_known_framework_message">Detected that the current framework is %1$s. This framework has had many compatibility problems and may cause crashes, broken hooks, or missing features. Please switch to the official LSPosed framework as soon as possible; you can obtain it yourself or get the appropriate build from the community group.</string>
     <string name="framework_incompatibility_hooker_annotation_message">Current framework is incompatible and hook registration failed. Please download the latest IT build, or scroll to the bottom and join the community to get it.</string>
     <string name="home_card_status_title">Status</string>
-    <string name="home_card_chart_title">Stats</string>
     <string name="home_card_appinfo_title">App Info</string>
     <string name="home_card_deviceinfo_title">Device Info</string>
     <string name="home_card_links_title">Community</string>

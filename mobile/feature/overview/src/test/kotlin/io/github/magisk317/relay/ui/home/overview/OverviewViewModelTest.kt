@@ -19,7 +19,7 @@ class OverviewViewModelTest {
         val repository = FakeOverviewSettingsRepository(
             overviewSettings = OverviewSettingsSnapshot(
                 cardOrder = "chart,status,chart,unknown",
-                enabledCardIds = "unknown",
+                enabledCardIds = "status,chart",
                 chartType = "unknown",
                 chartWindow = "unknown",
             ),
@@ -29,10 +29,8 @@ class OverviewViewModelTest {
         viewModel.loadSettings()
 
         val state = viewModel.uiState.value
-        assertEquals(listOf(CARD_CHART, CARD_STATUS, CARD_APP_INFO, CARD_DEVICE_INFO, CARD_LINKS), state.cardOrder)
-        assertEquals(DEFAULT_OVERVIEW_ENABLED_CARD_IDS, state.enabledCardIds)
-        assertEquals(HomeChartType.EVENTS, state.chartType)
-        assertEquals(HomeChartWindow.ALL, state.chartWindow)
+        assertEquals(DEFAULT_OVERVIEW_CARD_ORDER, state.cardOrder)
+        assertEquals(setOf(CARD_STATUS), state.enabledCardIds)
     }
 
     @Test
@@ -41,19 +39,19 @@ class OverviewViewModelTest {
             overviewSettings = OverviewSettingsSnapshot(
                 cardOrder = "status,app_info",
                 enabledCardIds = "status,app_info",
-                chartType = HomeChartType.EVENTS.id,
-                chartWindow = HomeChartWindow.ALL.id,
+                chartType = "events",
+                chartWindow = "all",
             ),
         )
         val viewModel = OverviewViewModel(repository)
         viewModel.loadSettings()
 
-        viewModel.updateEnabledCardIdsLocally(setOf(CARD_STATUS, CARD_CHART))
-        viewModel.updateCardOrderLocally(listOf(CARD_CHART, CARD_STATUS))
+        viewModel.updateEnabledCardIdsLocally(setOf(CARD_STATUS, CARD_LINKS))
+        viewModel.updateCardOrderLocally(listOf(CARD_LINKS, CARD_STATUS))
 
         val state = viewModel.uiState.value
-        assertEquals(true, CARD_CHART in state.enabledCardIds)
-        assertEquals(listOf(CARD_CHART, CARD_STATUS), state.cardOrder)
+        assertEquals(true, CARD_LINKS in state.enabledCardIds)
+        assertEquals(listOf(CARD_LINKS, CARD_STATUS), state.cardOrder)
     }
 
     @Test
@@ -63,8 +61,8 @@ class OverviewViewModelTest {
                 overviewSettings = OverviewSettingsSnapshot(
                     encodeCardList(DEFAULT_OVERVIEW_CARD_ORDER),
                     encodeCardList(DEFAULT_OVERVIEW_ENABLED_CARD_IDS.toList()),
-                    HomeChartType.EVENTS.id,
-                    HomeChartWindow.ALL.id,
+                    "events",
+                    "all",
                 ),
             ),
         )
@@ -88,8 +86,8 @@ class OverviewViewModelTest {
                 overviewSettings = OverviewSettingsSnapshot(
                     encodeCardList(DEFAULT_OVERVIEW_CARD_ORDER),
                     encodeCardList(DEFAULT_OVERVIEW_ENABLED_CARD_IDS.toList()),
-                    HomeChartType.EVENTS.id,
-                    HomeChartWindow.ALL.id,
+                    "events",
+                    "all",
                 ),
             ),
         )
@@ -113,25 +111,6 @@ class OverviewViewModelTest {
         )
     }
 
-    @Test
-    fun runtimeSnapshotCache_reusesSameInputs_andInvalidatesWhenInputsChange() {
-        val cache = OverviewRuntimeSnapshotCache()
-        val initial = OverviewRuntimeRefreshKey(HomeChartWindow.ALL, analyticsEnabled = true)
-
-        assertTrue(cache.needsRefresh(initial))
-        cache.markRefreshed(initial)
-        assertFalse(cache.needsRefresh(initial))
-        assertTrue(
-            cache.needsRefresh(
-                OverviewRuntimeRefreshKey(HomeChartWindow.LAST_7_DAYS, analyticsEnabled = true),
-            ),
-        )
-        assertTrue(
-            cache.needsRefresh(
-                OverviewRuntimeRefreshKey(HomeChartWindow.ALL, analyticsEnabled = false),
-            ),
-        )
-    }
 }
 
 private class FakeOverviewSettingsRepository(

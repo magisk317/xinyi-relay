@@ -10,6 +10,13 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
+import io.github.magisk317.relay.contract.settings.OverviewSettingsUpdate
+import io.github.magisk317.relay.engine.service.RuntimeAnalyticsProvider
+import io.github.magisk317.relay.ui.analytics.AnalyticsChartType
+import io.github.magisk317.relay.ui.analytics.AnalyticsChartWindow
+import io.github.magisk317.relay.ui.analytics.AnalyticsSnapshot
+import io.github.magisk317.relay.ui.analytics.loadAnalyticsSnapshot
 import io.github.magisk317.smscode.runtime.common.utils.JsonUtils
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.engine.model.ReadRecordData
@@ -44,6 +51,14 @@ data class CodeRecordUiState(
     val defaultSmsPackage: String? = null,
     val defaultDialerPackage: String? = null,
     val recordIcons: Map<String, Bitmap> = emptyMap(),
+    val isLoading: Boolean = false,
+)
+
+@Immutable
+data class RecordChartState(
+    val chartType: AnalyticsChartType = AnalyticsChartType.EVENTS,
+    val chartWindow: AnalyticsChartWindow = AnalyticsChartWindow.ALL,
+    val snapshot: AnalyticsSnapshot? = null,
     val isLoading: Boolean = false,
 )
 
@@ -142,9 +157,13 @@ private fun deduplicateCodeRecords(records: List<ReadRecordData>): List<ReadReco
 class CodeRecordViewModel(
     application: Application,
     private val repository: MessageRecordRepository,
+    private val settingsRepository: SettingsPreferencesRepository,
+    private val analyticsProvider: RuntimeAnalyticsProvider,
 ) : AndroidViewModel(application) {
 
     private val _loading = MutableStateFlow(false)
+    private val _chartState = MutableStateFlow(RecordChartState())
+    val chartState: StateFlow<RecordChartState> = _chartState.asStateFlow()
     private val _recordEnvironment = MutableStateFlow(RecordEnvironmentState())
     internal val recordEnvironment: StateFlow<RecordEnvironmentState> = _recordEnvironment.asStateFlow()
     private val _recordIcons = MutableStateFlow<Map<String, Bitmap>>(emptyMap())
@@ -219,6 +238,50 @@ class CodeRecordViewModel(
     fun refreshData() {
         if (!pageActive.value) return
         refreshRecordEnvironment(showLoading = true)
+    }
+
+    /** Loads the stored chart choice and its snapshot every time the sheet opens. */
+    fun openChart(analyticsEnabled: Boolean) {
+        viewModelScope.launch {
+            val settings = settingsRepository.getOverviewSettings()
+            _chartState.update { current ->
+                current.copy(
+                    chartType = AnalyticsChartType.fromId(settings.chartType) ?: AnalyticsChartType.EVENTS,
+                    chartWindow = AnalyticsChartWindow.fromId(settings.chartWindow) ?: AnalyticsChartWindow.ALL,
+                )
+            }
+            refreshChartSnapshot(analyticsEnabled)
+        }
+    }
+
+    fun selectChartType(next: AnalyticsChartType) {
+        if (_chartState.value.chartType == next) return
+        _chartState.update { it.copy(chartType = next) }
+        viewModelScope.launch {
+            settingsRepository.updateOverviewSettings(OverviewSettingsUpdate(chartType = next.id))
+        }
+    }
+
+    fun selectChartWindow(next: AnalyticsChartWindow, analyticsEnabled: Boolean) {
+        if (_chartState.value.chartWindow == next) return
+        _chartState.update { it.copy(chartWindow = next) }
+        viewModelScope.launch {
+            settingsRepository.updateOverviewSettings(OverviewSettingsUpdate(chartWindow = next.id))
+            refreshChartSnapshot(analyticsEnabled)
+        }
+    }
+
+    private suspend fun refreshChartSnapshot(analyticsEnabled: Boolean) {
+        val window = _chartState.value.chartWindow
+        _chartState.update { it.copy(isLoading = true) }
+        val snapshot = loadAnalyticsSnapshot(analyticsProvider, window, analyticsEnabled)
+        _chartState.update { current ->
+            if (current.chartWindow == window) {
+                current.copy(snapshot = snapshot, isLoading = false)
+            } else {
+                current
+            }
+        }
     }
 
     fun preloadRecordIcons(packageNames: Collection<String?>, sizePx: Int) {

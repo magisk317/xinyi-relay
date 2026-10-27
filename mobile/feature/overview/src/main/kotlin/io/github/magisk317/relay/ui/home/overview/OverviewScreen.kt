@@ -1,8 +1,6 @@
 package io.github.magisk317.relay.ui.home.overview
 
-import io.github.magisk317.relay.android.otel.MagiskOtelBootstrap
 import io.github.magisk317.relay.mobilefeature.overview.BuildConfig
-import io.github.magisk317.relay.ui.common.rememberPrefBoolean
 import android.widget.Toast
 import io.github.magisk317.uikit.surface.DonateDialog
 import io.github.magisk317.uikit.surface.QRCodeDialog
@@ -31,7 +29,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CheckCircle
@@ -66,7 +63,6 @@ import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.smscode.runtime.contract.diagnostics.ActivationDiagnosticsSnapshot
 import io.github.magisk317.smscode.runtime.common.utils.BrowserUtils
 import io.github.magisk317.relay.mobile.core.R
-import io.github.magisk317.relay.engine.service.RuntimeAnalyticsProvider
 import io.github.magisk317.relay.billing.BillingProvider
 import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsStore
 import io.github.magisk317.uikit.entitlement.rememberEntitlementState
@@ -102,7 +98,6 @@ fun OverviewScreen(
     val context = LocalContext.current
     val activity = LocalActivity.current
     val viewModel: OverviewViewModel = koinViewModel()
-    val analyticsRepository: RuntimeAnalyticsProvider = koinInject()
     val billingProvider: BillingProvider = koinInject()
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = LocalSnackbarHostState.current
@@ -120,12 +115,6 @@ fun OverviewScreen(
         }
     }
 
-    val analyticsEnabled = rememberPrefBoolean(
-        PrefConst.KEY_ENABLE_ANALYTICS,
-        true,
-        isActive = isActive,
-    )
-    val effectiveAnalyticsEnabled = MagiskOtelBootstrap.isEffectivelyEnabled(analyticsEnabled.value)
     val mobileAutomationAllowed = rememberEntitlementState(
         isActive = isActive,
         dataStoreReader = ::readEntitlementAutomationAllowed,
@@ -200,12 +189,6 @@ fun OverviewScreen(
             titleRes = R.string.home_card_links_title,
             icon = Icons.Default.Favorite,
         ),
-        HomeCardSpec(
-            id = CARD_CHART,
-            titleRes = R.string.home_card_chart_title,
-            icon = Icons.AutoMirrored.Filled.List,
-            available = effectiveAnalyticsEnabled,
-        ),
     )
     val cardSpecById = remember(allCardSpecs) { allCardSpecs.associateBy(HomeCardSpec::id) }
 
@@ -217,8 +200,6 @@ fun OverviewScreen(
     LaunchedEffect(
         lifecycleOwner,
         isActive,
-        effectiveAnalyticsEnabled,
-        overviewUiState.chartWindow,
     ) {
         if (!isActive) {
             viewModel.invalidateRuntimeRefresh()
@@ -234,20 +215,16 @@ fun OverviewScreen(
             }
             viewModel.refreshRuntimeSnapshot(
                 context = context,
-                analyticsRepository = analyticsRepository,
-                analyticsEnabled = effectiveAnalyticsEnabled,
             )
             awaitCancellation()
         }
     }
     val cardOrder = overviewUiState.cardOrder
     val enabledCardIds = overviewUiState.enabledCardIds
-    val chartType = overviewUiState.chartType
-    val chartWindow = overviewUiState.chartWindow
     val runtimeUiState = overviewUiState.runtimeSnapshot
     val editMode = overviewUiState.editMode
 
-    val visibleCardIds = remember(cardOrder, enabledCardIds, effectiveAnalyticsEnabled) {
+    val visibleCardIds = remember(cardOrder, enabledCardIds) {
         cardOrder.filter { id ->
             enabledCardIds.contains(id) && (cardSpecById[id]?.available == true)
         }
@@ -297,9 +274,6 @@ fun OverviewScreen(
                 enabledCardIds = enabledCardIds,
                 editMode = editMode,
                 isEnabled = isEnabled,
-                chartType = chartType,
-                chartWindow = chartWindow,
-                chartSnapshot = runtimeUiState.chartSnapshot,
                 appVersionName = runtimeUiState.appVersionName,
                 appVersionCode = runtimeUiState.appVersionCode,
                 frameworkType = runtimeUiState.frameworkType,
@@ -322,12 +296,6 @@ fun OverviewScreen(
                 onEnabledCardIdsChange = viewModel::updateEnabledCardIdsLocally,
                 onPersistEnabledCardIds = viewModel::persistEnabledCardIds,
                 onDragStateChange = viewModel::updateDragState,
-                onChartTypeChange = { next ->
-                    viewModel.setChartType(next)
-                },
-                onChartWindowChange = { next ->
-                    viewModel.setChartWindow(next)
-                },
                 onShowDonate = { showDonateDialog = true },
                 onActivateClick = {
                     runCatching {
@@ -390,9 +358,6 @@ private fun OverviewContent(
     enabledCardIds: Set<String>,
     editMode: Boolean,
     isEnabled: Boolean,
-    chartType: HomeChartType,
-    chartWindow: HomeChartWindow,
-    chartSnapshot: HomeAnalyticsSnapshot?,
     appVersionName: String,
     appVersionCode: String,
     frameworkType: String,
@@ -415,8 +380,6 @@ private fun OverviewContent(
     onEnabledCardIdsChange: (Set<String>) -> Unit,
     onPersistEnabledCardIds: (Set<String>) -> Unit,
     onDragStateChange: (String?, Float) -> Unit,
-    onChartTypeChange: (HomeChartType) -> Unit,
-    onChartWindowChange: (HomeChartWindow) -> Unit,
     onShowDonate: () -> Unit,
     onActivateClick: () -> Unit,
     onDiagnosticsToggle: () -> Unit,
@@ -449,9 +412,6 @@ private fun OverviewContent(
                 enabledCardIds = enabledCardIds,
                 editMode = editMode,
                 isEnabled = isEnabled,
-                chartType = chartType,
-                chartWindow = chartWindow,
-                chartSnapshot = chartSnapshot,
                 appVersionName = appVersionName,
                 appVersionCode = appVersionCode,
                 frameworkType = frameworkType,
@@ -471,8 +431,6 @@ private fun OverviewContent(
                 onEnabledCardIdsChange = onEnabledCardIdsChange,
                 onPersistEnabledCardIds = onPersistEnabledCardIds,
                 onDragStateChange = onDragStateChange,
-                onChartTypeChange = onChartTypeChange,
-                onChartWindowChange = onChartWindowChange,
                 onShowDonate = onShowDonate,
                 onActivateClick = onActivateClick,
                 onDiagnosticsToggle = onDiagnosticsToggle,
@@ -490,9 +448,6 @@ private fun OverviewCardItem(
     enabledCardIds: Set<String>,
     editMode: Boolean,
     isEnabled: Boolean,
-    chartType: HomeChartType,
-    chartWindow: HomeChartWindow,
-    chartSnapshot: HomeAnalyticsSnapshot?,
     appVersionName: String,
     appVersionCode: String,
     frameworkType: String,
@@ -512,8 +467,6 @@ private fun OverviewCardItem(
     onEnabledCardIdsChange: (Set<String>) -> Unit,
     onPersistEnabledCardIds: (Set<String>) -> Unit,
     onDragStateChange: (String?, Float) -> Unit,
-    onChartTypeChange: (HomeChartType) -> Unit,
-    onChartWindowChange: (HomeChartWindow) -> Unit,
     onShowDonate: () -> Unit,
     onActivateClick: () -> Unit,
     onDiagnosticsToggle: () -> Unit,
@@ -582,23 +535,6 @@ private fun OverviewCardItem(
                         null
                     } else {
                         onDiagnosticsToggle
-                    },
-                )
-            }
-            CARD_CHART -> {
-                HomeChartCard(
-                    chartType = chartType,
-                    chartWindow = chartWindow,
-                    data = chartSnapshot,
-                    onChartTypeChange = if (editMode) {
-                        {}
-                    } else {
-                        onChartTypeChange
-                    },
-                    onChartWindowChange = if (editMode) {
-                        {}
-                    } else {
-                        onChartWindowChange
                     },
                 )
             }

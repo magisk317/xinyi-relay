@@ -62,6 +62,9 @@ import io.github.magisk317.relay.contract.settings.RecordSettingsUpdate
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.engine.model.ReadRecordData
 import io.github.magisk317.relay.ui.common.AppIconBitmapImage
+import io.github.magisk317.relay.ui.analytics.AnalyticsChartPanel
+import io.github.magisk317.relay.ui.common.rememberPrefBoolean
+import io.github.magisk317.relay.android.otel.MagiskOtelBootstrap
 import io.github.magisk317.uikit.foundation.LoadingIndicatorTokens
 import io.github.magisk317.uikit.foundation.PolygonMorphLoadingIndicator
 import io.github.magisk317.uikit.scroll.ReportLazyListScrollToChrome
@@ -267,6 +270,7 @@ fun CodeRecordScreen(
     var isSelectionMode by remember { mutableStateOf(false) }
     var selectedIds by remember { mutableStateOf(setOf<Long>()) }
     var showSettingsSheet by remember { mutableStateOf(false) }
+    var showChartSheet by remember { mutableStateOf(false) }
     var showExportDialog by remember { mutableStateOf(false) }
     var showClearDialog by remember { mutableStateOf(false) }
     var selectedRecordTab by rememberSaveable { mutableIntStateOf(0) } // 0: code, 1: plain, 2: app_notify, 3: call_notify
@@ -385,6 +389,13 @@ fun CodeRecordScreen(
         2 -> historyLimitAppNotify
         else -> historyLimitCallNotify
     }
+    val chartState by viewModel.chartState.collectAsStateWithLifecycle()
+    val analyticsEnabled = rememberPrefBoolean(PrefConst.KEY_ENABLE_ANALYTICS, true, isActive = isActive)
+    val analyticsAllowed = MagiskOtelBootstrap.isEffectivelyEnabled(analyticsEnabled.value)
+    LaunchedEffect(showChartSheet, analyticsAllowed) {
+        if (showChartSheet) viewModel.openChart(analyticsAllowed)
+    }
+
     AppBottomSheet(
         show = showSettingsSheet,
         onDismissRequest = { showSettingsSheet = false },
@@ -450,6 +461,39 @@ fun CodeRecordScreen(
                 showExportDialog = true
             }
 
+            AppArrowItem(
+                title = stringResource(id = R.string.record_chart_entry_title),
+                summary = "",
+            ) {
+                showSettingsSheet = false
+                showChartSheet = true
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+    }
+
+    AppBottomSheet(
+        show = showChartSheet,
+        onDismissRequest = { showChartSheet = false },
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            AppText(
+                text = stringResource(id = R.string.record_chart_entry_title),
+                role = AppTextRole.Subtitle,
+            )
+            AnalyticsChartPanel(
+                chartType = chartState.chartType,
+                chartWindow = chartState.chartWindow,
+                data = chartState.snapshot,
+                onChartTypeChange = viewModel::selectChartType,
+                onChartWindowChange = { viewModel.selectChartWindow(it, analyticsAllowed) },
+            )
             Spacer(modifier = Modifier.height(12.dp))
         }
     }

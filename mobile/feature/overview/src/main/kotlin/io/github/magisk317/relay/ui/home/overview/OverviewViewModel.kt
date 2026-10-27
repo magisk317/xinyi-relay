@@ -7,7 +7,6 @@ import io.github.magisk317.relay.common.utils.relayPackageActions
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.OverviewSettingsUpdate
-import io.github.magisk317.relay.engine.service.RuntimeAnalyticsProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -25,21 +24,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
-internal data class OverviewRuntimeRefreshKey(
-    val chartWindow: HomeChartWindow,
-    val analyticsEnabled: Boolean,
-)
-
-internal class OverviewRuntimeSnapshotCache {
-    private var completedKey: OverviewRuntimeRefreshKey? = null
-
-    fun needsRefresh(key: OverviewRuntimeRefreshKey): Boolean = completedKey != key
-
-    fun markRefreshed(key: OverviewRuntimeRefreshKey) {
-        completedKey = key
-    }
-}
-
 class OverviewViewModel(
     private val settingsRepository: SettingsPreferencesRepository,
 ) : ViewModel() {
@@ -52,7 +36,7 @@ class OverviewViewModel(
     private var settingsGeneration = 0L
     private var runtimeRefreshGeneration = 0L
     private val runtimeRefreshMutex = Mutex()
-    private val runtimeSnapshotCache = OverviewRuntimeSnapshotCache()
+    private var runtimeSnapshotLoaded = false
 
     internal fun setPageActive(active: Boolean) {
         if (pageActive == active) return
@@ -83,19 +67,11 @@ class OverviewViewModel(
         }
         val normalizedEnabled = normalizeCardEnabled(parsedEnabled, DEFAULT_OVERVIEW_ENABLED_CARD_IDS)
 
-        val storedChartType = overviewSettings.chartType
-        val parsedChartType = HomeChartType.fromId(storedChartType) ?: HomeChartType.EVENTS
-
-        val storedChartWindow = overviewSettings.chartWindow
-        val parsedChartWindow = HomeChartWindow.fromId(storedChartWindow) ?: HomeChartWindow.ALL
-
         if (!pageActive || generation != settingsGeneration) return
         _uiState.update { current ->
             current.copy(
                 cardOrder = normalizedOrder,
                 enabledCardIds = normalizedEnabled,
-                chartType = parsedChartType,
-                chartWindow = parsedChartWindow,
             )
         }
 
@@ -109,41 +85,18 @@ class OverviewViewModel(
                 OverviewSettingsUpdate(enabledCardIds = encodeCardList(normalizedEnabled.toList())),
             )
         }
-        if (storedChartType.isBlank() || parsedChartType.id != storedChartType) {
-            settingsRepository.updateOverviewSettings(
-                OverviewSettingsUpdate(chartType = parsedChartType.id),
-            )
-        }
-        if (storedChartWindow.isBlank() || parsedChartWindow.id != storedChartWindow) {
-            settingsRepository.updateOverviewSettings(
-                OverviewSettingsUpdate(chartWindow = parsedChartWindow.id),
-            )
-        }
     }
 
-    internal suspend fun refreshRuntimeSnapshot(
-        context: Context,
-        analyticsRepository: RuntimeAnalyticsProvider,
-        analyticsEnabled: Boolean,
-    ) {
+    internal suspend fun refreshRuntimeSnapshot(context: Context) {
         if (!pageActive) return
-        val refreshKey = OverviewRuntimeRefreshKey(
-            chartWindow = _uiState.value.chartWindow,
-            analyticsEnabled = analyticsEnabled,
-        )
-        if (!runtimeSnapshotCache.needsRefresh(refreshKey)) return
+        if (runtimeSnapshotLoaded) return
         runtimeRefreshMutex.withLock {
-            if (!pageActive || !runtimeSnapshotCache.needsRefresh(refreshKey)) return@withLock
+            if (!pageActive || runtimeSnapshotLoaded) return@withLock
             val generation = ++runtimeRefreshGeneration
-            val runtimeSnapshot = loadOverviewRuntimeUiState(
-                context = context,
-                analyticsRepository = analyticsRepository,
-                chartWindow = refreshKey.chartWindow,
-                analyticsEnabled = analyticsEnabled,
-            )
+            val runtimeSnapshot = loadOverviewRuntimeUiState(context = context)
             currentCoroutineContext().ensureActive()
             if (!pageActive || generation != runtimeRefreshGeneration) return@withLock
-            runtimeSnapshotCache.markRefreshed(refreshKey)
+            runtimeSnapshotLoaded = true
             _uiState.update { it.copy(runtimeSnapshot = runtimeSnapshot) }
         }
     }
@@ -195,24 +148,6 @@ class OverviewViewModel(
         }
     }
 
-    internal fun setChartType(next: HomeChartType) {
-        _uiState.update { it.copy(chartType = next) }
-        viewModelScope.launch {
-            settingsRepository.updateOverviewSettings(
-                OverviewSettingsUpdate(chartType = next.id),
-            )
-        }
-    }
-
-    internal fun setChartWindow(next: HomeChartWindow) {
-        _uiState.update { it.copy(chartWindow = next) }
-        viewModelScope.launch {
-            settingsRepository.updateOverviewSettings(
-                OverviewSettingsUpdate(chartWindow = next.id),
-            )
-        }
-    }
-
     internal fun toggleEditMode() {
         _uiState.update { current ->
             if (current.editMode) {
@@ -249,34 +184,11 @@ class OverviewViewModel(
 
 private suspend fun loadOverviewRuntimeUiState(
     context: Context,
-    analyticsRepository: RuntimeAnalyticsProvider,
-    chartWindow: HomeChartWindow,
-    analyticsEnabled: Boolean,
 ): OverviewRuntimeUiState = withContext(Dispatchers.IO) {
     coroutineScope {
         val frameworkInfoDeferred = async { relayPackageActions.getLsposedModuleInfo(context) }
         val hasRootAccessDeferred = async { relayPackageActions.hasRootAccess() }
         val appVersionDeferred = async { relayPackageActions.getPackageVersion(context, context.packageName) }
-        val chartSnapshotDeferred = async {
-            if (!analyticsEnabled) {
-                null
-            } else {
-                val nowMs = System.currentTimeMillis()
-                val fromMs = chartWindow.fromMs(nowMs)
-                val snapshot = analyticsRepository.snapshot(fromMs)
-                HomeAnalyticsSnapshot(
-                    totalMessages = snapshot.totalMessages,
-                    codeDetected = snapshot.codeDetected,
-                    autoInputAttempt = snapshot.autoInputAttempt,
-                    autoInputSuccess = snapshot.autoInputSuccess,
-                    autoInputFailed = snapshot.autoInputFailed,
-                    forwardTotal = snapshot.forwardTotal,
-                    forwardSuccess = snapshot.forwardSuccess,
-                    forwardFailed = snapshot.forwardFailed,
-                    senderStats = snapshot.senderStats,
-                )
-            }
-        }
 
         val frameworkInfo = frameworkInfoDeferred.await()
         val frameworkType = frameworkInfo?.first ?: context.getString(io.github.magisk317.relay.mobile.core.R.string.unknown)
@@ -302,7 +214,6 @@ private suspend fun loadOverviewRuntimeUiState(
             appVersionCode = io.github.magisk317.relay.mobile.core.BuildConfig.COMMIT_HASH.takeIf { it.isNotBlank() && it != "unknown" }
                 ?: (appVersion?.second?.toString()
                 ?: context.getString(io.github.magisk317.relay.mobile.core.R.string.unknown)),
-            chartSnapshot = chartSnapshotDeferred.await(),
         )
     }
 }
