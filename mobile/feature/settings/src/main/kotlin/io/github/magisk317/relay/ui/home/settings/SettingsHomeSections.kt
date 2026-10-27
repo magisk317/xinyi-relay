@@ -18,6 +18,7 @@ import io.github.magisk317.relay.contract.settings.GeneralSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.RelaySettingsSnapshot
 import io.github.magisk317.relay.contract.settings.VerificationSettingsSnapshot
 import io.github.magisk317.relay.mobile.core.R
+import io.github.magisk317.uikit.R as UiKitR
 import io.github.magisk317.relay.contract.constant.RelayAppConst
 import io.github.magisk317.relay.mobilefeature.settings.BuildConfig
 import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsCallbacks
@@ -60,20 +61,20 @@ internal fun SettingsGeneralSection(
             accordionMode = true,
             moduleEnabled = general.moduleEnabled,
             onModuleEnabledChange = onModuleEnabledChange,
-            moduleTitle = stringResource(id = R.string.pref_enable_title),
-            moduleSummary = stringResource(id = R.string.pref_enable_summary),
+            moduleTitle = stringResource(id = UiKitR.string.pref_enable_title),
+            moduleSummary = stringResource(id = UiKitR.string.pref_enable_summary),
             themeMode = null,
             onLanguageSelected = onLanguageSelected,
         ) {
             StateSwitchItem(
                 title = stringResource(id = R.string.pref_settings_display_mode_title),
-                summary = stringResource(id = R.string.pref_settings_display_mode_summary),
+                summary = stringResource(id = UiKitR.string.pref_settings_display_mode_summary),
                 checked = general.accordionMode,
                 onCheckedChange = onAccordionModeChange,
             )
             StateSwitchItem(
-                title = stringResource(id = R.string.pref_show_launcher_icon_title),
-                summary = stringResource(id = R.string.pref_show_launcher_icon_summary),
+                title = stringResource(id = UiKitR.string.pref_show_launcher_icon_title),
+                summary = stringResource(id = UiKitR.string.pref_show_launcher_icon_summary),
                 checked = launcherIconVisible,
                 onCheckedChange = onLauncherIconVisibleChange,
             )
@@ -148,12 +149,12 @@ internal fun SettingsBackupRestoreSection(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             AppPrimaryButton(
-                text = stringResource(id = R.string.pref_backup_title),
+                text = stringResource(id = UiKitR.string.pref_backup_title),
                 onClick = onBackupClick,
                 modifier = Modifier.weight(1f),
             )
             AppPrimaryButton(
-                text = stringResource(id = R.string.pref_restore_title),
+                text = stringResource(id = UiKitR.string.pref_restore_title),
                 onClick = onRestoreClick,
                 modifier = Modifier.weight(1f),
             )
@@ -181,9 +182,9 @@ internal fun SettingsDiagnosticsSection(
     ) {
         RuntimeLogDiagnosticsItems(
             labels = RuntimeLogDiagnosticsLabels(
-                shareLogTitle = stringResource(id = R.string.pref_share_log_title),
-                shareLogSummary = stringResource(id = R.string.pref_share_log_summary),
-                retentionTitle = stringResource(id = R.string.pref_runtime_log_retention_days_title),
+                shareLogTitle = stringResource(id = UiKitR.string.pref_share_log_title),
+                shareLogSummary = stringResource(id = UiKitR.string.pref_share_log_summary),
+                retentionTitle = stringResource(id = UiKitR.string.pref_runtime_log_retention_days_title),
                 retentionSummary = stringResource(
                     id = R.string.pref_runtime_log_retention_days_summary,
                     diagnostics.runtimeLogRetentionDays,

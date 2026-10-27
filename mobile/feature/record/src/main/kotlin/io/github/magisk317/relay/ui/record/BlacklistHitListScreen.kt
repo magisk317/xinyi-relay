@@ -53,6 +53,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.mobile.core.R
+import io.github.magisk317.uikit.R as UiKitR
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.platform.icon.AppIconEncoder
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
@@ -217,7 +218,7 @@ fun BlacklistHitListScreen(
             }
             AppArrowItem(
                 title = stringResource(
-                    R.string.pref_history_limit_title_with_target,
+                    UiKitR.string.pref_history_limit_title_with_target,
                     stringResource(R.string.sms_blacklist_hit_list_title),
                 ),
                 summary = blacklistHitHistoryLimitSummary(historyLimit),
@@ -232,7 +233,7 @@ fun BlacklistHitListScreen(
         RetentionDialog(
             selectedValue = historyLimit,
             onDismiss = { showHistoryLimitDialog = false },
-            titleId = R.string.pref_history_limit_title,
+            titleId = UiKitR.string.pref_history_limit_title,
             entriesId = R.array.history_limit_entry_list,
             valuesId = R.array.history_limit_value_list,
         ) { value ->

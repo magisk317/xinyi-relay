@@ -60,6 +60,7 @@ import io.github.magisk317.relay.contract.settings.RecordSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.VerificationSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.VerificationSettingsUpdate
 import io.github.magisk317.relay.mobile.core.R
+import io.github.magisk317.uikit.R as UiKitR
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
 import io.github.magisk317.relay.mobilefeature.verification.BuildConfig
@@ -189,7 +190,7 @@ fun VerificationSettingsScreen(
             } else if (pendingNotificationPermissionEnable) {
                 pendingNotificationPermissionEnable = false
                 snackbarHostState.showLatestSnackbar(
-                    context.getString(R.string.pref_code_notification_owner_permission_denied),
+                    context.getString(UiKitR.string.pref_code_notification_owner_permission_denied),
                 )
             }
         }
@@ -212,7 +213,7 @@ fun VerificationSettingsScreen(
                 pendingNotificationPermissionEnable = false
                 scope.launch {
                     snackbarHostState.showLatestSnackbar(
-                        context.getString(R.string.pref_code_notification_owner_permission_denied),
+                        context.getString(UiKitR.string.pref_code_notification_owner_permission_denied),
                     )
                 }
             }
@@ -226,7 +227,7 @@ fun VerificationSettingsScreen(
             pendingNotificationPermissionEnable = false
             scope.launch {
                 snackbarHostState.showLatestSnackbar(
-                    context.getString(R.string.pref_code_notification_owner_permission_denied),
+                    context.getString(UiKitR.string.pref_code_notification_owner_permission_denied),
                 )
             }
         }
@@ -246,7 +247,7 @@ fun VerificationSettingsScreen(
         } else {
             scope.launch {
                 snackbarHostState.showLatestSnackbar(
-                    context.getString(R.string.pref_code_notification_owner_permission_settings_hint),
+                    context.getString(UiKitR.string.pref_code_notification_owner_permission_settings_hint),
                 )
             }
             openNotificationSettings()
@@ -341,7 +342,7 @@ fun VerificationSettingsScreen(
             }.onFailure {
                 scope.launch {
                     snackbarHostState.showLatestSnackbar(
-                        context.getString(R.string.pref_auto_input_accessibility_service_open_failed),
+                        context.getString(UiKitR.string.pref_auto_input_accessibility_service_open_failed),
                     )
                 }
             }
@@ -352,7 +353,7 @@ fun VerificationSettingsScreen(
         }.onFailure {
             scope.launch {
                 snackbarHostState.showLatestSnackbar(
-                    context.getString(R.string.pref_auto_input_accessibility_service_open_failed),
+                    context.getString(UiKitR.string.pref_auto_input_accessibility_service_open_failed),
                 )
             }
         }
@@ -412,11 +413,11 @@ fun VerificationSettingsScreen(
                 onExpandedChange = { expandRelaySection = !expandRelaySection },
             ) {
                 StateSwitchItem(
-                    title = stringResource(id = R.string.pref_copy_to_clipboard_title),
+                    title = stringResource(id = UiKitR.string.pref_copy_to_clipboard_title),
                     summary = if (canCopyToClipboard) {
-                        stringResource(id = R.string.pref_copy_to_clipboard_summary)
+                        stringResource(id = UiKitR.string.pref_copy_to_clipboard_summary)
                     } else {
-                        stringResource(id = R.string.pref_copy_to_clipboard_summary) + "\n" + xposedDisabledHint
+                        stringResource(id = UiKitR.string.pref_copy_to_clipboard_summary) + "\n" + xposedDisabledHint
                     },
                     checked = current.copyToClipboard && canCopyToClipboard,
                     enabled = current.verificationFeaturesEnabled && canCopyToClipboard,
@@ -435,12 +436,12 @@ fun VerificationSettingsScreen(
                     summary = stringResource(id = R.string.pref_relay_test_summary),
                 ) { showSmsTestDialog = true }
                 AppArrowItem(
-                    title = stringResource(id = R.string.pref_code_rules_title),
-                    summary = stringResource(id = R.string.pref_code_rules_summary),
+                    title = stringResource(id = UiKitR.string.pref_code_rules_title),
+                    summary = stringResource(id = UiKitR.string.pref_code_rules_summary),
                 ) { onOpenRules() }
                 AppArrowItem(
                     title = stringResource(
-                        id = R.string.pref_history_limit_title_with_target,
+                        id = UiKitR.string.pref_history_limit_title_with_target,
                         stringResource(id = R.string.record_settings_target_code),
                     ),
                     summary = stringResource(
@@ -461,8 +462,8 @@ fun VerificationSettingsScreen(
             ) {
                 if (supportsAccessibilityAutoInput) {
                     StateSwitchItem(
-                        title = stringResource(id = R.string.pref_auto_input_accessibility_service_title),
-                        summary = stringResource(id = R.string.pref_auto_input_accessibility_service_summary),
+                        title = stringResource(id = UiKitR.string.pref_auto_input_accessibility_service_title),
+                        summary = stringResource(id = UiKitR.string.pref_auto_input_accessibility_service_summary),
                         checked = autoInputAccessibilityEnabled,
                         onTitleClick = {
                             scope.launch {
@@ -486,8 +487,8 @@ fun VerificationSettingsScreen(
                     }
                 }
                 StateSwitchItem(
-                    title = stringResource(id = R.string.pref_enable_auto_input_code_title),
-                    summary = stringResource(id = R.string.pref_enable_auto_input_code_summary),
+                    title = stringResource(id = UiKitR.string.pref_enable_auto_input_code_title),
+                    summary = stringResource(id = UiKitR.string.pref_enable_auto_input_code_summary),
                     checked = current.autoInputEnabled,
                     enabled = current.verificationFeaturesEnabled,
                 ) { enabled ->
@@ -497,8 +498,8 @@ fun VerificationSettingsScreen(
                     }
                 }
                 StateSwitchItem(
-                    title = stringResource(id = R.string.pref_enable_auto_enter_code_title),
-                    summary = stringResource(id = R.string.pref_enable_auto_enter_code_summary),
+                    title = stringResource(id = UiKitR.string.pref_enable_auto_enter_code_title),
+                    summary = stringResource(id = UiKitR.string.pref_enable_auto_enter_code_summary),
                     checked = current.autoEnterEnabled,
                     enabled = current.verificationFeaturesEnabled && current.autoInputEnabled,
                 ) { enabled ->
@@ -508,12 +509,12 @@ fun VerificationSettingsScreen(
                     }
                 }
                 AppArrowItem(
-                    title = stringResource(id = R.string.pref_auto_input_code_delay_title),
-                    summary = stringResource(id = R.string.pref_auto_input_code_delay_summary, current.autoInputDelay),
+                    title = stringResource(id = UiKitR.string.pref_auto_input_code_delay_title),
+                    summary = stringResource(id = UiKitR.string.pref_auto_input_code_delay_summary, current.autoInputDelay),
                 ) { showDelayDialog = true }
                 AppArrowItem(
-                    title = stringResource(id = R.string.pref_auto_input_code_interval_title),
-                    summary = stringResource(id = R.string.pref_auto_input_code_interval_summary, current.autoInputInterval),
+                    title = stringResource(id = UiKitR.string.pref_auto_input_code_interval_title),
+                    summary = stringResource(id = UiKitR.string.pref_auto_input_code_interval_summary, current.autoInputInterval),
                 ) { showIntervalDialog = true }
             }
             SectionCard(
@@ -523,8 +524,8 @@ fun VerificationSettingsScreen(
                 onExpandedChange = { expandNotificationSection = !expandNotificationSection },
             ) {
                 StateSwitchItem(
-                    title = stringResource(id = R.string.pref_show_toast_title),
-                    summary = stringResource(id = R.string.pref_show_toast_summary),
+                    title = stringResource(id = UiKitR.string.pref_show_toast_title),
+                    summary = stringResource(id = UiKitR.string.pref_show_toast_summary),
                     checked = current.showToast,
                     enabled = current.verificationFeaturesEnabled,
                 ) { enabled ->
@@ -534,8 +535,8 @@ fun VerificationSettingsScreen(
                     }
                 }
                 StateSwitchItem(
-                    title = stringResource(id = R.string.pref_show_code_notification_title),
-                    summary = stringResource(id = R.string.pref_show_code_notification_summary),
+                    title = stringResource(id = UiKitR.string.pref_show_code_notification_title),
+                    summary = stringResource(id = UiKitR.string.pref_show_code_notification_summary),
                     checked = current.showCodeNotification,
                     enabled = current.verificationFeaturesEnabled,
                 ) { enabled ->
@@ -556,8 +557,8 @@ fun VerificationSettingsScreen(
                     }
                 }
                 StateSwitchItem(
-                    title = stringResource(id = R.string.pref_auto_cancel_notification_title),
-                    summary = stringResource(id = R.string.pref_auto_cancel_notification_summary),
+                    title = stringResource(id = UiKitR.string.pref_auto_cancel_notification_title),
+                    summary = stringResource(id = UiKitR.string.pref_auto_cancel_notification_summary),
                     checked = current.autoCancelNotification,
                     enabled = current.verificationFeaturesEnabled && current.showCodeNotification,
                 ) { enabled ->
@@ -569,7 +570,7 @@ fun VerificationSettingsScreen(
                     }
                 }
                 AppArrowItem(
-                    title = stringResource(id = R.string.pref_notification_retention_time_title),
+                    title = stringResource(id = UiKitR.string.pref_notification_retention_time_title),
                     summary = notificationRetentionEntryLabel(
                         current.notificationRetentionTime,
                         retentionValues,
@@ -585,11 +586,11 @@ fun VerificationSettingsScreen(
                 onExpandedChange = { expandExperimentalSection = !expandExperimentalSection },
             ) {
                 StateSwitchItem(
-                    title = stringResource(id = R.string.pref_block_sms_title),
+                    title = stringResource(id = UiKitR.string.pref_block_sms_title),
                     summary = if (canBlockSms) {
-                        stringResource(id = R.string.pref_block_sms_summary)
+                        stringResource(id = UiKitR.string.pref_block_sms_summary)
                     } else {
-                        stringResource(id = R.string.pref_block_sms_summary) + "\n" + xposedDisabledHint
+                        stringResource(id = UiKitR.string.pref_block_sms_summary) + "\n" + xposedDisabledHint
                     },
                     checked = current.blockSmsEnabled && canBlockSms,
                     enabled = current.verificationFeaturesEnabled && canBlockSms,
@@ -625,7 +626,7 @@ fun VerificationSettingsScreen(
     if (showDelayDialog && current != null) {
         val nonNegativeNumberError = stringResource(id = R.string.pref_number_non_negative_error)
         TextInputDialog(
-            title = stringResource(id = R.string.pref_auto_input_code_delay_title),
+            title = stringResource(id = UiKitR.string.pref_auto_input_code_delay_title),
             initialValue = normalizeIntegerInput(current.autoInputDelay),
             selectAllOnOpen = true,
             onDismiss = { showDelayDialog = false },
@@ -650,7 +651,7 @@ fun VerificationSettingsScreen(
     if (showIntervalDialog && current != null) {
         val nonNegativeNumberError = stringResource(id = R.string.pref_number_non_negative_error)
         TextInputDialog(
-            title = stringResource(id = R.string.pref_auto_input_code_interval_title),
+            title = stringResource(id = UiKitR.string.pref_auto_input_code_interval_title),
             initialValue = normalizeIntegerInput(current.autoInputInterval),
             selectAllOnOpen = true,
             onDismiss = { showIntervalDialog = false },
@@ -679,7 +680,7 @@ fun VerificationSettingsScreen(
             mutableIntStateOf(values.indexOf(current.notificationRetentionTime).coerceAtLeast(0))
         }
         SingleChoiceConfirmDialog(
-            title = stringResource(id = R.string.pref_notification_retention_time_title),
+            title = stringResource(id = UiKitR.string.pref_notification_retention_time_title),
             options = entries.toList(),
             selectedIndex = selectedIndex,
             onSelectionChange = { selectedIndex = it },

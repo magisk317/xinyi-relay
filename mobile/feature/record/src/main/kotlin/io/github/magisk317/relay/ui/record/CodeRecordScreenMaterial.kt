@@ -38,6 +38,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.mobile.core.R
+import io.github.magisk317.uikit.R as UiKitR
 import io.github.magisk317.uikit.scroll.ScrollChromeState
 import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.surface.AppIconButton
@@ -158,7 +159,7 @@ internal fun CodeRecordScreenMaterial(
                                 AppIcon(
                                     imageVector = Icons.Default.Settings,
                                     contentDescription = stringResource(
-                                        R.string.pref_code_records_title,
+                                        UiKitR.string.pref_code_records_title,
                                     ),
                                 )
                             }

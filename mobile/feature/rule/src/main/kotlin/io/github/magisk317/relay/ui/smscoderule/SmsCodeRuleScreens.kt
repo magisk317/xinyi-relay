@@ -41,6 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.mobile.core.R
+import io.github.magisk317.uikit.R as UiKitR
 import io.github.magisk317.smscode.db.entity.SmsCodeRule
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toEntity
@@ -404,7 +405,7 @@ fun SmsCodeRuleEditorScreen(
     val duplicateText = stringResource(id = R.string.rule_duplicated_prompt)
     val confirmLabel = stringResource(id = R.string.confirm)
     val copyLabel = stringResource(id = R.string.action_copy)
-    val rulesSummary = stringResource(id = R.string.pref_code_rules_summary)
+    val rulesSummary = stringResource(id = UiKitR.string.pref_code_rules_summary)
     val builtinSummary = stringResource(id = R.string.builtin_code_rules_summary)
     val builtinKeywordSetting = stringResource(id = R.string.builtin_rule_keyword_setting)
     val builtinTitle = when (builtinRule?.id) {

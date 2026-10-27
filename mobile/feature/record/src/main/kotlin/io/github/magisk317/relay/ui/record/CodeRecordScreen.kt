@@ -56,6 +56,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.mobile.core.R
+import io.github.magisk317.uikit.R as UiKitR
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.settings.RecordSettingsUpdate
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
@@ -123,7 +124,7 @@ private fun Modifier.recordBenchmarkTag(enabled: Boolean): Modifier =
     if (enabled) testTag(BENCHMARK_RECORDS_LIST) else this
 
 private fun recordEnableTitleRes(tab: Int): Int = when (tab) {
-    0 -> R.string.pref_enable_code_records_title
+    0 -> UiKitR.string.pref_enable_code_records_title
     1 -> R.string.pref_enable_plain_sms_records_title
     2 -> R.string.pref_enable_app_notify_records_title
     else -> R.string.pref_enable_call_notify_records_title
@@ -420,7 +421,7 @@ fun CodeRecordScreen(
 
             AppArrowItem(
                 title = stringResource(
-                    id = R.string.pref_history_limit_title_with_target,
+                    id = UiKitR.string.pref_history_limit_title_with_target,
                     currentTabName,
                 ),
                 summary = run {
@@ -463,7 +464,7 @@ fun CodeRecordScreen(
         RetentionDialog(
             selectedValue = currentHistoryLimit,
             onDismiss = { showHistoryLimitDialog = false },
-            titleId = R.string.pref_history_limit_title,
+            titleId = UiKitR.string.pref_history_limit_title,
             entriesId = R.array.history_limit_entry_list,
             valuesId = R.array.history_limit_value_list,
         ) { value ->

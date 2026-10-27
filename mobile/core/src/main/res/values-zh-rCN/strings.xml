@@ -23,19 +23,9 @@
     <!-- general end -->
 
     <!-- preferences general -->
-    <string name="pref_general_title">通用设置</string>
-    <string name="pref_enable_title">主开关</string>
-    <string name="pref_enable_summary">模块已激活</string>
     <string name="pref_settings_display_mode_title">折叠分组</string>
-    <string name="pref_settings_display_mode_summary">开启：分组可折叠；关闭：全部设置直接展开</string>
     <string name="pref_create_shortcut_title">创建桌面快捷方式</string>
     <string name="pref_create_shortcut_summary">将图标固定到桌面上以便快速访问</string>
-    <string name="pref_show_launcher_icon_title">显示桌面图标</string>
-    <string name="pref_show_launcher_icon_summary">在桌面显示应用图标，便于快速打开</string>
-    <string name="pref_show_launcher_icon_failed">切换桌面图标显示状态失败</string>
-    <string name="pref_choose_theme_title">主题</string>
-    <string name="pref_choose_theme_summary">跟随系统、浅色、深色或纯黑</string>
-    <string name="pref_ui_kit_style_title">界面风格</string>
     <string name="pref_ui_kit_style_summary">在 Material 与 Miuix 风格间切换</string>
     <string name="ui_kit_style_expressive">Expressive</string>
     <string name="ui_kit_style_miuix">Miuix</string>
@@ -77,8 +67,6 @@
     <string name="accent_green">绿色</string>
     <string name="accent_orange">橙色</string>
     <string name="accent_rose">玫红</string>
-    <string name="pref_language_title">语言</string>
-    <string name="pref_language_summary">选择语言</string>
     <string name="language_follow_system">系统默认/跟随系统</string>
     <string name="language_en">English</string>
     <string name="language_zh_cn">简体中文</string>
@@ -89,61 +77,26 @@
 
     <!-- preferences sms code -->
     <string name="pref_sms_code_title">验证码</string>
-    <string name="pref_show_toast_title">显示 Toast 提示</string>
-    <string name="pref_show_toast_summary">提取到验证码时显示 Toast 提示</string>
-    <string name="pref_copy_to_clipboard_title">复制到剪切板</string>
-    <string name="pref_copy_to_clipboard_summary">如果提取成功，则将验证码复制到剪贴板</string>
-    <string name="pref_block_sms_title">拦截验证码短信</string>
-    <string name="pref_block_sms_summary">警告！如果提取成功，验证码短信将被拦截，短信应用将无法收到</string>
     <string name="pref_deduplicate_sms_title">过滤重复短信</string>
     <string name="pref_deduplicate_sms_summary">过滤掉重复的验证码短信</string>
     <string name="pref_forwarding_title">转发</string>
     <string name="pref_enable_forward_title">启用转发</string>
     <string name="pref_enable_forward_summary">启用验证码转发，点击渠道名可进入详细配置</string>
-    <string name="pref_sim_slot1_remark_title">SIM1 备注</string>
-    <string name="pref_sim_slot2_remark_title">SIM2 备注</string>
     <string name="pref_sim_slot_remark_summary">自定义模板变量 {{CARD_SLOT}} 的显示内容</string>
     <string name="pref_sim_slot_remark_not_set">未设置</string>
     <!-- preferences sms code end -->
 
     <!-- preferences auto-input -->
     <string name="pref_category_auto_input_title">自动输入</string>
-    <string name="pref_enable_auto_input_code_title">自动输入验证码</string>
-    <string name="pref_enable_auto_input_code_summary">尝试自动输入验证码</string>
-    <string name="pref_auto_input_accessibility_service_title">无障碍服务状态</string>
-    <string name="pref_auto_input_accessibility_service_summary">辅助查找当前验证码输入框并优先直接填入。</string>
     <string name="pref_auto_input_accessibility_service_summary_unavailable">系统当前没有列出这个无障碍服务。若为侧载安装，请先到应用信息里允许“受限设置”，再返回无障碍设置。</string>
-    <string name="pref_auto_input_accessibility_service_status_enabled">已开启</string>
-    <string name="pref_auto_input_accessibility_service_status_disabled">未开启</string>
-    <string name="pref_auto_input_accessibility_service_open_failed">无法打开无障碍设置</string>
     <string name="pref_auto_input_accessibility_service_restricted_hint">系统当前没有列出这个服务。请先打开应用信息，必要时允许“受限设置”。</string>
     <string name="accessibility_auto_input_service_label">自动输入辅助服务</string>
     <string name="accessibility_auto_input_service_description">自动输入辅助服务：优先查找当前验证码输入框并直接填入，失败后再回退到模拟按键输入。</string>
-    <string name="pref_enable_auto_enter_code_title">自动确认/回车</string>
-    <string name="pref_enable_auto_enter_code_summary">填充验证码后自动触发回车操作</string>
-    <string name="pref_auto_input_code_delay_title">自动输入延迟</string>
-    <string name="pref_auto_input_code_delay_summary">延迟 %sms</string>
-    <string name="pref_auto_input_code_interval_title">自动输入间隔</string>
-    <string name="pref_auto_input_code_interval_summary">间隔 %sms</string>
     <!-- preferences auto-input end -->
 
     <!-- preference code notification -->
     <string name="pref_notification_title">通知</string>
-    <string name="pref_show_code_notification_title">显示状态栏通知</string>
-    <string name="pref_show_code_notification_summary">提取到验证码时显示状态栏通知（后台不可用时显示为电话服务）</string>
-    <string name="pref_code_notification_owner_title">通知归属</string>
-    <string name="pref_code_notification_owner_summary">当前：%1$s。模块自身会显示为本应用；电话服务在部分场景更稳，但会显示为电话服务。</string>
-    <string name="pref_code_notification_owner_app">模块自身</string>
-    <string name="pref_code_notification_owner_phone">电话服务</string>
-    <string name="pref_code_notification_owner_unselected">未选择</string>
-    <string name="pref_code_notification_owner_permission_denied">通知权限仍未授予，未应用“模块自身”选择。</string>
-    <string name="pref_code_notification_owner_permission_settings_hint">模块自身通知需要通知权限，请在系统通知设置中开启。</string>
-    <string name="pref_code_notification_owner_app_option">模块自身：显示为本应用，但应用被强停后后续行为可能受影响</string>
-    <string name="pref_code_notification_owner_phone_option">电话服务：部分场景更稳，但会显示为电话服务</string>
-    <string name="pref_auto_cancel_notification_title">自动取消通知</string>
-    <string name="pref_auto_cancel_notification_summary">自动取消验证码通知</string>
     <!-- notification retention time -->
-    <string name="pref_notification_retention_time_title">通知保留时间</string>
     <string name="notification_retention_time_5_secs_entry">5 秒</string>
     <string name="notification_retention_time_10_secs_entry">10 秒</string>
     <string name="notification_retention_time_30_secs_entry">30 秒</string>
@@ -156,7 +109,6 @@
     <!-- preference code records -->
     <string name="pref_entry_code_records_title">验证码历史记录</string>
     <string name="pref_entry_code_records_summary">共 %d 条记录</string>
-    <string name="pref_code_records_title">验证码记录</string>
     <string name="relay_records">验证码记录</string>
     <string name="edit_relay_records">编辑验证码记录</string>
     <string name="prompt_sms_code_copied">验证码已复制: %s</string>
@@ -209,14 +161,11 @@
     <string name="delete_notification_action">删除通知</string>
     <string name="prompt_sms_copied">短信已复制</string>
     <string name="prompt_notification_copied">通知已复制</string>
-    <string name="pref_enable_code_records_title">保留验证码记录</string>
     <string name="pref_enable_plain_sms_records_title">保留普通短信记录</string>
     <string name="pref_enable_app_notify_records_title">保留应用通知记录</string>
     <string name="pref_enable_call_notify_records_title">保留通话通知记录</string>
     <string name="pref_enable_sms_blacklist_hit_records_title">保留拦截记录</string>
     <string name="selected_count">已选 %d 项</string>
-    <string name="pref_history_limit_title">历史记录限制</string>
-    <string name="pref_history_limit_title_with_target">历史记录限制（%1$s）</string>
     <string name="record_settings_title_with_target">记录设置（%1$s）</string>
     <string name="record_settings_target_code">验证码记录</string>
     <string name="record_settings_target_plain">普通短信记录</string>
@@ -358,18 +307,7 @@
 
     <!-- preference others -->
     <string name="pref_others_title">其他</string>
-    <string name="pref_share_log_title">保存日志</string>
-    <string name="pref_share_log_summary">保存日志包用于调试</string>
-    <string name="pref_log_sanitization_title">脱敏日志</string>
-    <string name="pref_log_sanitization_summary">开启后隐藏日志中的敏感信息</string>
-    <string name="pref_runtime_log_retention_days_title">日志保留天数</string>
     <string name="pref_runtime_log_retention_days_summary">按天轮转，保留最近 %1$d 天日志</string>
-    <string name="pref_runtime_log_retention_days_hint">单位：天，最小值 1，默认 2。</string>
-    <string name="pref_runtime_log_retention_days_error">请输入大于等于 1 的整数。</string>
-    <string name="pref_auto_update_on_start_title">启动时自动更新</string>
-    <string name="pref_auto_update_on_start_summary">应用启动时执行一次更新策略</string>
-    <string name="pref_auto_update_wifi_only_title">仅 Wi-Fi 自动检查更新</string>
-    <string name="pref_auto_update_wifi_only_summary">仅在 Wi-Fi 下执行启动更新检查</string>
     <string name="scheduled_reminder_entry_title">特殊提醒</string>
     <string name="scheduled_reminder_entry_summary">电量、来电与关键字提醒</string>
     <string name="scheduled_task_entry_title">定时任务</string>
@@ -625,17 +563,11 @@
     <string name="pref_about_title">关于</string>
     <string name="pref_version_title">版本</string>
     <string name="pref_version_summary"><![CDATA[当前版本: %1$s (%2$d)]]></string>
-    <string name="pref_join_telegram_group_title">Telegram</string>
-    <string name="pref_join_telegram_group_summary">点击加入</string>
-    <string name="pref_source_code_title">源代码</string>
     <string name="browser_install_or_enable_prompt">请先安装或启用浏览器</string>
-    <string name="pref_source_code_summary">欢迎 Star</string>
-    <string name="pref_donate_by_alipay_title">打赏感谢</string>
     <string name="alipay_install_prompt">请先安装支付宝</string>
     <string name="alipay_enable_prompt">请先启用支付宝</string>
     <string name="wechat_install_prompt">请先安装微信</string>
     <string name="wechat_enable_prompt">请先启用微信</string>
-    <string name="pref_privacy_policy_title">隐私政策</string>
     <!-- preference about end -->
 
     <!-- auto-input block settings -->
@@ -678,8 +610,6 @@
     <string name="rule_code_type">验证码类型</string>
     <string name="rule_code_length">验证码长度</string>
     <string name="rule_code_regex_hint">验证码正则表达式</string>
-    <string name="pref_code_rules_title">验证码匹配规则</string>
-    <string name="pref_code_rules_summary">为特定短信定制验证码匹配规则</string>
     <string name="quick_choose">快速选择</string>
     <string name="sms_code_type_digit_entry">仅数字 [0\-9]</string>
     <string name="sms_code_type_letter_entry">仅字母 [a\-zA\-Z]</string>
@@ -953,10 +883,6 @@
     <!-- backup and restore -->
     <string name="pref_backup_restore_title">备份与恢复</string>
     <string name="settings_group_backup_restore_summary">导出或恢复设置、规则与记录</string>
-    <string name="pref_backup_title">备份</string>
-    <string name="pref_backup_summary">导出设置、规则和记录</string>
-    <string name="pref_restore_title">恢复</string>
-    <string name="pref_restore_summary">从备份文件恢复数据</string>
     <string name="dialog_backup_source_title">选择备份方式</string>
     <string name="dialog_restore_source_title">选择恢复方式</string>
     <string name="backup_source_local">本地</string>

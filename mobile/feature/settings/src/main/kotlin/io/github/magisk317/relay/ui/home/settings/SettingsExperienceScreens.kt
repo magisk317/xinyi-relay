@@ -44,6 +44,7 @@ import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
 import io.github.magisk317.relay.mobile.core.R
+import io.github.magisk317.uikit.R as UiKitR
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsUpdate
 import io.github.magisk317.relay.contract.settings.GeneralSettingsSnapshot
@@ -74,7 +75,7 @@ fun SettingsHomeScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
-    val launcherIconFailedText = stringResource(id = R.string.pref_show_launcher_icon_failed)
+    val launcherIconFailedText = stringResource(id = UiKitR.string.pref_show_launcher_icon_failed)
     val snackbarHostState = remember { AppSnackbarHostState() }
     val settingsViewModel = rememberSharedSettingsViewModel()
     val notifySaved: () -> Unit = {
