@@ -70,6 +70,7 @@ import io.github.magisk317.uikit.theme.AppColorRole
 import io.github.magisk317.uikit.theme.appColor
 import androidx.compose.material.icons.filled.Settings
 import io.github.magisk317.uikit.surface.AppConfigScreenMaterial
+import io.github.magisk317.uikit.surface.AppConfigScreenMiuix
 
 private const val APP_LIST_PREFETCH_DISTANCE = 12
 private const val BENCHMARK_APPS_LIST = "xinyi_benchmark_apps_list"
@@ -316,12 +317,17 @@ fun AppConfigScreen(
     ) {
         when (currentUiKitStyle()) {
             UiKitStyle.Miuix -> AppConfigScreenMiuix(
+                title = stringResource(R.string.app_config_settings),
+                searchPlaceholder = stringResource(R.string.action_search),
+                backContentDescription = stringResource(R.string.action_back),
                 onBack = onBack,
                 onOpenSettings = { showSettingsMenu = true },
+                actionIcon = Icons.Default.Settings,
                 scrollChromeState = scrollChromeState,
                 searchState = searchState,
                 listState = listState,
                 bottomPadding = effectiveBottomPadding,
+                actionsAfterSearch = true,
                 body = appConfigBody,
             )
 
