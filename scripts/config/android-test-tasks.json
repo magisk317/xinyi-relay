@@ -21,6 +21,7 @@
     ":magisk-ui-kit:billing:testDebugUnitTest",
     ":magisk-ui-kit:update:testGithubDebugUnitTest",
     ":policy:jvmTest",
+    ":relay:android:testGithubDebugUnitTest",
     ":relay:contract:jvmTest",
     ":relay:engine:jvmTest",
     ":relay:matrix-e2ee:jvmTest",
@@ -146,7 +147,8 @@
         "modules/*",
         "mobile/*",
         "features/*",
-        "magisk-xposed-kit/*"
+        "magisk-xposed-kit/*",
+        "modules/relay/android/*"
       ],
       "tasks": [
         ":app:testGithubDebugUnitTest",
@@ -159,7 +161,8 @@
         ":mobile:feature:settings:testGithubDebugUnitTest",
         ":mobile:feature:sender:testGithubDebugUnitTest",
         ":mobile:feature:verification:testGithubDebugUnitTest",
-        ":mobile:ui:testGithubDebugUnitTest"
+        ":mobile:ui:testGithubDebugUnitTest",
+        ":relay:android:testGithubDebugUnitTest"
       ]
     }
   ]
