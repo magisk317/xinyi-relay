@@ -929,7 +929,6 @@
     <string name="status_working_enhanced">Enhanced mode (Working)</string>
     <string name="status_not_active">Inactive</string>
     <string name="status_tip">Please enable in manager and reboot device</string>
-    <string name="battery_optimization_active_hint">Battery optimization is active. Please exempt this app for reliable background operation.</string>
     <string name="feature_requires_xposed">⚠ Requires Xposed/LSPosed framework</string>
     <string name="feature_requires_root">⚠ Requires Root access</string>
     <string name="framework_incompatibility_title">Framework incompatibility detected</string>

@@ -931,7 +931,6 @@
     <string name="status_working_enhanced">增强模式 (工作正常)</string>
     <string name="status_not_active">未激活</string>
     <string name="status_tip">请在管理器中启用并重启设备</string>
-    <string name="battery_optimization_active_hint">电池优化已开启，请将本应用加入白名单以保证后台正常运行。</string>
     <string name="feature_requires_xposed">⚠ 需要 Xposed/LSPosed 框架</string>
     <string name="feature_requires_root">⚠ 需要 Root 权限</string>
     <string name="framework_incompatibility_title">检测到框架不兼容</string>

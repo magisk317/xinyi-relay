@@ -27,7 +27,6 @@ internal data class OverviewUiState(
     val showStatusDiagnostics: Boolean = false,
     val draggingCardId: String? = null,
     val dragOffsetY: Float = 0f,
-    val batteryOptimizationExempted: Boolean = true,
     val runtimeSnapshot: OverviewRuntimeUiState = OverviewRuntimeUiState(),
 )
 

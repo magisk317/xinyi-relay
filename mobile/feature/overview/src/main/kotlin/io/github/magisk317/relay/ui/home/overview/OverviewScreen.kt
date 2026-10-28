@@ -14,7 +14,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.activity.compose.LocalActivity
-import io.github.magisk317.relay.feature.mode.BatteryOptimizationHelper
 import io.github.magisk317.relay.feature.mode.XposedRuntimeState
 import io.github.magisk317.uikit.foundation.LocalSnackbarHostState
 import androidx.compose.foundation.layout.Arrangement
@@ -44,7 +43,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -106,7 +104,6 @@ fun OverviewScreen(
     }
     var showDonateDialog by remember { mutableStateOf(false) }
     var showQRCodeDialog by remember { mutableStateOf<Pair<Int, String>?>(null) }
-    var batteryOptimizationHintShown by rememberSaveable { mutableStateOf(false) }
 
     DisposableEffect(viewModel, isActive) {
         viewModel.setPageActive(isActive)
@@ -122,12 +119,6 @@ fun OverviewScreen(
 
     val xposedActive by XposedRuntimeState.xposedActive.collectAsStateWithLifecycle()
     val isEnabled = xposedActive
-
-    fun refreshBatteryOptimizationExemption(): Boolean {
-        val exempted = BatteryOptimizationHelper.isExempted(context)
-        viewModel.updateBatteryOptimizationExempted(exempted)
-        return exempted
-    }
 
     val lifecycleOwner = LocalLifecycleOwner.current
     val activationStatusFlow = remember(context) {
@@ -206,13 +197,6 @@ fun OverviewScreen(
             return@LaunchedEffect
         }
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-            val batteryOptimizationExempted = refreshBatteryOptimizationExemption()
-            if (!batteryOptimizationExempted && !batteryOptimizationHintShown) {
-                batteryOptimizationHintShown = true
-                showMessage(context.getString(R.string.battery_optimization_active_hint))
-            } else if (batteryOptimizationExempted) {
-                batteryOptimizationHintShown = false
-            }
             viewModel.refreshRuntimeSnapshot(
                 context = context,
             )

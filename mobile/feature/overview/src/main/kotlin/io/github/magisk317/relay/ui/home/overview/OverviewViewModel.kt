@@ -171,10 +171,6 @@ class OverviewViewModel(
         _uiState.update { it.copy(draggingCardId = cardId, dragOffsetY = offsetY) }
     }
 
-    internal fun updateBatteryOptimizationExempted(exempted: Boolean) {
-        _uiState.update { it.copy(batteryOptimizationExempted = exempted) }
-    }
-
     internal fun toggleStatusDiagnostics() {
         val nextVisible = !_uiState.value.showStatusDiagnostics
         _uiState.update { it.copy(showStatusDiagnostics = nextVisible) }

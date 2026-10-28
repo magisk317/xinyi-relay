@@ -902,7 +902,6 @@
     <string name="status_working_enhanced">增強模式 (工作正常)</string>
     <string name="status_not_active">未啟用</string>
     <string name="status_tip">請在管理器中啟用並重啟設備</string>
-    <string name="battery_optimization_active_hint">電池最佳化已開啟，請將本應用加入白名單以確保背景正常運作。</string>
     <string name="feature_requires_xposed">⚠ 需要 Xposed/LSPosed 框架</string>
     <string name="feature_requires_root">⚠ 需要 Root 權限</string>
     <string name="framework_incompatibility_title">偵測到框架不相容</string>
