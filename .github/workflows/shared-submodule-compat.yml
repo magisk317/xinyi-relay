@@ -33,7 +33,7 @@ jobs:
           fetch-depth: 0
       - uses: ./.github/actions/resolve-ci-toolkit
         with:
-          ref: 65505809acb199c24ae9e63df1975cdea2ab494b
+          ref: f2ad0313cbf0bb12e551c94a80bdd0063dcc0411
       - name: Setup Android CI
         uses: ./.magisk-ci-toolkit/.github/actions/setup-android-ci
         with:
