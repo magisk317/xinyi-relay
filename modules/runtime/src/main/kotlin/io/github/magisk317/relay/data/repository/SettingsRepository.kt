@@ -144,7 +144,7 @@ class SettingsRepository(
                 PrefConst.RUNTIME_LOG_RETENTION_DAYS_DEFAULT,
             ),
             autoUpdateOnStart = preferenceDataSource.getBoolean(PrefConst.KEY_AUTO_UPDATE_ON_START, true),
-            autoUpdateWifiOnly = preferenceDataSource.getBoolean(PrefConst.KEY_AUTO_UPDATE_WIFI_ONLY, true),
+            autoUpdateWifiOnly = preferenceDataSource.getBoolean(PrefConst.KEY_AUTO_UPDATE_WIFI_ONLY, false),
             analyticsEnabled = preferenceDataSource.getBoolean(PrefConst.KEY_ENABLE_ANALYTICS, true),
             keepAliveOomAdj = preferenceDataSource.getBoolean(PrefConst.KEY_KEEPALIVE_OOM_ADJ, false),
             keepAliveAntiKill = preferenceDataSource.getBoolean(PrefConst.KEY_KEEPALIVE_ANTI_KILL, false),

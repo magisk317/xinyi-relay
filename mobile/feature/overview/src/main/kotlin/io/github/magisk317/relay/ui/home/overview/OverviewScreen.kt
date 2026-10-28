@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -459,6 +460,8 @@ private fun OverviewCardItem(
     val snackbarHostState = io.github.magisk317.uikit.foundation.LocalSnackbarHostState.current
     val dragEnabled = editMode
     val updateController = koinInject<io.github.magisk317.uikit.update.AppUpdateController>()
+    // The badge the silent background finding lands on.
+    val hasUpdate by updateController.hasUpdate.collectAsState()
     HomeCardContainer(
         editMode = editMode,
         wiggleKey = spec.id,
@@ -529,6 +532,7 @@ private fun OverviewCardItem(
                     appVersionCodeLabel = androidx.compose.ui.res.stringResource(id = UiKitR.string.uikit_version_code),
                     frameworkType = frameworkType,
                     frameworkVersion = frameworkVersion,
+                    hasUpdateBadge = hasUpdate,
                     interactive = !editMode,
                     onVersionClick = if (editMode) {
                         null

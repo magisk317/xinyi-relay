@@ -20,6 +20,7 @@ import io.github.magisk317.relay.contract.settings.RelaySettingsSnapshot
 import io.github.magisk317.relay.contract.settings.VerificationSettingsSnapshot
 import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.uikit.R as UiKitR
+import io.github.magisk317.uikit.update.R as UiKitUpdateR
 import io.github.magisk317.relay.contract.constant.RelayAppConst
 import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.relay.mobilefeature.settings.BuildConfig
@@ -232,6 +233,22 @@ internal fun SettingsDiagnosticsSection(
             key = RelayPrefConst.KEY_TRACK_CI_BUILDS,
             defaultValue = BuildConfig.DEBUG || BuildConfig.IS_CI_BUILD,
         )
+        // A CI build checks unconditionally, so the two release switches would be rows that do
+        // nothing: they only exist where the rule they feed actually applies.
+        if (!BuildConfig.DEBUG && !BuildConfig.IS_CI_BUILD) {
+            SwitchItem(
+                title = stringResource(id = UiKitUpdateR.string.uikit_update_auto_check_on_start),
+                summary = stringResource(id = R.string.settings_auto_check_on_start_summary),
+                key = RelayPrefConst.KEY_AUTO_UPDATE_ON_START,
+                defaultValue = true,
+            )
+            SwitchItem(
+                title = stringResource(id = UiKitUpdateR.string.uikit_update_auto_check_wifi_only),
+                summary = stringResource(id = R.string.settings_auto_check_wifi_only_summary),
+                key = RelayPrefConst.KEY_AUTO_UPDATE_WIFI_ONLY,
+                defaultValue = false,
+            )
+        }
 
     }
 }

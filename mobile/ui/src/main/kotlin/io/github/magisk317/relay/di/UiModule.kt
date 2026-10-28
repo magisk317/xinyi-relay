@@ -18,6 +18,7 @@ import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.smscode.runtime.contract.prefs.PrefRead
 import io.github.magisk317.uikit.update.AppUpdateSourceSpec
 import io.github.magisk317.uikit.update.AppUpdateSources
+import io.github.magisk317.uikit.update.startupFacts
 import io.github.magisk317.uikit.update.CiStagingSpec
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModelOf
@@ -84,6 +85,25 @@ val uiModule = module {
             // moment the next build may not be able to re-activate itself, and that
             // risk is the same on every track, so this is not gated on provenance.
             onBackupBeforeInstall = { CiUpdateGateVault.backup(context) },
+            // 规则在 kit，值在本仓：未设置即 kit 默认（开/不限 Wi-Fi），商店包整条通道交给商店。
+            startupCheckFacts = {
+                val dataSource = get<PreferenceDataSource>()
+                val onStart = when (val read = dataSource.readBoolean(RelayPrefConst.KEY_AUTO_UPDATE_ON_START)) {
+                    is PrefRead.Hit -> read.value
+                    else -> true
+                }
+                val wifiOnly = when (val read = dataSource.readBoolean(RelayPrefConst.KEY_AUTO_UPDATE_WIFI_ONLY)) {
+                    is PrefRead.Hit -> read.value
+                    else -> false
+                }
+                startupFacts(
+                    context = context,
+                    trackCi = isCiOrDebug,
+                    autoUpdateOnStart = onStart,
+                    wifiOnly = wifiOnly,
+                    playOwnsChannel = BuildConfig.HAS_BILLING,
+                )
+            },
         )
     }
 }
