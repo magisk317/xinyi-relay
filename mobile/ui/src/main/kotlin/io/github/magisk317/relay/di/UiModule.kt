@@ -13,9 +13,9 @@ import io.github.magisk317.relay.ui.sender.SenderViewModel
 import io.github.magisk317.uikit.update.AppUpdateChecker
 import io.github.magisk317.uikit.update.AppUpdateController
 import io.github.magisk317.uikit.update.AppUpdateDownloader
-import io.github.magisk317.uikit.update.GitLabCiArtifactUpdateSource
-import io.github.magisk317.uikit.update.GitLabReleaseUpdateSource
-import io.github.magisk317.uikit.update.GitHubReleaseUpdateSource
+import io.github.magisk317.uikit.update.AppUpdateSourceSpec
+import io.github.magisk317.uikit.update.AppUpdateSources
+import io.github.magisk317.uikit.update.CiStagingSpec
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
@@ -42,42 +42,24 @@ val uiModule = module {
 
         val isPlayFlavor = BuildConfig.HAS_BILLING
 
-        val sources = when {
-            // Play flavor: version is owned by Play, no CI source
-            isPlayFlavor -> listOf(
-                GitLabReleaseUpdateSource("magisk3171/xinyi-relay"),
-                GitHubReleaseUpdateSource(
-                    repository = "magisk317/xinyi-relay",
-                    gitlabProjectPath = "magisk3171/xinyi-relay",
-                ),
-            )
-
-            isCiOrDebug -> listOf(
-                GitLabCiArtifactUpdateSource(
-                    projectPath = "magisk3171/xinyi-relay",
-                    branch = "beta",
-                    jobName = "android:build",
-                    artifactPath = "ci-dist/app-ci.apk",
-                    // Staged manifest gates the download on its sha256 and carries the
-                    // allocated versionCode, which is what the up-to-date check compares.
-                    manifestFilePath = "ci-dist/app-ci-manifest.json",
-                    currentCommitHash = BuildConfig.COMMIT_HASH,
-                ),
-                GitLabReleaseUpdateSource("magisk3171/xinyi-relay"),
-            )
-
-            else -> listOf(
-                GitLabReleaseUpdateSource("magisk3171/xinyi-relay"),
-                GitHubReleaseUpdateSource(
-                    repository = "magisk317/xinyi-relay",
-                    gitlabProjectPath = "magisk3171/xinyi-relay",
-                ),
-            )
-        }
+        // One shape for every consumer app: the channel (settings switch, else how the build was
+        // produced) is re-read on each check, and a Play flavor never probes the CI track because
+        // the store owns that version axis. See ui-kit's AppUpdateSources for the chain shape.
+        val spec = AppUpdateSourceSpec(
+            gitlabProjectPath = "magisk3171/xinyi-relay",
+            githubRepository = "magisk317/xinyi-relay",
+            ci = CiStagingSpec(
+                artifactPath = "ci-dist/app-ci.apk",
+                manifestPath = "ci-dist/app-ci-manifest.json",
+            ),
+            isPlayFlavor = { isPlayFlavor },
+            buildProvenance = { isCiOrDebug },
+            currentCommitHash = { BuildConfig.COMMIT_HASH },
+        )
 
         val checker = AppUpdateChecker(
             context = context,
-            sources = sources,
+            sources = AppUpdateSources.routed(spec),
             allowForceUpdate = !BuildConfig.SKIP_FORCE_UPDATE,
         )
         val downloader = AppUpdateDownloader(context)
