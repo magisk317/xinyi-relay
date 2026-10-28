@@ -52,8 +52,9 @@ val uiModule = module {
             gitlabProjectPath = "magisk3171/xinyi-relay",
             githubRepository = "magisk317/xinyi-relay",
             ci = CiStagingSpec(
-                artifactPath = "ci-dist/app-ci.apk",
-                manifestPath = "ci-dist/app-ci-manifest.json",
+                artifactPath = "ci-dist/io.github.magisk317.xinyi.relay/{versionName}/app-ci.apk",
+                versionSidecarPath = "ci-dist/io.github.magisk317.xinyi.relay/version.txt",
+                manifestPath = "ci-dist/io.github.magisk317.xinyi.relay/{versionName}/app-ci-manifest.json",
             ),
             isPlayFlavor = { isPlayFlavor },
             buildProvenance = { isCiOrDebug },
