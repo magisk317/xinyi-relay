@@ -5,6 +5,7 @@ import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceChangeSet
+import io.github.magisk317.smscode.runtime.contract.prefs.PrefRead
 import kotlinx.coroutines.flow.Flow
 
 class PreferenceDataSourceImpl(private val context: Context) : PreferenceDataSource {
@@ -31,6 +32,9 @@ class PreferenceDataSourceImpl(private val context: Context) : PreferenceDataSou
     override suspend fun getBoolean(key: String, defaultValue: Boolean): Boolean {
         return AppPreferencesDataStore.getBoolean(context, key, defaultValue)
     }
+
+    override suspend fun readBoolean(key: String): PrefRead<Boolean> =
+        AppPreferencesDataStore.readBoolean(context, key)
 
     override suspend fun setBoolean(key: String, value: Boolean) {
         AppPreferencesDataStore.setBoolean(context, key, value)
