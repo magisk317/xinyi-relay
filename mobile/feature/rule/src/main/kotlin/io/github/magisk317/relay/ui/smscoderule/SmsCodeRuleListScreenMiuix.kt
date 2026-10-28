@@ -44,6 +44,7 @@ import io.github.magisk317.uikit.surface.AppFloatingActionButton
 import androidx.compose.foundation.lazy.rememberLazyListState
 import top.yukonga.miuix.kmp.basic.Text as MiuixText
 import io.github.magisk317.uikit.preview.MagiskMultiPreview
+import io.github.magisk317.uikit.surface.AppRefreshIcon
 
 /**
  * Miuix chrome for the rule screen of the same name:
@@ -58,6 +59,7 @@ internal fun SmsCodeRuleListScreenMiuix(
     onSourceSettingsClick: () -> Unit,
     onRefresh: () -> Unit,
     refreshEnabled: Boolean,
+    refreshing: Boolean = false,
     onAddClick: () -> Unit,
     fabContentDescription: String,
     listState: LazyListState,
@@ -90,8 +92,8 @@ internal fun SmsCodeRuleListScreenMiuix(
                             )
                         }
                         AppIconButton(onClick = onRefresh, enabled = refreshEnabled) {
-                            AppIcon(
-                                imageVector = Icons.Filled.Refresh,
+                            AppRefreshIcon(
+                                refreshing = refreshing,
                                 contentDescription = stringResource(R.string.action_refresh),
                             )
                         }

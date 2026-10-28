@@ -67,6 +67,7 @@ import io.github.magisk317.uikit.surface.AppIconButton
 import io.github.magisk317.uikit.surface.AppTextButton
 import io.github.magisk317.uikit.theme.AppColorRole
 import io.github.magisk317.uikit.theme.appColor
+import io.github.magisk317.uikit.surface.AppRefreshIcon
 
 private const val BUILTIN_RULE_EDITOR_ID_ALPHANUMERIC = -101L
 private const val BUILTIN_RULE_EDITOR_ID_DIGITS = -102L
@@ -242,6 +243,7 @@ fun SmsCodeRuleListScreen(
             onSourceSettingsClick = onSourceSettingsClick,
             onRefresh = { loadOfficialRules(refresh = true) },
             refreshEnabled = !officialLoading,
+            refreshing = officialLoading,
             onAddClick = onAddClick,
             fabContentDescription = stringResource(id = R.string.create_rule),
             listState = listState,
@@ -254,6 +256,7 @@ fun SmsCodeRuleListScreen(
             onSourceSettingsClick = onSourceSettingsClick,
             onRefresh = { loadOfficialRules(refresh = true) },
             refreshEnabled = !officialLoading,
+            refreshing = officialLoading,
             onAddClick = onAddClick,
             fabContentDescription = stringResource(id = R.string.create_rule),
             listState = listState,
