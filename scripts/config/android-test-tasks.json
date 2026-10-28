@@ -19,6 +19,7 @@
     ":magisk-ui-kit:testAndroidHostTest",
     ":magisk-ui-kit:jvmTest",
     ":magisk-ui-kit:billing:testDebugUnitTest",
+    ":magisk-ui-kit:update:testGithubDebugUnitTest",
     ":policy:jvmTest",
     ":relay:contract:jvmTest",
     ":relay:engine:jvmTest",
@@ -74,7 +75,8 @@
       "tasks": [
         ":magisk-ui-kit:testAndroidHostTest",
         ":magisk-ui-kit:jvmTest",
-        ":magisk-ui-kit:billing:testDebugUnitTest"
+        ":magisk-ui-kit:billing:testDebugUnitTest",
+        ":magisk-ui-kit:update:testGithubDebugUnitTest"
       ]
     },
     {
