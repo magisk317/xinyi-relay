@@ -80,16 +80,10 @@ val uiModule = module {
             checker = checker,
             downloader = downloader,
             fileProviderAuthority = "${context.packageName}.files",
-            onForceUpdateDetected = if (isCiOrDebug) {
-                {
-                    // Gate logic: once a CI mandatory update is detected, seal the
-                    // activation state and revoke privileges to block outdated builds.
-                    CiUpdateGateVault.sealAndRevoke(context)
-                }
-            } else {
-                // Release only surfaces a dialog on forced updates, never self-destructs
-                {}
-            },
+            // Seal the activation on the way into an install. An upgrade is the one
+            // moment the next build may not be able to re-activate itself, and that
+            // risk is the same on every track, so this is not gated on provenance.
+            onBackupBeforeInstall = { CiUpdateGateVault.backup(context) },
         )
     }
 }

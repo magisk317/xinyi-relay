@@ -5,7 +5,6 @@ import com.magisk317.mobile.entitlement.MobileEntitlementCoordinator
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
 import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.relay.mobileui.BuildConfig
-import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsStore
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.uikit.entitlement.resetLastKnownAutomationAllowed
 import io.github.magisk317.uikit.update.security.CiUpdateGateConfig
@@ -55,22 +54,13 @@ object CiUpdateGateVault {
                 override suspend fun refresh(context: Context) {
                     MobileEntitlementCoordinator.refresh(context, force = true)
                 }
-
-                override fun clear(context: Context) {
-                    MobileEntitlementCoordinator.clearEntitlement(context)
-                }
-
-                override fun publishFailClosed(context: Context) {
-                    MobileEntitlementCoordinator.publishFailClosed(context)
-                }
             },
             onAutomationAllowedChanged = { resetLastKnownAutomationAllowed(it) },
-            refreshDiagnostics = { context -> ActivationDiagnosticsStore.snapshot(context) },
         ),
     )
 
     @JvmStatic
-    fun sealAndRevoke(context: Context) = core.sealAndRevoke(context)
+    fun backup(context: Context) = core.backup(context)
 
     @JvmStatic
     fun restoreIfEligible(context: Context): Boolean = core.restoreIfEligible(context)
