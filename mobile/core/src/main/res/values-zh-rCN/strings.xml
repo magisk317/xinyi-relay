@@ -708,6 +708,8 @@
     <!-- check update -->
     <string name="check_update_title">检查更新</string>
     <string name="check_update_summary">点击检查更新</string>
+    <string name="settings_track_ci_builds_title">检测CI构建</string>
+    <string name="settings_track_ci_builds_summary">开启后同时检测 beta 分支的 CI 构建（可能弹出强制更新）；关闭后只跟随正式版，CI 构建会等到下一个正式版发布后接上。</string>
     <!-- check update end -->
 
 

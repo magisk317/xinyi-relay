@@ -702,6 +702,8 @@
     <!-- check update -->
     <string name="check_update_title">檢查更新</string>
     <string name="check_update_summary">點擊檢查更新</string>
+    <string name="settings_track_ci_builds_title">偵測CI建置</string>
+    <string name="settings_track_ci_builds_summary">開啟後同時偵測 beta 分支的 CI 建置（可能彈出強制更新）；關閉後只跟隨正式版，CI 建置會等到下一個正式版發布後接上。</string>
     <!-- check update end -->
 
 

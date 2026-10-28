@@ -2,6 +2,7 @@ package io.github.magisk317.relay.ui.home.settings
 
 import io.github.magisk317.relay.ui.common.StateSwitchItem
 import io.github.magisk317.relay.ui.common.ActionSwitchItem
+import io.github.magisk317.relay.ui.common.SwitchItem
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,6 +21,7 @@ import io.github.magisk317.relay.contract.settings.VerificationSettingsSnapshot
 import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.uikit.R as UiKitR
 import io.github.magisk317.relay.contract.constant.RelayAppConst
+import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.relay.mobilefeature.settings.BuildConfig
 import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsCallbacks
 import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsItem
@@ -222,6 +224,14 @@ internal fun SettingsDiagnosticsSection(
         ) {
             updateController.check(userInitiated = true)
         }
+        // Unset falls back to how this build was produced; writing the switch pins the track
+        // explicitly. `defaultValue` renders that fallback so the row shows the effective state.
+        SwitchItem(
+            title = stringResource(id = R.string.settings_track_ci_builds_title),
+            summary = stringResource(id = R.string.settings_track_ci_builds_summary),
+            key = RelayPrefConst.KEY_TRACK_CI_BUILDS,
+            defaultValue = BuildConfig.DEBUG || BuildConfig.IS_CI_BUILD,
+        )
 
     }
 }

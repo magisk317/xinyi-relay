@@ -13,6 +13,9 @@ import io.github.magisk317.relay.ui.sender.SenderViewModel
 import io.github.magisk317.uikit.update.AppUpdateChecker
 import io.github.magisk317.uikit.update.AppUpdateController
 import io.github.magisk317.uikit.update.AppUpdateDownloader
+import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
+import io.github.magisk317.relay.contract.constant.RelayPrefConst
+import io.github.magisk317.smscode.runtime.contract.prefs.PrefRead
 import io.github.magisk317.uikit.update.AppUpdateSourceSpec
 import io.github.magisk317.uikit.update.AppUpdateSources
 import io.github.magisk317.uikit.update.CiStagingSpec
@@ -55,6 +58,14 @@ val uiModule = module {
             isPlayFlavor = { isPlayFlavor },
             buildProvenance = { isCiOrDebug },
             currentCommitHash = { BuildConfig.COMMIT_HASH },
+            // Miss / Unavailable stay null so AppUpdateSources falls back to buildProvenance;
+            // only an explicit switch value outranks how the build was produced.
+            trackCiOverride = {
+                when (val read = get<PreferenceDataSource>().readBoolean(RelayPrefConst.KEY_TRACK_CI_BUILDS)) {
+                    is PrefRead.Hit -> read.value
+                    else -> null
+                }
+            },
         )
 
         val checker = AppUpdateChecker(

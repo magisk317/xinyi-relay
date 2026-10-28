@@ -732,6 +732,8 @@
     <!-- check update -->
     <string name="check_update_title">Check for updates</string>
     <string name="check_update_summary">Tap to check updates</string>
+    <string name="settings_track_ci_builds_title">Detect CI builds</string>
+    <string name="settings_track_ci_builds_summary">Also probe beta-branch CI builds (a mandatory-update prompt is possible). Off follows official releases only; a CI build then waits for the next release to catch up.</string>
     <!-- check update end -->
 
 
