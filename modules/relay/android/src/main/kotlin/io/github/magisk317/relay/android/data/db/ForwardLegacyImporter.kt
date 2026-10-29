@@ -1,8 +1,15 @@
 package io.github.magisk317.relay.android.data.db
 
 import io.github.magisk317.forward.db.ForwardDatabase
+import io.github.magisk317.forward.db.ForwardFilterRuleEntity
+import io.github.magisk317.forward.db.ForwardRouteRuleEntity
+import io.github.magisk317.forward.db.ForwardScheduledTaskEntity
+import io.github.magisk317.forward.db.ForwardSenderEntity
 import io.github.magisk317.forward.db.ForwardEventEntity
 import io.github.magisk317.forward.db.SenderDispatchLogEntity
+import io.github.magisk317.smscode.db.entity.ForwardFilterRule
+import io.github.magisk317.smscode.db.entity.NotifyRouteRule
+import io.github.magisk317.smscode.db.entity.Sender
 import io.github.magisk317.smscode.db.entity.SmsMsg
 
 /**
@@ -112,6 +119,51 @@ object ForwardLegacyImporter {
             firstEventMismatch = firstEventMismatch,
             firstDispatchLogMismatch = firstDispatchLogMismatch,
         )
+    }
+
+
+    fun projectSender(sender: Sender): ForwardSenderEntity = ForwardSenderEntity(
+        id = sender.id, type = sender.type, name = sender.name, jsonSetting = sender.jsonSetting,
+        status = sender.status, time = sender.time, receiveCode = sender.receiveCode,
+        receiveNonCode = sender.receiveNonCode, receiveAppNotify = sender.receiveAppNotify,
+        receiveCallNotify = sender.receiveCallNotify, activeScheduleJson = sender.activeScheduleJson,
+        priority = sender.priority, customTemplate = sender.customTemplate,
+    )
+
+    fun projectRouteRule(rule: NotifyRouteRule): ForwardRouteRuleEntity = ForwardRouteRuleEntity(
+        id = rule.id, scope = rule.scope, packageName = rule.packageName,
+        senderId = rule.senderId, updateTime = rule.updateTime,
+    )
+
+    fun projectFilterRule(rule: ForwardFilterRule): ForwardFilterRuleEntity = ForwardFilterRuleEntity(
+        id = rule.id, msgType = rule.msgType, scopeType = rule.scopeType, scopeKey = rule.scopeKey,
+        senderId = rule.senderId, policy = rule.policy, matchMode = rule.matchMode,
+        pattern = rule.pattern, enabled = rule.enabled, updateTime = rule.updateTime,
+    )
+
+    fun projectScheduledTask(task: io.github.magisk317.relay.android.data.db.entity.ScheduledTaskEntity): ForwardScheduledTaskEntity = ForwardScheduledTaskEntity(
+        id = task.id, name = task.name, taskType = task.taskType, cronExpression = task.cronExpression,
+        simSlot = task.simSlot, mobiles = task.mobiles, content = task.content,
+        status = task.status, lastRunTime = task.lastRunTime, nextRunTime = task.nextRunTime,
+    )
+
+    /** Imports the four configuration tables 1:1 and proves row-count parity. */
+    suspend fun importConfig(legacy: AppDatabase, target: ForwardDatabase): String {
+        val senders = legacy.senderDao().getAll().map { projectSender(it) }
+        target.forwardSenderDao().upsertAll(senders)
+        val routes = legacy.notifyRouteRuleDao().getAll().map { projectRouteRule(it) }
+        target.forwardRouteRuleDao().upsertAll(routes)
+        val filters = legacy.forwardFilterRuleDao().getAll().map { projectFilterRule(it) }
+        target.forwardFilterRuleDao().upsertAll(filters)
+        val tasks = legacy.scheduledTaskDao().getAll().map { projectScheduledTask(it) }
+        target.forwardScheduledTaskDao().upsertAll(tasks)
+        val mismatches = buildList {
+            if (senders.size != target.forwardSenderDao().count()) add("sender count ${senders.size}")
+            if (routes.size != target.forwardRouteRuleDao().count()) add("route count ${routes.size}")
+            if (filters.size != target.forwardFilterRuleDao().count()) add("filter count ${filters.size}")
+            if (tasks.size != target.forwardScheduledTaskDao().count()) add("scheduled count ${tasks.size}")
+        }
+        return if (mismatches.isEmpty()) "ok" else mismatches.joinToString(";")
     }
 
     /** Room I/O shell: import everything and prove parity. Run once per empty target. */
