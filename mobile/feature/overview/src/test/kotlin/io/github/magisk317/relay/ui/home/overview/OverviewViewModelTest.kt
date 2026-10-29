@@ -5,11 +5,7 @@ import io.github.magisk317.relay.contract.repository.SettingsPreferencesReposito
 import io.github.magisk317.relay.contract.settings.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import kotlinx.coroutines.async
-import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
 class OverviewViewModelTest {
@@ -78,39 +74,6 @@ class OverviewViewModelTest {
         assertEquals(null, state.draggingCardId)
         assertEquals(0f, state.dragOffsetY)
     }
-
-    @Test
-    fun toggleStatusDiagnostics_flipsVisibility_andEmitsEvent() = runBlocking {
-        val viewModel = OverviewViewModel(
-            FakeOverviewSettingsRepository(
-                overviewSettings = OverviewSettingsSnapshot(
-                    encodeCardList(DEFAULT_OVERVIEW_CARD_ORDER),
-                    encodeCardList(DEFAULT_OVERVIEW_ENABLED_CARD_IDS.toList()),
-                    "events",
-                    "all",
-                ),
-            ),
-        )
-        val showEvent = async(start = CoroutineStart.UNDISPATCHED) { viewModel.events.first() }
-
-        viewModel.toggleStatusDiagnostics()
-
-        assertTrue(viewModel.uiState.value.showStatusDiagnostics)
-        assertEquals(
-            OverviewEvent.StatusDiagnosticsVisibilityChanged(true),
-            showEvent.await(),
-        )
-
-        val hideEvent = async(start = CoroutineStart.UNDISPATCHED) { viewModel.events.first() }
-        viewModel.toggleStatusDiagnostics()
-
-        assertFalse(viewModel.uiState.value.showStatusDiagnostics)
-        assertEquals(
-            OverviewEvent.StatusDiagnosticsVisibilityChanged(false),
-            hideEvent.await(),
-        )
-    }
-
 }
 
 private class FakeOverviewSettingsRepository(

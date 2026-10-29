@@ -12,11 +12,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -30,8 +27,6 @@ class OverviewViewModel(
 
     private val _uiState = MutableStateFlow(OverviewUiState())
     internal val uiState: StateFlow<OverviewUiState> = _uiState.asStateFlow()
-    private val _events = MutableSharedFlow<OverviewEvent>(extraBufferCapacity = 4)
-    internal val events: SharedFlow<OverviewEvent> = _events.asSharedFlow()
     private var pageActive = true
     private var settingsGeneration = 0L
     private var runtimeRefreshGeneration = 0L
@@ -169,12 +164,6 @@ class OverviewViewModel(
 
     internal fun updateDragState(cardId: String?, offsetY: Float) {
         _uiState.update { it.copy(draggingCardId = cardId, dragOffsetY = offsetY) }
-    }
-
-    internal fun toggleStatusDiagnostics() {
-        val nextVisible = !_uiState.value.showStatusDiagnostics
-        _uiState.update { it.copy(showStatusDiagnostics = nextVisible) }
-        _events.tryEmit(OverviewEvent.StatusDiagnosticsVisibilityChanged(nextVisible))
     }
 }
 

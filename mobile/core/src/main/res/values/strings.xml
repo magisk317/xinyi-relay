@@ -1366,17 +1366,6 @@
     <string name="matrix_e2ee_verification_status_unsupported_auth">Matrix E2EE verification requires username and password login.</string>
     <string name="sender_type_yunhu">YunHu</string>
     <string name="sender_type_unknown">Unknown channel</string>
-    <string name="overview_runtime_diagnostics_shown">Runtime diagnostics shown</string>
-    <string name="overview_runtime_diagnostics_hidden">Runtime diagnostics hidden</string>
-    <string name="overview_runtime_connected">Connected</string>
-    <string name="overview_runtime_disconnected">Disconnected</string>
-    <string name="overview_runtime_last_connected">Last connected</string>
-    <string name="overview_runtime_unknown">unknown</string>
-    <string name="overview_runtime_none">&lt;none&gt;</string>
-    <string name="overview_runtime_not_available">N/A</string>
-    <string name="overview_runtime_service_label">Xposed Service</string>
-    <string name="overview_runtime_recent_hook_process">Recent hook process</string>
-    <string name="overview_runtime_recent_hook_time">Recent hook time</string>
     <!-- translation audit end -->
 
     <!-- donate -->

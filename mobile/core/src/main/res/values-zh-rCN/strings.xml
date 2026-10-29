@@ -1368,17 +1368,6 @@
     <string name="matrix_e2ee_verification_status_unsupported_auth">Matrix E2EE 验证需要使用用户名和密码登录。</string>
     <string name="sender_type_yunhu">云湖</string>
     <string name="sender_type_unknown">未知通道</string>
-    <string name="overview_runtime_diagnostics_shown">已显示运行时诊断</string>
-    <string name="overview_runtime_diagnostics_hidden">已隐藏运行时诊断</string>
-    <string name="overview_runtime_connected">已连接</string>
-    <string name="overview_runtime_disconnected">未连接</string>
-    <string name="overview_runtime_last_connected">最近连接</string>
-    <string name="overview_runtime_unknown">未知</string>
-    <string name="overview_runtime_none">&lt;无&gt;</string>
-    <string name="overview_runtime_not_available">暂无</string>
-    <string name="overview_runtime_service_label">Xposed 服务</string>
-    <string name="overview_runtime_recent_hook_process">最近 Hook 进程</string>
-    <string name="overview_runtime_recent_hook_time">最近 Hook 时间</string>
     <string name="settings_cloud_backup_title">云端备份</string>
     <string name="settings_cloud_backup_summary">Google Drive 与 WebDAV 备份</string>
     <string name="settings_cloud_backup_pro_tag">PRO</string>

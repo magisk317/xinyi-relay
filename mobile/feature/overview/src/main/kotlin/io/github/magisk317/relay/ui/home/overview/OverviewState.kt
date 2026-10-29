@@ -24,7 +24,6 @@ internal data class OverviewUiState(
     val enabledCardIds: Set<String> = DEFAULT_OVERVIEW_ENABLED_CARD_IDS,
     val editMode: Boolean = false,
     val showAddCardSheet: Boolean = false,
-    val showStatusDiagnostics: Boolean = false,
     val draggingCardId: String? = null,
     val dragOffsetY: Float = 0f,
     val runtimeSnapshot: OverviewRuntimeUiState = OverviewRuntimeUiState(),
@@ -66,8 +65,4 @@ internal fun moveCardByVisible(order: List<String>, visible: List<String>, cardI
     val insertIndex = mutable.indexOf(targetId).let { if (direction > 0) it + 1 else it }
     mutable.add(insertIndex, cardId)
     return mutable
-}
-
-internal sealed interface OverviewEvent {
-    data class StatusDiagnosticsVisibilityChanged(val visible: Boolean) : OverviewEvent
 }

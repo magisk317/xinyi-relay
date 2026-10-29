@@ -59,11 +59,9 @@ import androidx.lifecycle.repeatOnLifecycle
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
-import io.github.magisk317.smscode.runtime.contract.diagnostics.ActivationDiagnosticsSnapshot
 import io.github.magisk317.smscode.runtime.common.utils.BrowserUtils
 import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.relay.billing.BillingProvider
-import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsStore
 import io.github.magisk317.uikit.entitlement.rememberEntitlementState
 import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.surface.AppIconButton
@@ -93,6 +91,7 @@ internal data class HomeCardSpec(
 fun OverviewScreen(
     isActive: Boolean = true,
     bottomContentPadding: androidx.compose.ui.unit.Dp = 0.dp,
+    onOpenDiagnostics: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val activity = LocalActivity.current
@@ -122,10 +121,6 @@ fun OverviewScreen(
     val isEnabled = xposedActive
 
     val lifecycleOwner = LocalLifecycleOwner.current
-    val activationStatusFlow = remember(context) {
-        ActivationDiagnosticsStore.observeStatus(context.applicationContext)
-    }
-    val activationStatus by activationStatusFlow.collectAsStateWithLifecycle()
 
     // The activation flow is absent on play, which drops the gate entirely;
     // resolveActivity doubles as the runtime probe for that flavor decision.
@@ -143,22 +138,6 @@ fun OverviewScreen(
     val density = LocalDensity.current
     val dragThresholdPx = remember(density) { with(density) { 72.dp.toPx() } }
     val overviewUiState by viewModel.uiState.collectAsStateWithLifecycle()
-    LaunchedEffect(isActive) {
-        if (!isActive) return@LaunchedEffect
-        viewModel.events.collect { event ->
-            when (event) {
-                is OverviewEvent.StatusDiagnosticsVisibilityChanged -> {
-                    showMessage(
-                        if (event.visible) {
-                            context.getString(R.string.overview_runtime_diagnostics_shown)
-                        } else {
-                            context.getString(R.string.overview_runtime_diagnostics_hidden)
-                        },
-                    )
-                }
-            }
-        }
-    }
 
     val allCardSpecs = listOf(
         HomeCardSpec(
@@ -264,11 +243,8 @@ fun OverviewScreen(
                 frameworkType = runtimeUiState.frameworkType,
                 frameworkVersion = runtimeUiState.frameworkVersion,
                 hasRootAccess = runtimeUiState.hasRootAccess,
-                runtimeConnected = activationStatus.runtimeConnected,
                 mobileAutomationAllowed = mobileAutomationAllowed,
                 showEntitlement = entitlementUiAvailable,
-                activationDiagnostics = activationStatus.diagnostics,
-                showStatusDiagnostics = overviewUiState.showStatusDiagnostics,
                 draggingCardId = overviewUiState.draggingCardId,
                 dragOffsetY = overviewUiState.dragOffsetY,
                 dragThresholdPx = dragThresholdPx,
@@ -295,7 +271,7 @@ fun OverviewScreen(
                         )
                     }
                 },
-                onDiagnosticsToggle = { viewModel.toggleStatusDiagnostics() },
+                onOpenDiagnostics = onOpenDiagnostics,
                 bottomContentPadding = effectiveBottomPadding,
             )
         }
@@ -348,11 +324,8 @@ private fun OverviewContent(
     frameworkType: String,
     frameworkVersion: String,
     hasRootAccess: Boolean,
-    runtimeConnected: Boolean,
     mobileAutomationAllowed: Boolean,
     showEntitlement: Boolean,
-    activationDiagnostics: ActivationDiagnosticsSnapshot,
-    showStatusDiagnostics: Boolean,
     draggingCardId: String?,
     dragOffsetY: Float,
     dragThresholdPx: Float,
@@ -367,7 +340,7 @@ private fun OverviewContent(
     onDragStateChange: (String?, Float) -> Unit,
     onShowDonate: () -> Unit,
     onActivateClick: () -> Unit,
-    onDiagnosticsToggle: () -> Unit,
+    onOpenDiagnostics: (() -> Unit)?,
     bottomContentPadding: androidx.compose.ui.unit.Dp,
 ) {
     val context = LocalContext.current
@@ -402,11 +375,8 @@ private fun OverviewContent(
                 frameworkType = frameworkType,
                 frameworkVersion = frameworkVersion,
                 hasRootAccess = hasRootAccess,
-                runtimeConnected = runtimeConnected,
                 mobileAutomationAllowed = mobileAutomationAllowed,
                 showEntitlement = showEntitlement,
-                activationDiagnostics = activationDiagnostics,
-                showStatusDiagnostics = showStatusDiagnostics,
                 draggingCardId = draggingCardId,
                 dragOffsetY = dragOffsetY,
                 dragThresholdPx = dragThresholdPx,
@@ -418,7 +388,7 @@ private fun OverviewContent(
                 onDragStateChange = onDragStateChange,
                 onShowDonate = onShowDonate,
                 onActivateClick = onActivateClick,
-                onDiagnosticsToggle = onDiagnosticsToggle,
+                onOpenDiagnostics = onOpenDiagnostics,
             )
         }
     }
@@ -438,11 +408,8 @@ private fun OverviewCardItem(
     frameworkType: String,
     frameworkVersion: String,
     hasRootAccess: Boolean,
-    runtimeConnected: Boolean,
     mobileAutomationAllowed: Boolean,
     showEntitlement: Boolean,
-    activationDiagnostics: ActivationDiagnosticsSnapshot,
-    showStatusDiagnostics: Boolean,
     draggingCardId: String?,
     dragOffsetY: Float,
     dragThresholdPx: Float,
@@ -454,7 +421,7 @@ private fun OverviewCardItem(
     onDragStateChange: (String?, Float) -> Unit,
     onShowDonate: () -> Unit,
     onActivateClick: () -> Unit,
-    onDiagnosticsToggle: () -> Unit,
+    onOpenDiagnostics: (() -> Unit)?,
 ) {
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val snackbarHostState = io.github.magisk317.uikit.foundation.LocalSnackbarHostState.current
@@ -507,21 +474,15 @@ private fun OverviewCardItem(
                     isEnhancedModeEnabled = isEnabled,
                     isEntitled = mobileAutomationAllowed,
                     showEntitlement = showEntitlement,
-                    showDiagnostics = showStatusDiagnostics,
-                    diagnostics = buildStatusDiagnostics(
-                        context = context,
-                        snapshot = activationDiagnostics,
-                        runtimeConnected = runtimeConnected,
-                    ),
                     onActivateClick = if (editMode) {
                         null
                     } else {
                         onActivateClick
                     },
-                    onDiagnosticsToggle = if (editMode) {
+                    onOpenDiagnostics = if (editMode) {
                         null
                     } else {
-                        onDiagnosticsToggle
+                        onOpenDiagnostics
                     },
                 )
             }

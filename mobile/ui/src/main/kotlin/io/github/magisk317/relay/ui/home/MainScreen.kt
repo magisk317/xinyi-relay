@@ -454,6 +454,7 @@ fun MainScreen(
                     OverviewScreen(
                         isActive = pageActive,
                         bottomContentPadding = contentBottomPadding,
+                        onOpenDiagnostics = { navController.navigate(DiagnosticsRoute) },
                     )
                 }
 
