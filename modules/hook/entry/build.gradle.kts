@@ -53,6 +53,7 @@ dependencies {
     implementation(project(":smscode-core:verification"))
     implementation(project(":magisk-xposed-kit:logging"))
     implementation(project(":magisk-xposed-kit"))
+    implementation(project(":magisk-xposed-kit:capability"))
     implementation(project(":magisk-xposed-kit:keepalive"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.libxposed.service)

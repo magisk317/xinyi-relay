@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.xp.hook.keepalive
 
 import io.github.magisk317.relay.xp.hook.helper.XinyiHookHostCapabilities
-import io.github.magisk317.smscode.xposed.prefs.CorePrefs
+import io.github.magisk317.xposed.capability.prefs.CorePrefs
 import io.github.magisk317.xposed.keepalive.KeepAliveCapability
 import io.github.magisk317.xposed.keepalive.KeepAliveConfig
 import io.github.magisk317.xposed.keepalive.KeepAliveEventSink

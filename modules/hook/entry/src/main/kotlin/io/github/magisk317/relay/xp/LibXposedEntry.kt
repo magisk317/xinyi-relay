@@ -29,11 +29,11 @@ import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xpbridge.XpRecordFacade
 import io.github.magisk317.relay.xpbridge.XpSmsRuntimeBridge
 import io.github.magisk317.smscode.xposed.hook.notification.NotificationManagerHook
-import io.github.magisk317.smscode.xposed.hook.permission.PermissionGranterHook
-import io.github.magisk317.smscode.xposed.hook.system.SystemInputInjectorHook
+import io.github.magisk317.xposed.capability.permission.PermissionGranterHook
+import io.github.magisk317.xposed.capability.system.SystemInputInjectorHook
 import io.github.magisk317.xposed.HookEnv
-import io.github.magisk317.smscode.xposed.runtime.CoreRuntime
-import io.github.magisk317.smscode.xposed.runtime.CoreRuntimeAccess
+import io.github.magisk317.xposed.capability.runtime.CoreRuntime
+import io.github.magisk317.xposed.capability.runtime.CoreRuntimeAccess
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.xposed.BaseHook
 import io.github.magisk317.xposed.BaseLibXposedEntry

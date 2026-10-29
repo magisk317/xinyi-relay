@@ -91,6 +91,8 @@ include(
     ":magisk-xposed-kit",
     ":magisk-xposed-kit:logging",
     ":magisk-xposed-kit:diagnostics",
+    ":magisk-xposed-kit:capability",
+    ":magisk-xposed-kit:runtime",
     ":magisk-xposed-kit:permission",
     ":magisk-xposed-kit:entitlement",
     ":magisk-xposed-kit:keepalive",
@@ -109,6 +111,8 @@ project(":smscode-core:db").projectDir = file("smscode/core/db")
 project(":smscode-core").projectDir = file("smscode/core")
 project(":magisk-xposed-kit:logging").projectDir = file("magisk-xposed-kit/logging")
 project(":magisk-xposed-kit:diagnostics").projectDir = file("magisk-xposed-kit/diagnostics")
+project(":magisk-xposed-kit:capability").projectDir = file("magisk-xposed-kit/capability")
+project(":magisk-xposed-kit:runtime").projectDir = file("magisk-xposed-kit/runtime")
 project(":magisk-xposed-kit:permission").projectDir = file("magisk-xposed-kit/permission")
 project(":magisk-xposed-kit:entitlement").projectDir = file("magisk-xposed-kit/entitlement")
 project(":magisk-xposed-kit:keepalive").projectDir = file("magisk-xposed-kit/keepalive")

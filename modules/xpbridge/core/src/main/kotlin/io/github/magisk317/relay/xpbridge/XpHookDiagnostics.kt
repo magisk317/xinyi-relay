@@ -3,8 +3,8 @@ package io.github.magisk317.relay.xpbridge
 import android.content.Context
 import io.github.magisk317.relay.contract.xpbridge.NoopXpDiagnosticsRuntimeBridge
 import io.github.magisk317.relay.contract.xpbridge.XpDiagnosticsRuntimeBridge
-import io.github.magisk317.smscode.xposed.runtime.CoreLogSink
-import io.github.magisk317.smscode.xposed.runtime.CoreLogSinkHolder
+import io.github.magisk317.xposed.capability.runtime.CoreLogSink
+import io.github.magisk317.xposed.capability.runtime.CoreLogSinkHolder
 import io.github.magisk317.xposed.logging.XposedLogClient
 
 object XpHookDiagnostics {
