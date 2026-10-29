@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import io.github.magisk317.forward.contract.constant.MessageType
 import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastPayload
 
 data class PreparedSmsHookDispatch(
     val smsMsg: SmsMsg,

@@ -53,6 +53,7 @@ dependencies {
     implementation(libs.androidx.work.runtime.ktx)
     implementation(project(":relay:contract"))
     implementation(project(":magisk-forward-core:engine"))
+    implementation(project(":magisk-forward-core:runtime"))
     implementation(project(":magisk-forward-core:net"))
     implementation(project(":relay:android"))
     implementation(project(":xpbridge:android:api"))

@@ -9,6 +9,8 @@ import io.mockk.every
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
+import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastContract
+import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastPayload
 
 class ForwardBroadcastPayloadTest {
 

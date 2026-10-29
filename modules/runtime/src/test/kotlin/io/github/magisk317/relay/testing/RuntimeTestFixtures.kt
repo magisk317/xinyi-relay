@@ -6,9 +6,9 @@ import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.data.db.dao.SmsBlacklistHitDao
 import io.github.magisk317.relay.android.data.db.dao.SmsMsgDao
 import io.github.magisk317.smscode.db.entity.SmsMsg
-import io.github.magisk317.relay.platform.ipc.ForwardBroadcastContract
 import io.mockk.every
 import io.mockk.mockk
+import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastContract
 
 data class RuntimeDatabaseFixture(
     val database: AppDatabase,

@@ -5,6 +5,8 @@ import android.content.Intent
 import android.os.Process
 import io.github.magisk317.relay.contract.xpbridge.XpSmsBlacklistHitRecord
 import io.github.magisk317.xposed.logging.MagiskOtel
+import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastPayload
+import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastContract
 
 /**
  * Cross-process transport for blacklist hit records.

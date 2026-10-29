@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import kotlin.random.Random
+import io.github.magisk317.forward.runtime.ingress.MmsNotificationPduParser
 
 class MmsNotificationPduParserTest {
 

@@ -9,6 +9,7 @@ import io.github.magisk317.relay.android.sms.SmsCodeUtils
 import io.github.magisk317.smscode.rule.model.SmsCodeParseSource
 import io.github.magisk317.smscode.rule.model.SmsCodeParseSourceKind
 import io.github.magisk317.xposed.logging.MagiskOtel
+import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastPayload
 
 object AppNotificationIngressAdapter {
     private const val NANOS_PER_MILLI = 1_000_000L

@@ -25,6 +25,9 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import io.github.magisk317.xposed.logging.MagiskOtel
+import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastPayload
+import io.github.magisk317.forward.runtime.ingress.IpcPayloadLimits
+import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastContract
 
 class ForwardReceiver : BroadcastReceiver() {
     @Suppress("CyclomaticComplexMethod")

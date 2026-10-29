@@ -10,10 +10,10 @@ import io.github.magisk317.relay.contract.xpbridge.XpPreparedSmsHookDispatch
 import io.github.magisk317.relay.xpbridge.android.api.XpSmsDispatchRuntimeBridge
 import io.github.magisk317.relay.contract.xpbridge.XpSmsHookDispatchResult
 import io.github.magisk317.relay.contract.xpbridge.XpSmsRecord
-import io.github.magisk317.relay.platform.ipc.ForwardBroadcastContract
-import io.github.magisk317.relay.platform.ipc.ForwardBroadcastPayload
 import io.github.magisk317.relay.platform.ipc.PreparedSmsHookDispatch
 import io.github.magisk317.relay.platform.ipc.SmsHookDispatchCoordinator
+import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastPayload
+import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastContract
 
 object RuntimeXpSmsDispatchBridge : XpSmsDispatchRuntimeBridge {
     override fun ensureIncomingEventId(intent: Intent): String {

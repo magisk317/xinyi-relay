@@ -5,6 +5,9 @@ import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.smscode.db.entity.SmsMsg
 import java.util.UUID
 import kotlin.math.abs
+import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastPayload
+import io.github.magisk317.forward.runtime.ingress.MmsNotificationPduParser
+import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastContract
 
 object ForwardPayloadFactory {
     private const val EXTRA_MMS_FROM = "from"
