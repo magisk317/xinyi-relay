@@ -17,6 +17,7 @@ import io.github.magisk317.forward.runtime.ingress.CustomMessageBroadcastContrac
 import io.github.magisk317.forward.runtime.ingress.CustomMessageBroadcastPayload
 import io.github.magisk317.forward.runtime.ingress.IpcPayloadLimits
 import io.github.magisk317.forward.runtime.ingress.CustomMessageReceiverPolicy
+import io.github.magisk317.forward.runtime.ingress.ForwardReceiverPolicy
 
 class CustomMessageReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {

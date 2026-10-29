@@ -1,10 +1,10 @@
 package io.github.magisk317.relay.domain.recovery
 
+import io.github.magisk317.forward.runtime.ingress.CallSessionTracker
 import android.content.Context
 import io.github.magisk317.forward.contract.constant.MessageType
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.sms.SmsCodeUtils
-import io.github.magisk317.relay.android.common.utils.CallSessionTracker
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.dao.SmsMsgDao

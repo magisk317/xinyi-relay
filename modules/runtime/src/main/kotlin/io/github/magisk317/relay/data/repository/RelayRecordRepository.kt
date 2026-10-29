@@ -1,9 +1,9 @@
 package io.github.magisk317.relay.data.repository
 
+import io.github.magisk317.forward.runtime.ingress.CallSessionTracker
 import android.content.Context
 import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
-import io.github.magisk317.relay.android.common.utils.CallSessionTracker
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.data.db.entity.SmsBlacklistHit
