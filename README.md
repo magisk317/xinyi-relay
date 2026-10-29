@@ -57,6 +57,8 @@ Enhanced 模式；没有 Xposed 时使用系统 API 进入 Standard 模式。两
    权限只会停用对应能力。
 3. 如需 Hook 拦截、系统级短信阻断和 Hook 保活等 Enhanced 能力，再选择 Root 设备并在
    LSPosed/Xposed 中激活模块；不需要改装另一个 lite APK。
+   模块使用动态作用域：请在 LSPosed 中为本模块勾选需要接管的进程；应用内“高级 → 运行诊断”
+   会列出当前设备建议勾选的清单，并显示 system_server 是否已加载本模块。
 4. 在应用内配置转发通道、路由规则、拦截策略与验证码功能。
 
 ### 兼容性

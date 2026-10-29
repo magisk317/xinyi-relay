@@ -7,6 +7,7 @@ object RelayPrefConst {
 
     // General
     const val KEY_ENABLE = "pref_enable"
+    const val KEY_XPOSED_SCOPE_CACHE = "pref_xposed_scope_cache"
     const val KEY_HIDE_LAUNCHER_ICON = "pref_hide_launcher_icon"
     const val KEY_SHOW_LAUNCHER_ICON = "pref_show_launcher_icon"
     const val KEY_CHOOSE_THEME = "pref_choose_theme"

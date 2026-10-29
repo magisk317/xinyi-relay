@@ -57,6 +57,9 @@ database, and settings; Xposed is optional unless hook-only capabilities are req
    by the installed distribution. Denying one permission disables only that capability.
 3. If you need hook interception, system-level SMS blocking, or hook keep-alive features, optionally
    root the device and enable the same app in LSPosed/Xposed; no separate lite APK is required.
+   The module uses a dynamic scope: select the processes it should hook. Advanced → Runtime
+   diagnostics lists the recommended packages for this device and whether system_server has
+   loaded the module for this boot.
 4. Configure sender channels, routing rules, filters, and verification-code policies.
 
 ### Compatibility

@@ -163,6 +163,7 @@ tasks.matching { it.name.endsWith("GoogleServices") }.configureEach {
 dependencies {
     implementation(libs.mobile.entitlement.android)
     implementation(project(":policy"))
+    implementation(project(":runtime"))
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation(project(":mobile:core"))
     implementation(project(":mobile:ui"))

@@ -39,6 +39,7 @@ class DBProvider : ContentProvider() {
         context?.let {
             mDatabase = AppDatabase.getInstance(it)
             StorageUtils.repairExternalAppDataPermissions(it)
+            ProviderCallerPolicy.updateLiveScope(readCachedXposedScope(it))
             authority = "${it.packageName}.db.provider"
             uriMatcher = UriMatcher(UriMatcher.NO_MATCH).apply {
                 addURI(authority, PATH_SMS_MSG, SMS_MSG_DIR)
@@ -417,6 +418,19 @@ class DBProvider : ContentProvider() {
 
     private fun isCallerAllowedForMutation(ctx: Context): Boolean =
         ProviderCallerPolicy.isSelf(ctx)
+
+    private fun readCachedXposedScope(ctx: Context): List<String> {
+        val raw = runCatching {
+            runBlocking {
+                AppPreferencesDataStore.getString(
+                    ctx.applicationContext ?: ctx,
+                    RelayPrefConst.KEY_XPOSED_SCOPE_CACHE,
+                    "",
+                )
+            }
+        }.getOrDefault("")
+        return raw.split(',').map { it.trim() }.filter { it.isNotBlank() }
+    }
 
     private fun isCallerAllowedForInsert(ctx: Context, uriType: Int): Boolean =
         when (uriType) {
