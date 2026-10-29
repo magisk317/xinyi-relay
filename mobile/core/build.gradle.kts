@@ -65,6 +65,7 @@ dependencies {
     implementation(project(":magisk-xposed-kit:capability"))
     implementation(project(":policy"))
     implementation(project(":runtime"))
+    implementation(project(":magisk-forward-core:runtime"))
     implementation(project(":magisk-forward-core:engine:api"))
     implementation(project(":relay:android"))
     implementation(project(":relay:contract"))

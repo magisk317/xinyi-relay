@@ -43,6 +43,7 @@ dependencies {
     compileOnly(libs.libxposed.api)
 
     implementation(project(":xpbridge:core"))
+    implementation(project(":magisk-forward-core:runtime"))
     implementation(project(":runtime"))
     implementation(project(":relay:android"))
     implementation(project(":relay:contract"))
