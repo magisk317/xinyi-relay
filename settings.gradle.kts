@@ -87,6 +87,7 @@ include(
     ":magisk-xposed-kit:diagnostics",
     ":magisk-xposed-kit:capability",
     ":magisk-xposed-kit:runtime",
+    ":magisk-xposed-kit:capture",
     ":magisk-forward-core:contract",
     ":magisk-forward-core:capture",
     ":magisk-forward-core:runtime",
@@ -115,6 +116,7 @@ project(":smscode-core:verification").projectDir = file("smscode/core/verificati
 project(":smscode-core:db").projectDir = file("smscode/core/db")
 project(":smscode-core").projectDir = file("smscode/core")
 project(":magisk-xposed-kit:logging").projectDir = file("magisk-xposed-kit/logging")
+project(":magisk-xposed-kit:capture").projectDir = file("magisk-xposed-kit/capture")
 project(":magisk-xposed-kit:diagnostics").projectDir = file("magisk-xposed-kit/diagnostics")
 project(":magisk-xposed-kit:capability").projectDir = file("magisk-xposed-kit/capability")
 project(":magisk-xposed-kit:runtime").projectDir = file("magisk-xposed-kit/runtime")

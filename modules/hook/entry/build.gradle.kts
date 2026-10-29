@@ -41,7 +41,6 @@ android {
 
 dependencies {
     compileOnly(libs.libxposed.api)
-    compileOnly(project(":smscode-core:hook"))
 
     implementation(project(":xpbridge:core"))
     implementation(project(":runtime"))
@@ -54,6 +53,9 @@ dependencies {
     implementation(project(":magisk-xposed-kit:logging"))
     implementation(project(":magisk-xposed-kit"))
     implementation(project(":magisk-xposed-kit:capability"))
+    implementation(project(":smscode-core:hook"))
+    implementation(project(":magisk-xposed-kit:capture"))
+    implementation(project(":magisk-forward-core:capture"))
     implementation(project(":magisk-xposed-kit:keepalive"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.libxposed.service)
@@ -61,7 +63,6 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
 
-    testImplementation(project(":smscode-core:hook"))
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
     testImplementation(libs.mockk)

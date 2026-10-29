@@ -64,7 +64,10 @@ object RuntimeDiagnosticsBridge {
             value.contains(".xp.LibXposedEntry") -> RuntimeLogStore.ROUTE_SMS_HOOK
             value.contains(".xp.hook.notification.") ||
                 value.contains(".core.hook.notification.") ||
-                value.contains(".xposed.hook.notification.") -> RuntimeLogStore.ROUTE_NMS_HOOK
+                value.contains(".xposed.hook.notification.") ||
+                value.contains(".xposed.capture.") ||
+                value.contains(".xp.notification.") -> RuntimeLogStore.ROUTE_NMS_HOOK
+            value.contains(".forward.capture.") -> RuntimeLogStore.ROUTE_FORWARD
             value.contains(".xp.hook.system.") ||
                 value.contains(".core.hook.system.") ||
                 value.contains(".xposed.hook.system.") -> RuntimeLogStore.ROUTE_SYSTEM_INPUT

@@ -28,7 +28,7 @@ import io.github.magisk317.relay.xpbridge.XpNotificationBridge
 import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xpbridge.XpRecordFacade
 import io.github.magisk317.relay.xpbridge.XpSmsRuntimeBridge
-import io.github.magisk317.smscode.xposed.hook.notification.NotificationManagerHook
+import io.github.magisk317.relay.xp.notification.RelayNotificationCaptureHook
 import io.github.magisk317.xposed.capability.permission.PermissionGranterHook
 import io.github.magisk317.xposed.capability.system.SystemInputInjectorHook
 import io.github.magisk317.xposed.HookEnv
@@ -59,7 +59,7 @@ class LibXposedEntry : BaseLibXposedEntry {
         ModuleUtilsHook(),
         PermissionGranterHook(),
         SystemInputInjectorHook(),
-        NotificationManagerHook(XinyiHookHostCapabilities),
+        RelayNotificationCaptureHook(XinyiHookHostCapabilities),
         SmsProviderHook(),
         RelayKeepAliveHook(),
     )
