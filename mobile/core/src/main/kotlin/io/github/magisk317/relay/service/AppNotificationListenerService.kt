@@ -5,7 +5,7 @@ import android.content.Context
 import android.os.PowerManager
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
-import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsStore
+import io.github.magisk317.xposed.runtime.state.RuntimeStateStore
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.mobile.core.BuildConfig
 import io.github.magisk317.relay.feature.reminder.SpecialAlertCoordinator
@@ -68,7 +68,7 @@ class AppNotificationListenerService : NotificationListenerService() {
             )
 
             runCatching {
-                ActivationDiagnosticsStore.recordNotifyEvent(
+                RuntimeStateStore.recordNotifyEvent(
                     context = applicationContext,
                     source = "nls",
                     packageName = payload.packageName.orEmpty(),

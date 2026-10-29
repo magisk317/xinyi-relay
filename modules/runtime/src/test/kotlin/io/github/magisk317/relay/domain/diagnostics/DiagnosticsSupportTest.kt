@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.domain.diagnostics
 
-import io.github.magisk317.smscode.runtime.contract.diagnostics.HookProcessStatus
+import io.github.magisk317.xposed.runtime.state.HookProcessStatus
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue

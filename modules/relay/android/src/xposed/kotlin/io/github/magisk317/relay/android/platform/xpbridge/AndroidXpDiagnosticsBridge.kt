@@ -7,7 +7,7 @@ import android.os.Bundle
 import android.util.Log
 import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
 import io.github.magisk317.xposed.logging.XLog
-import io.github.magisk317.smscode.runtime.contract.ipc.RuntimeStateProviderContract
+import io.github.magisk317.xposed.runtime.RuntimeStateProviderContract
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
 import io.github.magisk317.relay.contract.xpbridge.XpDiagnosticsRuntimeBridge
 

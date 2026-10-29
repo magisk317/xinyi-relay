@@ -3,8 +3,8 @@ package io.github.magisk317.relay.android.diagnostics
 import android.content.Context
 import io.github.magisk317.relay.android.BuildConfig
 import io.github.magisk317.relay.contract.constant.RelayPrefConst
-import io.github.magisk317.smscode.runtime.contract.diagnostics.ActivationDiagnosticsSnapshot
-import io.github.magisk317.smscode.runtime.contract.diagnostics.ActivationStatusInputs
+import io.github.magisk317.xposed.runtime.state.RuntimeDiagnosticsSnapshot
+import io.github.magisk317.xposed.runtime.state.RuntimeStatusInputs
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeDiagnosticsConfig
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeDiagnosticsInstaller
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
@@ -49,8 +49,8 @@ object RuntimeDiagnosticsBridge {
 
     private fun resolveActivationStatus(
         context: Context,
-        snapshot: ActivationDiagnosticsSnapshot,
-        inputs: ActivationStatusInputs,
+        snapshot: RuntimeDiagnosticsSnapshot,
+        inputs: RuntimeStatusInputs,
     ): Boolean {
         return inputs.runtimeConnected || inputs.hasHookHeartbeat
     }

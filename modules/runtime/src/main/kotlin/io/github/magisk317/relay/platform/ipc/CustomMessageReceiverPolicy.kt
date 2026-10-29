@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.platform.ipc
 
-import io.github.magisk317.smscode.runtime.contract.ipc.IpcTokenMatcher
+import io.github.magisk317.xposed.runtime.ipc.IpcTokenMatcher
 
 object CustomMessageReceiverPolicy {
     fun isTokenAccepted(receivedToken: String?, expectedToken: String): Boolean {

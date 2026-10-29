@@ -21,9 +21,9 @@ import io.github.magisk317.smscode.runtime.common.record.CodeRecordTrimPolicy
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.android.platform.ipc.ProviderCallerPolicy
 import io.github.magisk317.relay.contract.constant.RelayPrefConst
-import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsStore
+import io.github.magisk317.xposed.runtime.state.RuntimeStateStore
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
-import io.github.magisk317.smscode.runtime.contract.ipc.RuntimeStateProviderContract
+import io.github.magisk317.xposed.runtime.RuntimeStateProviderContract
 import io.github.magisk317.smscode.runtime.contract.record.SmsMsgCursorContract
 import io.github.magisk317.smscode.runtime.common.utils.SharedRuntimeGate
 import io.github.magisk317.smscode.runtime.common.utils.StorageUtils
@@ -493,7 +493,7 @@ class DBProvider : ContentProvider() {
         if (packageName.isBlank() || processName.isBlank() || source.isBlank()) return null
 
         val ok = runCatching {
-            ActivationDiagnosticsStore.recordHookHeartbeat(
+            RuntimeStateStore.recordHookHeartbeat(
                 context = ctx.applicationContext ?: ctx,
                 packageName = packageName,
                 processName = processName,
@@ -537,7 +537,7 @@ class DBProvider : ContentProvider() {
         if (packageName.isBlank()) return null
 
         val ok = runCatching {
-            ActivationDiagnosticsStore.recordCallNotificationSource(
+            RuntimeStateStore.recordCallNotificationSource(
                 context = ctx.applicationContext ?: ctx,
                 packageName = packageName,
                 channelId = channelId,
@@ -567,7 +567,7 @@ class DBProvider : ContentProvider() {
             ?.getString(RuntimeStateProviderContract.EXTRA_HOOK_DETAIL)
             .toRuntimeStateValue()
         val ok = runCatching {
-            ActivationDiagnosticsStore.recordHookInstall(
+            RuntimeStateStore.recordHookInstall(
                 context = ctx.applicationContext ?: ctx,
                 hook = hook,
                 status = status,
@@ -591,7 +591,7 @@ class DBProvider : ContentProvider() {
             .toRuntimeStateValue()
         if (packageName.isBlank()) return null
         val ok = runCatching {
-            ActivationDiagnosticsStore.recordNotifyEvent(
+            RuntimeStateStore.recordNotifyEvent(
                 context = ctx.applicationContext ?: ctx,
                 source = extras
                     ?.getString(RuntimeStateProviderContract.EXTRA_NOTIFY_SOURCE)

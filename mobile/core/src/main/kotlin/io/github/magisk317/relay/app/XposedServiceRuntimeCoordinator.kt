@@ -3,7 +3,7 @@ package io.github.magisk317.relay.app
 import android.app.Application
 import android.content.SharedPreferences
 import io.github.magisk317.relay.android.common.utils.RelayLogger
-import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsStore
+import io.github.magisk317.xposed.runtime.state.RuntimeStateStore
 import io.github.magisk317.relay.android.diagnostics.RuntimeActivationState
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
@@ -36,7 +36,7 @@ object XposedServiceRuntimeCoordinator {
         }
         val verboseLogEnabled = readVerboseLogMode(application)
         RuntimeActivationState.setRuntimeActivated(true)
-        ActivationDiagnosticsStore.recordServiceBind(
+        RuntimeStateStore.recordServiceBind(
             context = application,
             frameworkName = frameworkName ?: "unknown",
             frameworkVersion = frameworkVersion ?: "unknown",
@@ -65,7 +65,7 @@ object XposedServiceRuntimeCoordinator {
     fun handleServiceDied(application: Application): Boolean {
         AppPreferencesDataStore.setRemotePrefsProvider(null)
         RuntimeActivationState.setRuntimeActivated(false)
-        ActivationDiagnosticsStore.recordServiceDied(
+        RuntimeStateStore.recordServiceDied(
             context = application,
             verboseLogging = readVerboseLogMode(application),
         )

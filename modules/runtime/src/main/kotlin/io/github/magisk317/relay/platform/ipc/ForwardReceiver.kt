@@ -16,7 +16,7 @@ import io.github.magisk317.relay.android.sms.SmsCodeUtils
 import io.github.magisk317.smscode.rule.utils.RecentEventDeduplicator
 import io.github.magisk317.smscode.rule.utils.SmsForwardDedupKeyFactory
 import io.github.magisk317.smscode.rule.utils.SmsForwardDedupSpec
-import io.github.magisk317.smscode.runtime.contract.ipc.IpcTokenMatcher
+import io.github.magisk317.xposed.runtime.ipc.IpcTokenMatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

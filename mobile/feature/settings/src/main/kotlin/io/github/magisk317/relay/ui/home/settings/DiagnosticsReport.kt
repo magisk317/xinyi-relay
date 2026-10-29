@@ -18,10 +18,10 @@ import io.github.magisk317.relay.domain.diagnostics.ScopeRecommender
 import io.github.magisk317.relay.domain.diagnostics.XposedScopeAccessHolder
 import io.github.magisk317.relay.domain.diagnostics.XposedScopeState
 import io.github.magisk317.relay.mobile.core.R
-import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsStore
+import io.github.magisk317.xposed.runtime.state.RuntimeStateStore
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
-import io.github.magisk317.smscode.runtime.contract.diagnostics.HookInstallStatus
-import io.github.magisk317.smscode.runtime.contract.diagnostics.NotifyEventSnapshot
+import io.github.magisk317.xposed.runtime.state.HookInstallStatus
+import io.github.magisk317.xposed.runtime.state.NotifyEventSnapshot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -98,7 +98,7 @@ internal data class DiagnosticsReport(
 
 internal suspend fun loadDiagnosticsReport(context: Context): DiagnosticsReport = withContext(Dispatchers.IO) {
     val scope = XposedScopeAccessHolder.state.value
-    val snapshot = ActivationDiagnosticsStore.snapshot(context)
+    val snapshot = RuntimeStateStore.snapshot(context)
     val bootStartAtMs = (System.currentTimeMillis() - SystemClock.elapsedRealtime()).coerceAtLeast(0L)
     val packageInfo = runCatching {
         context.packageManager.getPackageInfo(context.packageName, 0)

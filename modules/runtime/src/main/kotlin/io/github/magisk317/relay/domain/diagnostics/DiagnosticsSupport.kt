@@ -5,8 +5,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.telecom.TelecomManager
 import io.github.magisk317.smscode.runtime.common.notification.CallNotificationMatcher
-import io.github.magisk317.smscode.runtime.contract.diagnostics.CallNotificationSourceSnapshot
-import io.github.magisk317.smscode.runtime.contract.diagnostics.HookProcessStatus
+import io.github.magisk317.xposed.runtime.state.CallNotificationSourceSnapshot
+import io.github.magisk317.xposed.runtime.state.HookProcessStatus
 
 /**
  * Finds the packages this ROM could use to publish call notifications. The result is

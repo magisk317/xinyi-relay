@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.feature.mode
 
 import android.content.Context
-import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsStore
+import io.github.magisk317.xposed.runtime.state.RuntimeStateStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -20,7 +20,7 @@ object XposedRuntimeState {
 
     /** Recomputes the activation state, publishes it, and returns the fresh value. */
     fun refresh(context: Context): Boolean {
-        val active = ActivationDiagnosticsStore.isModuleActivated(context)
+        val active = RuntimeStateStore.isModuleActivated(context)
         _xposedActive.value = active
         return active
     }
