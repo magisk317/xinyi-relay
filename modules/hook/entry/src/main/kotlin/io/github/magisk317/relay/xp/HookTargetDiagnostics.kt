@@ -166,7 +166,7 @@ internal object HookTargetDiagnostics {
         return runCatching { XpPrefs.isVerboseLogMode(pluginContext) }.getOrDefault(false)
     }
 
-    private fun resolveModuleContext(): Context? {
+    internal fun resolveModuleContext(): Context? {
         val baseContext = resolveAnyProcessContext() ?: return null
         val appContext = baseContext.applicationContext ?: baseContext
         if (appContext.packageName == BuildConfig.APPLICATION_ID) {

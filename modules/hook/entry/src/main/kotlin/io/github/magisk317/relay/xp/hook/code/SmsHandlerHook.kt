@@ -21,6 +21,7 @@ import io.github.magisk317.smscode.xposed.hook.telephony.InboundSmsHookClaim
 import io.github.magisk317.smscode.xposed.hook.telephony.InboundSmsHookInstaller
 import io.github.magisk317.smscode.xposed.hook.telephony.InboundSmsBlocker
 import io.github.magisk317.relay.xp.hook.PhoneHookTargetPackages
+import io.github.magisk317.relay.xp.hook.helper.XinyiHookHostCapabilities
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeSession
 import io.github.magisk317.xposed.logging.XLog
@@ -122,6 +123,27 @@ class SmsHandlerHook : BaseHook() {
             printDeviceInfo()
             try {
                 hookSmsHandler(lpparam)
+                val probe = HookTargetDiagnostics.probeInboundSmsClasses(lpparam.classLoader)
+                XinyiHookHostCapabilities.recordHookInstall(
+                    context = null,
+                    hook = "sms_handler",
+                    status = when {
+                        !probe.handlerClassFound -> "class_missing"
+                        !probe.handlerDispatchIntentFound -> "method_missing"
+                        else -> "installed"
+                    },
+                    packageName = lpparam.packageName,
+                    processName = lpparam.processName.ifBlank { lpparam.packageName },
+                    detail = buildString {
+                        append("handler=")
+                        append(probe.handlerClassFound)
+                        append(" dispatch=")
+                        append(probe.handlerDispatchIntentFound)
+                        append(" controller=")
+                        append(probe.dispatchersControllerClassFound)
+                    },
+                    verboseLogging = false,
+                )
                 emitHandler(
                     result = "ok",
                     reason = "installed",
@@ -129,6 +151,15 @@ class SmsHandlerHook : BaseHook() {
                 )
             } catch (e: Throwable) {
                 XLog.e(message = "Failed to hook SmsHandler", e)
+                XinyiHookHostCapabilities.recordHookInstall(
+                    context = null,
+                    hook = "sms_handler",
+                    status = "error",
+                    packageName = lpparam.packageName,
+                    processName = lpparam.processName.ifBlank { lpparam.packageName },
+                    detail = e.javaClass.simpleName,
+                    verboseLogging = false,
+                )
                 emitHandler(
                     result = "error",
                     reason = "install_failed",

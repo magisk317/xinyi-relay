@@ -16,6 +16,7 @@ import io.github.magisk317.relay.xp.hook.code.SmsHandlerHook
 import io.github.magisk317.relay.xp.hook.forward.SmsForwardHook
 import io.github.magisk317.relay.xp.hook.me.ModuleUtilsHook
 import io.github.magisk317.relay.xp.hook.mms.MmsMessagesHook
+import io.github.magisk317.relay.xp.hook.helper.XinyiHookHostCapabilities
 import io.github.magisk317.relay.xp.hook.keepalive.RelayKeepAliveHook
 import io.github.magisk317.relay.xp.hook.telephony.SmsProviderHook
 import io.github.magisk317.relay.xp.runtime.RuntimeBridgeFactory
@@ -58,7 +59,7 @@ class LibXposedEntry : BaseLibXposedEntry {
         ModuleUtilsHook(),
         PermissionGranterHook(),
         SystemInputInjectorHook(),
-        NotificationManagerHook(),
+        NotificationManagerHook(XinyiHookHostCapabilities),
         SmsProviderHook(),
         RelayKeepAliveHook(),
     )
@@ -115,7 +116,37 @@ class LibXposedEntry : BaseLibXposedEntry {
                 loadParam.processName,
             )
         }
+        reportHookProcessOnlineOnce(loadParam)
     }
+
+    /**
+     * Reports the process this module actually got injected into. The settings UI compares
+     * the report against the boot time, which is how a user learns that a module installed
+     * after boot still needs a reboot before the system-server hooks exist.
+     */
+    private fun reportHookProcessOnlineOnce(loadParam: LoadParam) {
+        if (!processOnlineReported.compareAndSet(false, true)) return
+        val context = HookTargetDiagnostics.resolveModuleContext() ?: return
+        val processName = loadParam.processName.ifBlank { loadParam.packageName }
+        runCatching {
+            XpHookDiagnostics.recordSmsHookHeartbeat(
+                context = context,
+                packageName = loadParam.packageName,
+                processName = processName,
+                source = "process_online",
+                verboseLogging = false,
+                moduleVersion = BuildConfig.MODULE_VERSION,
+            )
+        }.onFailure { error ->
+            XLog.w(
+                message = "LibXposedEntry process online heartbeat failed pkg=%s err=%s",
+                loadParam.packageName,
+                error.message ?: error.javaClass.simpleName,
+            )
+        }
+    }
+
+    private val processOnlineReported = java.util.concurrent.atomic.AtomicBoolean(false)
 
     private fun isCriticalHookTarget(packageName: String): Boolean {
         return packageName == "android" ||

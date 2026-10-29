@@ -46,6 +46,7 @@ object AndroidXpDiagnosticsBridge : XpDiagnosticsRuntimeBridge {
         processName: String,
         source: String,
         verboseLogging: Boolean,
+        moduleVersion: Int,
     ) {
         val extras = Bundle().apply {
             putString(RuntimeStateProviderContract.EXTRA_PACKAGE_NAME, packageName)
@@ -53,6 +54,7 @@ object AndroidXpDiagnosticsBridge : XpDiagnosticsRuntimeBridge {
             putString(RuntimeStateProviderContract.EXTRA_SOURCE, source)
             putBoolean(RuntimeStateProviderContract.EXTRA_VERBOSE_LOGGING, verboseLogging)
             putString(RuntimeStateProviderContract.EXTRA_ROUTE, RuntimeLogStore.ROUTE_SMS_HOOK)
+            putInt(RuntimeStateProviderContract.EXTRA_MODULE_VERSION, moduleVersion)
         }
         val acknowledged = runCatching {
             context.contentResolver.call(
@@ -70,6 +72,99 @@ object AndroidXpDiagnosticsBridge : XpDiagnosticsRuntimeBridge {
         }.getOrDefault(false)
         if (!acknowledged) {
             XLog.w(message = "Hook heartbeat provider call was not acknowledged: source=%s", source)
+        }
+    }
+
+    override fun recordHookInstall(
+        context: Context,
+        hook: String,
+        status: String,
+        packageName: String,
+        processName: String,
+        detail: String,
+        verboseLogging: Boolean,
+    ) {
+        val extras = Bundle().apply {
+            putString(RuntimeStateProviderContract.EXTRA_HOOK, hook)
+            putString(RuntimeStateProviderContract.EXTRA_HOOK_STATUS, status)
+            putString(RuntimeStateProviderContract.EXTRA_HOOK_DETAIL, detail)
+            putString(RuntimeStateProviderContract.EXTRA_PACKAGE_NAME, packageName)
+            putString(RuntimeStateProviderContract.EXTRA_PROCESS_NAME, processName)
+        }
+        runCatching {
+            context.contentResolver.call(
+                Uri.parse("content://${context.packageName}.db.provider"),
+                RuntimeStateProviderContract.METHOD_RECORD_HOOK_INSTALL,
+                null,
+                extras,
+            )?.getBoolean(RuntimeStateProviderContract.RESULT_OK, false) == true
+        }.onFailure { error ->
+            XLog.w(
+                message = "Hook install provider call failed: hook=%s err=%s",
+                hook,
+                error.message ?: error.javaClass.simpleName,
+            )
+        }
+    }
+
+    override fun recordNotifyEvent(
+        context: Context,
+        source: String,
+        packageName: String,
+        channelId: String,
+        msgType: String,
+        skipReason: String,
+        verboseLogging: Boolean,
+    ) {
+        val extras = Bundle().apply {
+            putString(RuntimeStateProviderContract.EXTRA_NOTIFY_SOURCE, source)
+            putString(RuntimeStateProviderContract.EXTRA_PACKAGE_NAME, packageName)
+            putString(RuntimeStateProviderContract.EXTRA_CHANNEL_ID, channelId)
+            putString(RuntimeStateProviderContract.EXTRA_MSG_TYPE, msgType)
+            putString(RuntimeStateProviderContract.EXTRA_SKIP_REASON, skipReason)
+        }
+        runCatching {
+            context.contentResolver.call(
+                Uri.parse("content://${context.packageName}.db.provider"),
+                RuntimeStateProviderContract.METHOD_RECORD_NOTIFY_EVENT,
+                null,
+                extras,
+            )?.getBoolean(RuntimeStateProviderContract.RESULT_OK, false) == true
+        }.onFailure { error ->
+            XLog.w(
+                message = "Notify event provider call failed: pkg=%s err=%s",
+                packageName,
+                error.message ?: error.javaClass.simpleName,
+            )
+        }
+    }
+
+    override fun recordCallNotificationSource(
+        context: Context,
+        packageName: String,
+        channelId: String,
+        category: String,
+        verboseLogging: Boolean,
+    ) {
+        val extras = Bundle().apply {
+            putString(RuntimeStateProviderContract.EXTRA_PACKAGE_NAME, packageName)
+            putString(RuntimeStateProviderContract.EXTRA_CHANNEL_ID, channelId)
+            putString(RuntimeStateProviderContract.EXTRA_CATEGORY, category)
+            putBoolean(RuntimeStateProviderContract.EXTRA_VERBOSE_LOGGING, verboseLogging)
+        }
+        runCatching {
+            context.contentResolver.call(
+                Uri.parse("content://${context.packageName}.db.provider"),
+                RuntimeStateProviderContract.METHOD_RECORD_CALL_NOTIFICATION_SOURCE,
+                null,
+                extras,
+            )?.getBoolean(RuntimeStateProviderContract.RESULT_OK, false) == true
+        }.onFailure { error ->
+            XLog.w(
+                message = "Call notify source provider call failed: pkg=%s err=%s",
+                packageName,
+                error.message ?: error.javaClass.simpleName,
+            )
         }
     }
 }

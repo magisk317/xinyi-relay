@@ -63,6 +63,10 @@ class DBProvider : ContentProvider() {
         return when (method) {
             RuntimeStateProviderContract.METHOD_CLAIM_RUNTIME_GATE -> claimRuntimeGate(ctx, arg, extras)
             RuntimeStateProviderContract.METHOD_RECORD_HOOK_HEARTBEAT -> recordHookHeartbeat(ctx, extras)
+            RuntimeStateProviderContract.METHOD_RECORD_CALL_NOTIFICATION_SOURCE ->
+                recordCallNotificationSource(ctx, extras)
+            RuntimeStateProviderContract.METHOD_RECORD_HOOK_INSTALL -> recordHookInstall(ctx, extras)
+            RuntimeStateProviderContract.METHOD_RECORD_NOTIFY_EVENT -> recordNotifyEvent(ctx, extras)
             RuntimeStateProviderContract.METHOD_GET_RETENTION_DAYS -> getRetentionDays(ctx)
             else -> super.call(method, arg, extras)
         }
@@ -489,6 +493,9 @@ class DBProvider : ContentProvider() {
                     ?.toRuntimeStateValue()
                     ?.takeIf(String::isNotBlank)
                     ?: RuntimeLogStore.ROUTE_SMS_HOOK,
+                moduleVersion = extras
+                    ?.getInt(RuntimeStateProviderContract.EXTRA_MODULE_VERSION, 0)
+                    ?: 0,
             )
         }.onFailure { error ->
             XLog.w(
@@ -500,8 +507,104 @@ class DBProvider : ContentProvider() {
         return Bundle().apply { putBoolean(RuntimeStateProviderContract.RESULT_OK, ok) }
     }
 
-    private fun String.toRuntimeStateValue(): String =
-        replace('\n', ' ').replace('\r', ' ').take(MAX_RUNTIME_STATE_VALUE_LENGTH)
+    private fun recordCallNotificationSource(ctx: Context, extras: Bundle?): Bundle? {
+        val packageName = extras
+            ?.getString(RuntimeStateProviderContract.EXTRA_PACKAGE_NAME)
+            ?.toRuntimeStateValue()
+            .orEmpty()
+        val channelId = extras
+            ?.getString(RuntimeStateProviderContract.EXTRA_CHANNEL_ID)
+            ?.toRuntimeStateValue()
+            .orEmpty()
+        val category = extras
+            ?.getString(RuntimeStateProviderContract.EXTRA_CATEGORY)
+            ?.toRuntimeStateValue()
+            .orEmpty()
+        if (packageName.isBlank()) return null
+
+        val ok = runCatching {
+            ActivationDiagnosticsStore.recordCallNotificationSource(
+                context = ctx.applicationContext ?: ctx,
+                packageName = packageName,
+                channelId = channelId,
+                category = category,
+            )
+        }.onFailure { error ->
+            XLog.w(
+                message = "DBProvider: call notify source failed pkg=%s err=%s",
+                packageName,
+                error.message ?: error.javaClass.simpleName,
+            )
+        }.isSuccess
+        return Bundle().apply { putBoolean(RuntimeStateProviderContract.RESULT_OK, ok) }
+    }
+
+    private fun recordHookInstall(ctx: Context, extras: Bundle?): Bundle? {
+        val hook = extras?.getString(RuntimeStateProviderContract.EXTRA_HOOK).toRuntimeStateValue()
+        val status = extras?.getString(RuntimeStateProviderContract.EXTRA_HOOK_STATUS).toRuntimeStateValue()
+        if (hook.isBlank() || status.isBlank()) return null
+        val packageName = extras
+            ?.getString(RuntimeStateProviderContract.EXTRA_PACKAGE_NAME)
+            .toRuntimeStateValue()
+        val processName = extras
+            ?.getString(RuntimeStateProviderContract.EXTRA_PROCESS_NAME)
+            .toRuntimeStateValue()
+        val detail = extras
+            ?.getString(RuntimeStateProviderContract.EXTRA_HOOK_DETAIL)
+            .toRuntimeStateValue()
+        val ok = runCatching {
+            ActivationDiagnosticsStore.recordHookInstall(
+                context = ctx.applicationContext ?: ctx,
+                hook = hook,
+                status = status,
+                packageName = packageName,
+                processName = processName,
+                detail = detail,
+            )
+        }.onFailure { error ->
+            XLog.w(
+                message = "DBProvider: hook install report failed hook=%s err=%s",
+                hook,
+                error.message ?: error.javaClass.simpleName,
+            )
+        }.isSuccess
+        return Bundle().apply { putBoolean(RuntimeStateProviderContract.RESULT_OK, ok) }
+    }
+
+    private fun recordNotifyEvent(ctx: Context, extras: Bundle?): Bundle? {
+        val packageName = extras
+            ?.getString(RuntimeStateProviderContract.EXTRA_PACKAGE_NAME)
+            .toRuntimeStateValue()
+        if (packageName.isBlank()) return null
+        val ok = runCatching {
+            ActivationDiagnosticsStore.recordNotifyEvent(
+                context = ctx.applicationContext ?: ctx,
+                source = extras
+                    ?.getString(RuntimeStateProviderContract.EXTRA_NOTIFY_SOURCE)
+                    .toRuntimeStateValue(),
+                packageName = packageName,
+                channelId = extras
+                    ?.getString(RuntimeStateProviderContract.EXTRA_CHANNEL_ID)
+                    .toRuntimeStateValue(),
+                msgType = extras
+                    ?.getString(RuntimeStateProviderContract.EXTRA_MSG_TYPE)
+                    .toRuntimeStateValue(),
+                skipReason = extras
+                    ?.getString(RuntimeStateProviderContract.EXTRA_SKIP_REASON)
+                    .toRuntimeStateValue(),
+            )
+        }.onFailure { error ->
+            XLog.w(
+                message = "DBProvider: notify event report failed pkg=%s err=%s",
+                packageName,
+                error.message ?: error.javaClass.simpleName,
+            )
+        }.isSuccess
+        return Bundle().apply { putBoolean(RuntimeStateProviderContract.RESULT_OK, ok) }
+    }
+
+    private fun String?.toRuntimeStateValue(): String =
+        this.orEmpty().replace('\n', ' ').replace('\r', ' ').take(MAX_RUNTIME_STATE_VALUE_LENGTH)
 
     private fun updateSmsMsgByUriId(uri: Uri, values: ContentValues?): Int {
         val id = uri.lastPathSegment?.toLongOrNull() ?: return 0
