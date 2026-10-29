@@ -9,6 +9,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -80,6 +81,15 @@ private fun MobileEntitlementRoot(onBack: () -> Unit) {
                 evaluation = it
             }.onFailure { message = it.message ?: it.javaClass.simpleName }
             busyAction = null
+        }
+    }
+
+    // A cold process has no in-memory evaluation (readCachedEvaluation() is a TTL cache), while
+    // the overview tab refreshes on its own. Without this load the two screens contradict each
+    // other: 概览 reports 服务鉴权：已通过 and this page claims 激活状态：未加载 / 功能状态：已暂停.
+    LaunchedEffect(Unit) {
+        if (evaluation == null) {
+            refreshStatus()
         }
     }
 
