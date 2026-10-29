@@ -9,7 +9,7 @@ import android.os.SystemClock
 import android.provider.Settings
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import io.github.magisk317.forward.contract.constant.RelayPrefConst
+import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.relay.domain.diagnostics.CallNotificationSourceDetector
 import io.github.magisk317.relay.domain.diagnostics.DiagnosticsMetricsReader
 import io.github.magisk317.relay.domain.diagnostics.HookProcessMatrix

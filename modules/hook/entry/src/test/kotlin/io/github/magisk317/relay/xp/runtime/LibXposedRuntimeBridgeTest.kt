@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.xp.runtime
 
 import android.content.SharedPreferences
-import io.github.magisk317.forward.contract.constant.RelayPrefConst
+import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.smscode.runtime.contract.prefs.PrefRead
 import io.mockk.every
 import io.mockk.mockk

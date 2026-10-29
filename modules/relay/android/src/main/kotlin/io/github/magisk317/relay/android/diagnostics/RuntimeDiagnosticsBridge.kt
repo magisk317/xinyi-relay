@@ -2,7 +2,7 @@ package io.github.magisk317.relay.android.diagnostics
 
 import android.content.Context
 import io.github.magisk317.relay.android.BuildConfig
-import io.github.magisk317.forward.contract.constant.RelayPrefConst
+import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.xposed.runtime.state.RuntimeDiagnosticsSnapshot
 import io.github.magisk317.xposed.runtime.state.RuntimeStatusInputs
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeDiagnosticsConfig

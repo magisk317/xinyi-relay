@@ -5,7 +5,7 @@ import android.content.Context
 import android.os.Build
 import io.github.magisk317.relay.android.BuildConfig
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
-import io.github.magisk317.forward.contract.constant.RelayPrefConst
+import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.xposed.logging.AnonymousInstallationId
 import io.github.magisk317.xposed.logging.MagiskOtel
 import kotlinx.coroutines.Dispatchers

@@ -2,7 +2,7 @@ package io.github.magisk317.relay.data.repository
 
 import android.content.Context
 import io.github.magisk317.relay.bootstrap.RuntimeDependencies
-import io.github.magisk317.forward.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.common.utils.CallSessionTracker
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.AppDatabase

@@ -8,7 +8,7 @@ import android.util.Log
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
-import io.github.magisk317.forward.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.domain.recovery.RootDbCatchupScheduler
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.forward.security.IpcTokenGate

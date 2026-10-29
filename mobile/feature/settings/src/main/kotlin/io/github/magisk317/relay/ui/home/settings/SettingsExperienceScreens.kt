@@ -39,7 +39,7 @@ import androidx.compose.ui.unit.dp
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
-import io.github.magisk317.forward.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore

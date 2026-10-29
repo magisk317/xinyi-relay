@@ -6,7 +6,7 @@ import android.content.Intent
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.analytics.AnalyticsTracker
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
-import io.github.magisk317.forward.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.smscode.runtime.common.autoinput.AutoInputResultProcessor
 import kotlinx.coroutines.CoroutineScope

@@ -3,7 +3,7 @@ package io.github.magisk317.relay.data.repository
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.smscode.runtime.contract.prefs.PrefRead
 import io.github.magisk317.relay.android.data.datasource.PreferenceWriteScope
-import io.github.magisk317.forward.contract.constant.RelayPrefConst
+import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.forward.contract.json.RelayJson
 import io.github.magisk317.relay.contract.model.LocalConfigMirror
 import io.github.magisk317.relay.contract.model.LocalConfigRevision

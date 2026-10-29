@@ -20,7 +20,7 @@ import io.github.magisk317.smscode.runtime.common.record.CodeRecordChannel
 import io.github.magisk317.smscode.runtime.common.record.CodeRecordTrimPolicy
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.android.platform.ipc.ProviderCallerPolicy
-import io.github.magisk317.forward.contract.constant.RelayPrefConst
+import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.xposed.runtime.state.RuntimeStateStore
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
 import io.github.magisk317.xposed.runtime.RuntimeStateProviderContract

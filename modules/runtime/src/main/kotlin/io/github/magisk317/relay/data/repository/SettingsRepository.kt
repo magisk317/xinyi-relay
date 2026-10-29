@@ -3,7 +3,7 @@ package io.github.magisk317.relay.data.repository
 import android.content.Context
 import io.github.magisk317.forward.contract.constant.DispatchStrategy
 import io.github.magisk317.forward.contract.constant.MessageType
-import io.github.magisk317.forward.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.settings.*
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.otel.MagiskOtelBootstrap

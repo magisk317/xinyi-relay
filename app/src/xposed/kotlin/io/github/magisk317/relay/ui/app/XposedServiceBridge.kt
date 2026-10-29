@@ -7,7 +7,7 @@ import io.github.libxposed.service.XposedServiceHelper
 import io.github.magisk317.relay.android.platform.ipc.ProviderCallerPolicy
 import io.github.magisk317.relay.app.InfrastructureInitializer
 import io.github.magisk317.relay.app.XposedServiceRuntimeCoordinator
-import io.github.magisk317.forward.contract.constant.RelayPrefConst
+import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.relay.domain.diagnostics.ScopeRequestOutcome
 import io.github.magisk317.relay.domain.diagnostics.XposedScopeAccess
 import io.github.magisk317.relay.domain.diagnostics.XposedScopeAccessHolder

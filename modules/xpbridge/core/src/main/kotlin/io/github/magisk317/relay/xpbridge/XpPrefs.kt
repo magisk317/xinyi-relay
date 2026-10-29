@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.xpbridge
 
 import android.content.Context
-import io.github.magisk317.forward.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.prefs.NoopXpRuntimeBridge as NoopRuntimeXpRuntimeBridge
 import io.github.magisk317.relay.contract.xpbridge.NoopXpPrefsRuntimeBridge
 import io.github.magisk317.relay.contract.xpbridge.XpPrefsRuntimeBridge

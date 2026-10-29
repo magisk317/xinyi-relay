@@ -8,7 +8,7 @@ import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.smscode.db.entity.AppInfo
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toEntity
-import io.github.magisk317.forward.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.forward.contract.json.RelayJson
 import io.github.magisk317.relay.contract.model.LocalConfigMirrorPayload
 import io.github.magisk317.relay.contract.model.LocalConfigMirror

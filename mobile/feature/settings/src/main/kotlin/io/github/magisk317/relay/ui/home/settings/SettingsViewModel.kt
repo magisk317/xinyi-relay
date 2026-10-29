@@ -9,7 +9,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.magisk317.relay.mobilefeature.settings.BuildConfig
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
-import io.github.magisk317.forward.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.constant.PrefRestoreTypeRegistry
 import io.github.magisk317.relay.contract.constant.PrefValueType
 import io.github.magisk317.smscode.runtime.common.utils.StorageUtils
@@ -662,8 +662,8 @@ class SettingsViewModel(
     private suspend fun restorePreferences(context: Context, prefsMap: Map<String, String?>) {
         if (prefsMap.isEmpty()) return
         for ((k, v) in prefsMap) {
-            if (k == io.github.magisk317.forward.contract.constant.RelayPrefConst.KEY_MOBILE_ENTITLEMENT_TOKEN ||
-                k == io.github.magisk317.forward.contract.constant.RelayPrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED
+            if (k == io.github.magisk317.relay.contract.constant.RelayPrefConst.KEY_MOBILE_ENTITLEMENT_TOKEN ||
+                k == io.github.magisk317.relay.contract.constant.RelayPrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED
             ) {
                 XLog.w("Restore preference skipped: entitlement state is runtime-derived")
                 continue

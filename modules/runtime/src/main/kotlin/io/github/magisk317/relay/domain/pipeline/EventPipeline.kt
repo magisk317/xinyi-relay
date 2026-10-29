@@ -2,7 +2,7 @@ package io.github.magisk317.relay.domain.pipeline
 
 import io.github.magisk317.forward.contract.constant.MessageType
 import io.github.magisk317.relay.android.platform.icon.AppIconEncoder
-import io.github.magisk317.forward.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource

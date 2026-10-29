@@ -6,7 +6,7 @@ import io.github.magisk317.smscode.db.entity.SmsCodeRule
 import io.github.magisk317.relay.android.data.store.EntityStoreManager
 import io.github.magisk317.relay.android.data.store.EntityType
 import io.github.magisk317.relay.android.prefs.PrefsReader
-import io.github.magisk317.forward.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.smscode.rule.model.SmsCodeParseResult
 import io.github.magisk317.smscode.rule.model.SmsCodeParseSource
 import io.github.magisk317.smscode.rule.model.SmsCodeRuleSpec

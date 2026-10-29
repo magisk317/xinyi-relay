@@ -14,7 +14,7 @@ import io.github.magisk317.uikit.update.AppUpdateChecker
 import io.github.magisk317.uikit.update.AppUpdateController
 import io.github.magisk317.uikit.update.AppUpdateDownloader
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
-import io.github.magisk317.forward.contract.constant.RelayPrefConst
+import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.smscode.runtime.contract.prefs.PrefRead
 import io.github.magisk317.uikit.update.AppUpdateSourceSpec
 import io.github.magisk317.uikit.update.AppUpdateSources
