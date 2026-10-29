@@ -55,6 +55,12 @@ interface SmsMsgDao {
     @Query("SELECT * FROM sms_msg ORDER BY date DESC")
     suspend fun getAll(): List<SmsMsg>
 
+    @Query("SELECT * FROM sms_msg ORDER BY date DESC LIMIT 1")
+    suspend fun getLatest(): SmsMsg?
+
+    @Query("SELECT COUNT(*) FROM sms_msg")
+    suspend fun countAll(): Long
+
     @Query("SELECT * FROM sms_msg WHERE id = :id LIMIT 1")
     suspend fun getById(id: Long): SmsMsg?
 
@@ -239,6 +245,9 @@ interface SenderDispatchLogDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(log: SenderDispatchLog): Long
 
+    @Query("SELECT * FROM sender_dispatch_log ORDER BY created_at DESC LIMIT 1")
+    suspend fun getLatest(): SenderDispatchLog?
+
     @Query("SELECT COUNT(*) FROM sender_dispatch_log WHERE created_at >= :fromMs")
     suspend fun countTotalFrom(fromMs: Long): Long
 
@@ -264,6 +273,9 @@ interface SenderDispatchLogDao {
 interface AutoInputEventDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(event: AutoInputEvent): Long
+
+    @Query("SELECT * FROM auto_input_event ORDER BY attempt_at DESC LIMIT 1")
+    suspend fun getLatest(): AutoInputEvent?
 
     @Query("UPDATE auto_input_event SET success = :success, fail_reason = :reason WHERE id = :id")
     suspend fun updateResult(id: Long, success: Boolean, reason: String?): Int
