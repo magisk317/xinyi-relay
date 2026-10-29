@@ -76,6 +76,7 @@ android {
 
 dependencies {
     implementation(libs.mobile.entitlement.android)
+    implementation(project(":magisk-forward-core:db"))
     implementation(project(":magisk-xposed-kit:logging"))
     implementation(project(":magisk-forward-core:runtime"))
     implementation(project(":magisk-xposed-kit:runtime"))

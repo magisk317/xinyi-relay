@@ -245,6 +245,9 @@ interface SenderDispatchLogDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(log: SenderDispatchLog): Long
 
+    @Query("SELECT * FROM sender_dispatch_log ORDER BY created_at")
+    suspend fun getAllForImport(): List<SenderDispatchLog>
+
     @Query("SELECT * FROM sender_dispatch_log ORDER BY created_at DESC LIMIT 1")
     suspend fun getLatest(): SenderDispatchLog?
 
