@@ -3,8 +3,8 @@
 package io.github.magisk317.relay.ui.sender
 
 import android.content.Context
-import io.github.magisk317.relay.contract.constant.DispatchStrategy
-import io.github.magisk317.relay.contract.constant.MessageType
+import io.github.magisk317.forward.contract.constant.DispatchStrategy
+import io.github.magisk317.forward.contract.constant.MessageType
 import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.forward.engine.model.MsgInfo
 import io.github.magisk317.forward.engine.model.Sender

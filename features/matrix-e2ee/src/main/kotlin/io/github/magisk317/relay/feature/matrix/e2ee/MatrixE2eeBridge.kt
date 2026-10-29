@@ -4,9 +4,9 @@ import android.content.Context
 import io.github.magisk317.relay.matrix.e2ee.MatrixE2eePlatform
 import io.github.magisk317.relay.matrix.e2ee.MatrixE2eeRuntime
 import io.github.magisk317.relay.matrix.e2ee.MatrixE2eeVerificationRuntime
-import io.github.magisk317.relay.sender.MatrixE2eeSenderProvider
-import io.github.magisk317.relay.sender.MatrixE2eeVerificationProvider
-import io.github.magisk317.relay.sender.SLog
+import io.github.magisk317.forward.sender.MatrixE2eeSenderProvider
+import io.github.magisk317.forward.sender.MatrixE2eeVerificationProvider
+import io.github.magisk317.forward.sender.SLog
 
 object MatrixE2eeBridge {
     private const val TAG = "MatrixE2eeBridge"

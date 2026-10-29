@@ -2,7 +2,7 @@ package io.github.magisk317.relay.android.platform.xpbridge
 
 import android.content.Context
 import io.github.magisk317.relay.android.prefs.PrefsReader
-import io.github.magisk317.relay.contract.constant.MessageType
+import io.github.magisk317.forward.contract.constant.MessageType
 import io.github.magisk317.relay.contract.prefs.XpRuntimeBridge
 import io.github.magisk317.relay.contract.xpbridge.XpMessageType
 import io.github.magisk317.relay.contract.xpbridge.XpPrefsRuntimeBridge

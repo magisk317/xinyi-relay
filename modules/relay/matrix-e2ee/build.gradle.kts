@@ -14,8 +14,8 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation(project(":relay:sender:api"))
-            implementation(project(":relay:net"))
+            implementation(project(":magisk-forward-core:sender:api"))
+            implementation(project(":magisk-forward-core:net"))
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.kotlinx.datetime)

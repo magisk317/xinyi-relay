@@ -1,7 +1,7 @@
 package io.github.magisk317.forward.engine.service
 
-import io.github.magisk317.relay.contract.constant.MessageType
-import io.github.magisk317.relay.contract.model.ForwardCommonConfig
+import io.github.magisk317.forward.contract.constant.MessageType
+import io.github.magisk317.forward.contract.model.ForwardCommonConfig
 import io.github.magisk317.forward.engine.event.RelayEvent
 import io.github.magisk317.forward.engine.model.BatterySnapshot
 import io.github.magisk317.forward.engine.model.NetworkSnapshot

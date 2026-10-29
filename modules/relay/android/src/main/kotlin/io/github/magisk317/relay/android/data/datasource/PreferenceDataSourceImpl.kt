@@ -2,7 +2,7 @@ package io.github.magisk317.relay.android.data.datasource
 
 import android.content.Context
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
-import io.github.magisk317.relay.contract.constant.RelayPrefConst
+import io.github.magisk317.forward.contract.constant.RelayPrefConst
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceChangeSet
 import io.github.magisk317.smscode.runtime.contract.prefs.PrefRead

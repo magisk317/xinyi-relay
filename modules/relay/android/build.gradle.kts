@@ -85,8 +85,8 @@ dependencies {
         add("${flavor}Implementation", project(":magisk-xposed-kit"))
     }
     implementation(project(":relay:contract"))
-    implementation(project(":relay:engine:api"))
-    implementation(project(":relay:sender"))
+    implementation(project(":magisk-forward-core:engine:api"))
+    implementation(project(":magisk-forward-core:sender"))
     implementation(project(":smscode-core:domain"))
     implementation(project(":smscode-core:verification"))
     implementation(project(":smscode-core:db"))

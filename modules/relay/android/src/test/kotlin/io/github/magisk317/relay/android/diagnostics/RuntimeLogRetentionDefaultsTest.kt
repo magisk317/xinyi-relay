@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.android.diagnostics
 
-import io.github.magisk317.relay.contract.constant.RelayPrefConst
+import io.github.magisk317.forward.contract.constant.RelayPrefConst
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeDiagnosticsEnvironment
 import io.github.magisk317.xposed.logging.MagiskLogPolicy
 import org.junit.jupiter.api.Assertions.assertEquals

@@ -4,7 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.magisk317.forward.engine.model.ForwardFilterRule
-import io.github.magisk317.relay.contract.model.ForwardCommonConfig
+import io.github.magisk317.forward.contract.model.ForwardCommonConfig
 import io.github.magisk317.forward.engine.model.Sender
 import io.github.magisk317.smscode.db.entity.NotifyRouteRule
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain

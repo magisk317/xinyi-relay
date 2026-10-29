@@ -1,14 +1,14 @@
 package io.github.magisk317.relay.matrix.e2ee
 
 import android.content.Context
-import io.github.magisk317.relay.sender.MatrixE2eeCancelInfo
-import io.github.magisk317.relay.sender.MatrixE2eeVerification
-import io.github.magisk317.relay.sender.MatrixE2eeVerificationEmoji
-import io.github.magisk317.relay.sender.MatrixE2eeVerificationState
-import io.github.magisk317.relay.sender.MatrixE2eeVerificationStatus
-import io.github.magisk317.relay.sender.SenderSettingSanitizer
+import io.github.magisk317.forward.sender.MatrixE2eeCancelInfo
+import io.github.magisk317.forward.sender.MatrixE2eeVerification
+import io.github.magisk317.forward.sender.MatrixE2eeVerificationEmoji
+import io.github.magisk317.forward.sender.MatrixE2eeVerificationState
+import io.github.magisk317.forward.sender.MatrixE2eeVerificationStatus
+import io.github.magisk317.forward.sender.SenderSettingSanitizer
 import java.util.concurrent.atomic.AtomicBoolean
-import io.github.magisk317.relay.sender.config.MatrixSetting
+import io.github.magisk317.forward.sender.config.MatrixSetting
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job

@@ -7,12 +7,13 @@ import io.github.libxposed.service.XposedServiceHelper
 import io.github.magisk317.relay.android.platform.ipc.ProviderCallerPolicy
 import io.github.magisk317.relay.app.InfrastructureInitializer
 import io.github.magisk317.relay.app.XposedServiceRuntimeCoordinator
-import io.github.magisk317.relay.contract.constant.RelayPrefConst
+import io.github.magisk317.forward.contract.constant.RelayPrefConst
 import io.github.magisk317.relay.domain.diagnostics.ScopeRequestOutcome
 import io.github.magisk317.relay.domain.diagnostics.XposedScopeAccess
 import io.github.magisk317.relay.domain.diagnostics.XposedScopeAccessHolder
 import io.github.magisk317.relay.domain.diagnostics.XposedScopeState
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
+import io.github.magisk317.xposed.logging.XLog
 import java.util.concurrent.Executor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -131,6 +132,8 @@ internal object XposedServiceBridge {
                     RelayPrefConst.KEY_XPOSED_SCOPE_CACHE,
                     packages.joinToString(","),
                 )
+            }.onFailure { error ->
+                XLog.w(message = "failed to cache the live Xposed scope: ${error.message}", error)
             }
         }
         XposedScopeAccessHolder.update(

@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.android.platform.notification
 
 import android.content.Context
-import io.github.magisk317.relay.contract.notification.RelayNotificationPlatformBridge
+import io.github.magisk317.forward.contract.notification.RelayNotificationPlatformBridge
 import io.github.magisk317.smscode.runtime.common.notification.AndroidNotificationPlatformBridge as SharedAndroidNotificationPlatformBridge
 import io.github.magisk317.smscode.runtime.contract.notification.NotificationDeliveryDiagnostics
 

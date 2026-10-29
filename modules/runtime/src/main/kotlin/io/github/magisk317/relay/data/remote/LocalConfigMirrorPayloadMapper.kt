@@ -15,9 +15,9 @@ import io.github.magisk317.forward.engine.model.Sender
 import io.github.magisk317.forward.engine.sender.SenderActiveSchedule as ForwardSenderActiveSchedule
 import io.github.magisk317.forward.engine.sender.SenderActiveScheduleRange as ForwardSenderActiveScheduleRange
 import io.github.magisk317.forward.engine.sender.SenderActiveScheduleRule as ForwardSenderActiveScheduleRule
-import io.github.magisk317.relay.contract.model.SenderActiveSchedule as LegacySenderActiveSchedule
-import io.github.magisk317.relay.contract.model.SenderActiveScheduleRange as LegacySenderActiveScheduleRange
-import io.github.magisk317.relay.contract.model.SenderActiveScheduleRule as LegacySenderActiveScheduleRule
+import io.github.magisk317.forward.contract.model.SenderActiveSchedule as LegacySenderActiveSchedule
+import io.github.magisk317.forward.contract.model.SenderActiveScheduleRange as LegacySenderActiveScheduleRange
+import io.github.magisk317.forward.contract.model.SenderActiveScheduleRule as LegacySenderActiveScheduleRule
 import java.util.Date
 
 internal fun Sender.toSnapshot(): SnapshotSender = SnapshotSender(

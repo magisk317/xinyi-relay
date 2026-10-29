@@ -1,4 +1,6 @@
 package io.github.magisk317.relay.contract.model
+import io.github.magisk317.forward.contract.model.ForwardCommonConfig
+import io.github.magisk317.forward.contract.model.SenderActiveSchedule
 
 import io.github.magisk317.relay.contract.settings.AdvancedSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.DiagnosticsSettingsSnapshot

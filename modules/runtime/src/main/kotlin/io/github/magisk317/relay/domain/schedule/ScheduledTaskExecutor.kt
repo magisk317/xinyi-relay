@@ -4,7 +4,7 @@ import android.content.Context
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
-import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.forward.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.forward.engine.model.MsgInfo
 import io.github.magisk317.forward.engine.model.ScheduledTask
 import io.github.magisk317.forward.engine.service.SenderRuntimeServiceRegistry

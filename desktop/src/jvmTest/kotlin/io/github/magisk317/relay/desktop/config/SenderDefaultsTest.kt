@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.desktop.config
 
-import io.github.magisk317.relay.contract.model.SenderActiveScheduleRule
+import io.github.magisk317.forward.contract.model.SenderActiveScheduleRule
 import io.github.magisk317.relay.contract.model.SnapshotSender
 import io.github.magisk317.relay.desktop.i18n.DesktopLocale
 import io.github.magisk317.forward.sender.SenderSettingSchemas
@@ -165,13 +165,13 @@ class SenderDefaultsTest {
 
         val withBadRange = normalizeSnapshotSender(
             sender(id = 3).copy(
-                activeSchedule = io.github.magisk317.relay.contract.model.SenderActiveSchedule(
-                    sms = io.github.magisk317.relay.contract.model.SenderActiveScheduleRule(
+                activeSchedule = io.github.magisk317.forward.contract.model.SenderActiveSchedule(
+                    sms = io.github.magisk317.forward.contract.model.SenderActiveScheduleRule(
                         enabled = true,
                         weekdays = listOf(9, 2),
                         ranges = listOf(
-                            io.github.magisk317.relay.contract.model.SenderActiveScheduleRange("25:00", "18:00"),
-                            io.github.magisk317.relay.contract.model.SenderActiveScheduleRange("09:00", "18:00"),
+                            io.github.magisk317.forward.contract.model.SenderActiveScheduleRange("25:00", "18:00"),
+                            io.github.magisk317.forward.contract.model.SenderActiveScheduleRange("09:00", "18:00"),
                         ),
                     ),
                 ),

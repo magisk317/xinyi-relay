@@ -4,7 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.forward.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.common.utils.CallSessionTracker
 import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
 import io.github.magisk317.xposed.logging.XLog
@@ -433,7 +433,7 @@ class ForwardReceiver : BroadcastReceiver() {
                 if (
                     msgTypeStr == ForwardBroadcastContract.MSG_TYPE_SMS &&
                     forwardSource == ForwardBroadcastContract.SOURCE_SMS_HOOK &&
-                    relayEvent.messageType == io.github.magisk317.relay.contract.constant.MessageType.SMS_CODE
+                    relayEvent.messageType == io.github.magisk317.forward.contract.constant.MessageType.SMS_CODE
                 ) {
                     ForwardReceiverPolicy.markSuccessfulSmsHookDispatch(
                         smsCode = payload.smsCode,

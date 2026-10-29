@@ -54,7 +54,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.platform.notification.AndroidNotificationPlatformBridge as NotificationUtils
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
-import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.forward.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.RecordSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.VerificationSettingsSnapshot

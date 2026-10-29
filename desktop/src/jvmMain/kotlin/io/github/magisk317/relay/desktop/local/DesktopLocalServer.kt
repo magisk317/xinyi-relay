@@ -2,7 +2,7 @@ package io.github.magisk317.relay.desktop.local
 
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
-import io.github.magisk317.relay.contract.json.RelayJson
+import io.github.magisk317.forward.contract.json.RelayJson
 import io.github.magisk317.relay.contract.remote.AgentConfigCommandsAckRequest
 import io.github.magisk317.relay.contract.remote.AgentConfigCommandsPullRequest
 import io.github.magisk317.relay.contract.remote.AgentConfigCommandsPullResponse

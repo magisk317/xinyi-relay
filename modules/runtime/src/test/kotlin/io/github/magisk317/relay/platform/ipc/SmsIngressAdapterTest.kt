@@ -6,7 +6,7 @@ import android.content.Context
 import android.content.Intent
 import io.mockk.every
 import io.mockk.mockk
-import io.github.magisk317.relay.contract.constant.MessageType
+import io.github.magisk317.forward.contract.constant.MessageType
 import io.github.magisk317.smscode.db.entity.SmsMsg
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals

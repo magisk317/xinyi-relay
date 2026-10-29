@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.platform.ipc
 
-import io.github.magisk317.relay.contract.constant.MessageType
+import io.github.magisk317.forward.contract.constant.MessageType
 import io.github.magisk317.relay.testing.relaxedIntent
 import io.github.magisk317.relay.testing.stubLongArrayExtra
 import io.github.magisk317.relay.testing.stubStringExtra

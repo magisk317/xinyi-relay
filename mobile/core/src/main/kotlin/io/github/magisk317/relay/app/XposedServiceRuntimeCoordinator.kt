@@ -7,7 +7,7 @@ import io.github.magisk317.xposed.runtime.state.RuntimeStateStore
 import io.github.magisk317.relay.android.diagnostics.RuntimeActivationState
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
-import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.forward.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.feature.mode.XposedRuntimeState
 import io.github.magisk317.xposed.runtime.contract.logging.LogRoute
 import kotlinx.coroutines.CoroutineScope

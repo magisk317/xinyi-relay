@@ -58,7 +58,7 @@ class SmsCodeApplication : Application() {
                 persist = {
                     AppPreferencesDataStore.batchEdit(applicationContext) {
                         setBoolean(
-                            io.github.magisk317.relay.contract.constant.RelayPrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+                            io.github.magisk317.forward.contract.constant.RelayPrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
                             true,
                         )
                     }
@@ -107,11 +107,11 @@ class SmsCodeApplication : Application() {
                     kotlinx.coroutines.runBlocking {
                         io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore.batchEdit(context) {
                             setBoolean(
-                                io.github.magisk317.relay.contract.constant.RelayPrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+                                io.github.magisk317.forward.contract.constant.RelayPrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
                                 state.automationAllowed,
                             )
                             setString(
-                                io.github.magisk317.relay.contract.constant.RelayPrefConst.KEY_MOBILE_ENTITLEMENT_TOKEN,
+                                io.github.magisk317.forward.contract.constant.RelayPrefConst.KEY_MOBILE_ENTITLEMENT_TOKEN,
                                 state.entitlementToken.orEmpty(),
                             )
                         }

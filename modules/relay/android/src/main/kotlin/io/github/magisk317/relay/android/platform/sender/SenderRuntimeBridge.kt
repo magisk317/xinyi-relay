@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.android.platform.sender
 
 import android.content.Context
-import io.github.magisk317.relay.sender.SenderRuntimeInstaller
+import io.github.magisk317.forward.sender.SenderRuntimeInstaller
 
 /**
  * Wires relay/sender runtime services into relay/engine:api contracts.

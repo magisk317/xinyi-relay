@@ -175,7 +175,7 @@ class ForwardPayloadFactoryTest {
         assertEquals(ForwardBroadcastContract.SOURCE_NOTIFICATION_LISTENER, notifyPayload.forwardSource)
         assertEquals(ForwardBroadcastContract.MSG_TYPE_APP_NOTIFY, notifyPayload.msgType)
         assertEquals("123456", notifyPayload.smsCode)
-        assertEquals(io.github.magisk317.relay.contract.constant.MessageType.APP_NOTIFY, notifyPayload.resolveRelayMessageType())
+        assertEquals(io.github.magisk317.forward.contract.constant.MessageType.APP_NOTIFY, notifyPayload.resolveRelayMessageType())
         assertTrue(notifyPayload.eventId.startsWith("nls_"))
 
         val callPayload = ForwardPayloadFactory.callPayload(

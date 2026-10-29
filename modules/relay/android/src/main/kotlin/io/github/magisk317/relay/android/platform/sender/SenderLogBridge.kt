@@ -3,9 +3,9 @@ package io.github.magisk317.relay.android.platform.sender
 import io.github.magisk317.relay.android.diagnostics.RuntimeDiagnosticsBridge
 import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
-import io.github.magisk317.relay.sender.SenderLogSink
-import io.github.magisk317.relay.sender.SenderLogSanitizer
-import io.github.magisk317.relay.sender.SenderLogger
+import io.github.magisk317.forward.sender.SenderLogSink
+import io.github.magisk317.forward.sender.SenderLogSanitizer
+import io.github.magisk317.forward.sender.SenderLogger
 
 /**
  * Wires relay/sender's [SenderLogger] to relay/android's [RuntimeLogStore] and [SensitiveLogPolicy].

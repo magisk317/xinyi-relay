@@ -61,7 +61,7 @@ import io.github.magisk317.uikit.theme.AppColorRole
 import io.github.magisk317.uikit.theme.appColor
 import kotlinx.coroutines.launch
 
-/** Stored value of [io.github.magisk317.relay.contract.model.ProxyType.DIRECT]. */
+/** Stored value of [io.github.magisk317.forward.contract.model.ProxyType.DIRECT]. */
 private const val MATRIX_PROXY_TYPE_DIRECT = "DIRECT"
 
 internal val MatrixVisibleFields = listOf(

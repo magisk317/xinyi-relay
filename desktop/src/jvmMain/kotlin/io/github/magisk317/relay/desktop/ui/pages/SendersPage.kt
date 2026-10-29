@@ -29,11 +29,11 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.focus.onFocusChanged
-import io.github.magisk317.relay.contract.model.SenderActiveSchedule
-import io.github.magisk317.relay.contract.model.SenderActiveScheduleConst
-import io.github.magisk317.relay.contract.model.SenderActiveScheduleEvaluator
-import io.github.magisk317.relay.contract.model.SenderActiveScheduleRange
-import io.github.magisk317.relay.contract.model.SenderActiveScheduleRule
+import io.github.magisk317.forward.contract.model.SenderActiveSchedule
+import io.github.magisk317.forward.contract.model.SenderActiveScheduleConst
+import io.github.magisk317.forward.contract.model.SenderActiveScheduleEvaluator
+import io.github.magisk317.forward.contract.model.SenderActiveScheduleRange
+import io.github.magisk317.forward.contract.model.SenderActiveScheduleRule
 import io.github.magisk317.relay.contract.model.SnapshotSender
 import io.github.magisk317.relay.desktop.config.SenderFieldKind
 import io.github.magisk317.relay.desktop.config.SenderFieldSchema

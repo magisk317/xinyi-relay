@@ -1,6 +1,6 @@
 package io.github.magisk317.forward.engine.pipeline
 
-import io.github.magisk317.relay.contract.constant.MessageType
+import io.github.magisk317.forward.contract.constant.MessageType
 import io.github.magisk317.forward.engine.event.RelayEvent
 import io.github.magisk317.forward.engine.model.Sender
 import io.github.magisk317.forward.engine.sender.SenderActiveSchedule

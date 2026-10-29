@@ -22,7 +22,7 @@ import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.uikit.R as UiKitR
 import io.github.magisk317.uikit.update.R as UiKitUpdateR
 import io.github.magisk317.relay.contract.constant.RelayAppConst
-import io.github.magisk317.relay.contract.constant.RelayPrefConst
+import io.github.magisk317.forward.contract.constant.RelayPrefConst
 import io.github.magisk317.relay.mobilefeature.settings.BuildConfig
 import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsCallbacks
 import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsItem

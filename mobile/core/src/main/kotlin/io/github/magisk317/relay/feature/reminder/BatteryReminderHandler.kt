@@ -3,7 +3,7 @@ package io.github.magisk317.relay.feature.reminder
 import android.content.Context
 import android.content.Intent
 import android.os.BatteryManager
-import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.forward.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.mobile.core.R

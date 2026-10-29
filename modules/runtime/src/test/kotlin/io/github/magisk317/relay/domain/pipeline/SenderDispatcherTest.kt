@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.domain.pipeline
 
-import io.github.magisk317.relay.contract.constant.DispatchStrategy
+import io.github.magisk317.forward.contract.constant.DispatchStrategy
 import io.github.magisk317.forward.engine.model.MsgInfo
 import io.github.magisk317.forward.engine.model.Sender
 import io.github.magisk317.forward.engine.service.SenderDispatchResult

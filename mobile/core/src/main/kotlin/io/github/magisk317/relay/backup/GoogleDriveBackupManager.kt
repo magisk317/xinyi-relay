@@ -7,7 +7,7 @@ import androidx.core.content.FileProvider
 import io.github.magisk317.relay.auth.AuthManager
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.backup.drive.GoogleDriveBackupConfig
-import io.github.magisk317.relay.contract.json.RelayJson
+import io.github.magisk317.forward.contract.json.RelayJson
 import io.github.magisk317.relay.data.backup.BackupManager
 import io.github.magisk317.smscode.runtime.contract.backup.ExportResult
 import io.github.magisk317.smscode.runtime.contract.backup.ImportResult

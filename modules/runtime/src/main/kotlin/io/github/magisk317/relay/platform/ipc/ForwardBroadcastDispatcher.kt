@@ -5,7 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import io.github.magisk317.relay.bootstrap.RuntimeDependencies
-import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
+import io.github.magisk317.forward.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.prefs.PrefsReader
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.xposed.logging.MagiskOtel

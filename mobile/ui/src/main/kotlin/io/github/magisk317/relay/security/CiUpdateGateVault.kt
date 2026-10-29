@@ -3,7 +3,7 @@ package io.github.magisk317.forward.security
 import android.content.Context
 import com.magisk317.mobile.entitlement.MobileEntitlementCoordinator
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
-import io.github.magisk317.relay.contract.constant.RelayPrefConst
+import io.github.magisk317.forward.contract.constant.RelayPrefConst
 import io.github.magisk317.relay.mobileui.BuildConfig
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.uikit.entitlement.resetLastKnownAutomationAllowed

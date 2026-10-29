@@ -20,6 +20,9 @@ kotlin {
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.datetime)
+            // api, not implementation: the product contract surface now exposes
+            // forward-core model types (SenderActiveSchedule, MessageType, ...).
+            api(project(":magisk-forward-core:contract"))
         }
         androidMain.dependencies {
             // implementation, not api: smscode domain types must not leak through the

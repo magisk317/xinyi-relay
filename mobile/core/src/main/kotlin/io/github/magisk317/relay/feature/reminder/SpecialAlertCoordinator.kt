@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.feature.reminder
 
 import android.content.Context
-import io.github.magisk317.relay.contract.constant.MessageType
+import io.github.magisk317.forward.contract.constant.MessageType
 import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
 import io.github.magisk317.forward.engine.event.RelayEvent
 import io.github.magisk317.relay.bootstrap.RuntimeGraph

@@ -9,7 +9,7 @@ import io.github.magisk317.relay.android.data.db.entity.SmsBlacklistHit
 import io.github.magisk317.smscode.db.entity.SmsCodeRule
 import io.github.magisk317.smscode.db.entity.SmsMsg
 import io.github.magisk317.relay.android.data.db.entity.SenderDispatchLog
-import io.github.magisk317.relay.engine.model.SenderDispatchStat
+import io.github.magisk317.forward.engine.model.SenderDispatchStat
 import kotlinx.coroutines.flow.Flow
 
 @Dao

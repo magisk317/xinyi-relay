@@ -8,20 +8,20 @@ import io.github.magisk317.smscode.db.entity.SmsMsg
 import io.github.magisk317.smscode.runtime.contract.record.SmsMsgRecordData
 import io.github.magisk317.smscode.db.entity.SmsCodeRule
 import io.github.magisk317.smscode.db.entity.NotifyRouteRule
-import io.github.magisk317.relay.engine.model.AppInfoData
-import io.github.magisk317.relay.engine.model.AppInfoImpl
-import io.github.magisk317.relay.engine.model.SmsCodeRuleData
-import io.github.magisk317.relay.engine.model.SmsCodeRuleImpl
-import io.github.magisk317.relay.engine.model.NotifyRouteRuleData
-import io.github.magisk317.relay.engine.model.ReadRecordData
-import io.github.magisk317.relay.engine.model.ReadRecordDataImpl
-import io.github.magisk317.relay.engine.model.NotifyRouteRuleImpl
-import io.github.magisk317.relay.engine.sender.SenderActiveSchedule
-import io.github.magisk317.relay.engine.sender.SenderActiveScheduleEvaluator
-import io.github.magisk317.relay.contract.json.RelayJson
+import io.github.magisk317.forward.engine.model.AppInfoData
+import io.github.magisk317.forward.engine.model.AppInfoImpl
+import io.github.magisk317.forward.engine.model.SmsCodeRuleData
+import io.github.magisk317.forward.engine.model.SmsCodeRuleImpl
+import io.github.magisk317.forward.engine.model.NotifyRouteRuleData
+import io.github.magisk317.forward.engine.model.ReadRecordData
+import io.github.magisk317.forward.engine.model.ReadRecordDataImpl
+import io.github.magisk317.forward.engine.model.NotifyRouteRuleImpl
+import io.github.magisk317.forward.engine.sender.SenderActiveSchedule
+import io.github.magisk317.forward.engine.sender.SenderActiveScheduleEvaluator
+import io.github.magisk317.forward.contract.json.RelayJson
 
 object ConfigMapper {
-    fun Rule.toDomain(): io.github.magisk317.relay.engine.model.Rule = io.github.magisk317.relay.engine.model.Rule(
+    fun Rule.toDomain(): io.github.magisk317.forward.engine.model.Rule = io.github.magisk317.forward.engine.model.Rule(
         id = id,
         type = type,
         filed = filed,
@@ -41,7 +41,7 @@ object ConfigMapper {
         title = title
     )
 
-    fun io.github.magisk317.relay.engine.model.Rule.toEntity(): Rule = Rule(
+    fun io.github.magisk317.forward.engine.model.Rule.toEntity(): Rule = Rule(
         id = id,
         type = type,
         filed = filed,
@@ -61,7 +61,7 @@ object ConfigMapper {
         title = title
     )
 
-    fun Sender.toDomain(): io.github.magisk317.relay.engine.model.Sender = io.github.magisk317.relay.engine.model.Sender(
+    fun Sender.toDomain(): io.github.magisk317.forward.engine.model.Sender = io.github.magisk317.forward.engine.model.Sender(
         id = id,
         type = type,
         name = name,
@@ -77,7 +77,7 @@ object ConfigMapper {
         customTemplate = customTemplate,
     )
 
-    fun io.github.magisk317.relay.engine.model.Sender.toEntity(): Sender = Sender(
+    fun io.github.magisk317.forward.engine.model.Sender.toEntity(): Sender = Sender(
         id = id,
         type = type,
         name = name,
@@ -213,7 +213,7 @@ object ConfigMapper {
         sessionKey = sessionKey,
     )
 
-    fun ForwardFilterRule.toDomain(): io.github.magisk317.relay.engine.model.ForwardFilterRule = io.github.magisk317.relay.engine.model.ForwardFilterRule(
+    fun ForwardFilterRule.toDomain(): io.github.magisk317.forward.engine.model.ForwardFilterRule = io.github.magisk317.forward.engine.model.ForwardFilterRule(
         id = id,
         msgType = msgType,
         scopeType = scopeType,
@@ -226,7 +226,7 @@ object ConfigMapper {
         updateTime = updateTime
     )
 
-    fun io.github.magisk317.relay.engine.model.ForwardFilterRule.toEntity(): ForwardFilterRule = ForwardFilterRule(
+    fun io.github.magisk317.forward.engine.model.ForwardFilterRule.toEntity(): ForwardFilterRule = ForwardFilterRule(
         id = id,
         msgType = msgType,
         scopeType = scopeType,
