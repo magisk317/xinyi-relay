@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.di
 
 import io.github.magisk317.relay.mobileui.BuildConfig
-import io.github.magisk317.relay.security.CiUpdateGateVault
+import io.github.magisk317.forward.security.CiUpdateGateVault
 import io.github.magisk317.relay.ui.backup.CloudBackupViewModel
 import io.github.magisk317.relay.ui.record.CodeRecordViewModel
 import io.github.magisk317.relay.ui.rule.RuleViewModel

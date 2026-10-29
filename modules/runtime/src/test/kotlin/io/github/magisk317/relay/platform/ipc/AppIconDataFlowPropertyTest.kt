@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.platform.ipc
 
-import io.github.magisk317.relay.engine.service.DispatchPayloadContext
+import io.github.magisk317.forward.engine.service.DispatchPayloadContext
 import io.github.magisk317.relay.testing.relaxedIntent
 import io.github.magisk317.relay.testing.stubStringExtra
 import io.kotest.property.Arb

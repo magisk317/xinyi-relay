@@ -7,7 +7,7 @@ import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.relay.contract.repository.LocalConfigMirrorRejectedException
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
-import io.github.magisk317.relay.engine.service.AppConfigRepository
+import io.github.magisk317.forward.engine.service.AppConfigRepository
 import io.github.magisk317.relay.testing.relaxedContext
 import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceChange
 import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceChangeSet

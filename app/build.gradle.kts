@@ -177,7 +177,7 @@ dependencies {
     implementation(project(":magisk-xposed-kit:capability"))
     implementation(project(":smscode-core:runtime"))
     implementation(project(":smscode-core:verification"))
-    implementation(project(":relay:engine"))
+    implementation(project(":magisk-forward-core:engine"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.material.icons.core)

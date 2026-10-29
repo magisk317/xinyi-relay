@@ -2,11 +2,11 @@ package io.github.magisk317.relay.domain.pipeline
 
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
-import io.github.magisk317.relay.engine.model.MsgInfo
-import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.engine.service.SenderDispatchResult
-import io.github.magisk317.relay.engine.service.SenderDispatcher
+import io.github.magisk317.forward.engine.model.MsgInfo
+import io.github.magisk317.forward.engine.model.Sender
+import io.github.magisk317.forward.engine.sender.SenderType
+import io.github.magisk317.forward.engine.service.SenderDispatchResult
+import io.github.magisk317.forward.engine.service.SenderDispatcher
 import io.github.magisk317.xposed.logging.MagiskOtel
 
 class DispatchExecutor(

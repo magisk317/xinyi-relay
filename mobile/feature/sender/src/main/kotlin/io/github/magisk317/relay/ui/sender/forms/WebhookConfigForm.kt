@@ -3,9 +3,9 @@ package io.github.magisk317.relay.ui.sender.forms
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import io.github.magisk317.relay.mobile.core.R
-import io.github.magisk317.relay.engine.sender.SenderType
+import io.github.magisk317.forward.engine.sender.SenderType
 import io.github.magisk317.relay.mobilefeature.sender.BuildConfig
-import io.github.magisk317.relay.sender.SenderSettingDraft
+import io.github.magisk317.forward.sender.SenderSettingDraft
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 
 private val WebhookVisibleFields = listOf(

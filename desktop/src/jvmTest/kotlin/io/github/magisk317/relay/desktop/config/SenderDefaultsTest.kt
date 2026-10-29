@@ -3,7 +3,7 @@ package io.github.magisk317.relay.desktop.config
 import io.github.magisk317.relay.contract.model.SenderActiveScheduleRule
 import io.github.magisk317.relay.contract.model.SnapshotSender
 import io.github.magisk317.relay.desktop.i18n.DesktopLocale
-import io.github.magisk317.relay.sender.SenderSettingSchemas
+import io.github.magisk317.forward.sender.SenderSettingSchemas
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive

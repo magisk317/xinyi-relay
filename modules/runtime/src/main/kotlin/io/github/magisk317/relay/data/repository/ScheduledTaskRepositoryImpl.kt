@@ -6,8 +6,8 @@ import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.data.db.entity.ScheduledTaskEntity
 import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.domain.schedule.ScheduledTaskManager
-import io.github.magisk317.relay.engine.model.ScheduledTask
-import io.github.magisk317.relay.engine.service.ScheduledTaskRepository
+import io.github.magisk317.forward.engine.model.ScheduledTask
+import io.github.magisk317.forward.engine.service.ScheduledTaskRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 

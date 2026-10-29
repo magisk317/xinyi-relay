@@ -60,7 +60,7 @@ import io.github.magisk317.uikit.R as UiKitR
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.settings.RecordSettingsUpdate
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
-import io.github.magisk317.relay.engine.model.ReadRecordData
+import io.github.magisk317.forward.engine.model.ReadRecordData
 import io.github.magisk317.relay.ui.common.AppIconBitmapImage
 import io.github.magisk317.relay.ui.analytics.AnalyticsChartPanel
 import io.github.magisk317.relay.ui.common.rememberPrefBoolean

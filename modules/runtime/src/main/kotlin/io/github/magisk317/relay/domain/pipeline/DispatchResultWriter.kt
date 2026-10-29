@@ -4,11 +4,11 @@ import io.github.magisk317.relay.android.otel.MagiskOtelBootstrap
 import io.github.magisk317.relay.analytics.AnalyticsTracker
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.xposed.logging.XLog
-import io.github.magisk317.relay.engine.service.SenderDispatchResult
+import io.github.magisk317.forward.engine.service.SenderDispatchResult
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.data.db.entity.SenderDispatchLog
-import io.github.magisk317.relay.engine.service.MessageRecordRepository
+import io.github.magisk317.forward.engine.service.MessageRecordRepository
 
 class DispatchResultWriter(
     private val db: AppDatabase,

@@ -97,6 +97,10 @@ include(
     ":magisk-forward-core:capture",
     ":magisk-forward-core:runtime",
     ":magisk-forward-core:engine",
+    ":magisk-forward-core:engine:api",
+    ":magisk-forward-core:sender:api",
+    ":magisk-forward-core:net",
+    ":magisk-forward-core:security",
     ":magisk-forward-core:sender",
     ":magisk-forward-core:db",
     ":magisk-forward-core",
@@ -124,6 +128,10 @@ project(":magisk-forward-core:contract").projectDir = file("forward/core/contrac
 project(":magisk-forward-core:capture").projectDir = file("forward/core/capture")
 project(":magisk-forward-core:runtime").projectDir = file("forward/core/runtime")
 project(":magisk-forward-core:engine").projectDir = file("forward/core/engine")
+project(":magisk-forward-core:engine:api").projectDir = file("forward/core/engine/api")
+project(":magisk-forward-core:sender:api").projectDir = file("forward/core/sender/api")
+project(":magisk-forward-core:net").projectDir = file("forward/core/net")
+project(":magisk-forward-core:security").projectDir = file("forward/core/security")
 project(":magisk-forward-core:sender").projectDir = file("forward/core/sender")
 project(":magisk-forward-core:db").projectDir = file("forward/core/db")
 project(":magisk-forward-core").projectDir = file("forward/core")

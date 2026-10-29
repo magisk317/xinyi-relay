@@ -4,10 +4,10 @@ import io.github.magisk317.relay.android.data.mapper.ConfigMapper
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toEntity
 import io.github.magisk317.smscode.db.entity.Sender
-import io.github.magisk317.relay.engine.sender.SenderActiveSchedule
-import io.github.magisk317.relay.engine.sender.SenderActiveScheduleConst
-import io.github.magisk317.relay.engine.sender.SenderActiveScheduleRange
-import io.github.magisk317.relay.engine.sender.SenderActiveScheduleRule
+import io.github.magisk317.forward.engine.sender.SenderActiveSchedule
+import io.github.magisk317.forward.engine.sender.SenderActiveScheduleConst
+import io.github.magisk317.forward.engine.sender.SenderActiveScheduleRange
+import io.github.magisk317.forward.engine.sender.SenderActiveScheduleRule
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test

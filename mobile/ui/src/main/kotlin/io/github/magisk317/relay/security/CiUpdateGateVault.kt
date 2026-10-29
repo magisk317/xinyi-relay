@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.security
+package io.github.magisk317.forward.security
 
 import android.content.Context
 import com.magisk317.mobile.entitlement.MobileEntitlementCoordinator

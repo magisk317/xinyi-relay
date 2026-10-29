@@ -28,7 +28,7 @@ dependencies {
     implementation(project(":policy"))
     implementation(project(":magisk-xposed-kit:permission"))
     implementation(project(":relay:android"))
-    implementation(project(":relay:engine:api"))
+    implementation(project(":magisk-forward-core:engine:api"))
     implementation(project(":relay:contract"))
     implementation(project(":magisk-ui-kit"))
     implementation(libs.androidx.material.icons.core)

@@ -4,8 +4,8 @@ import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.entity.SmsBlacklistHit
 import io.github.magisk317.smscode.db.entity.SmsMsg
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
-import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.engine.service.SenderDispatchResult
+import io.github.magisk317.forward.engine.sender.SenderType
+import io.github.magisk317.forward.engine.service.SenderDispatchResult
 import io.github.magisk317.relay.testing.relaxedContext
 import io.github.magisk317.relay.testing.runtimeSmsMsg
 import io.github.magisk317.relay.testing.smsMsgDatabaseFixture

@@ -8,11 +8,11 @@ import android.graphics.Bitmap
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.magisk317.relay.engine.model.ForwardFilterRule
-import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.engine.filter.ForwardFilterConst
-import io.github.magisk317.relay.sender.SenderSettingSanitizer
-import io.github.magisk317.relay.sender.sanitizeSenderLenient
+import io.github.magisk317.forward.engine.model.ForwardFilterRule
+import io.github.magisk317.forward.engine.model.Sender
+import io.github.magisk317.forward.engine.filter.ForwardFilterConst
+import io.github.magisk317.forward.sender.SenderSettingSanitizer
+import io.github.magisk317.forward.sender.sanitizeSenderLenient
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.smscode.db.entity.NotifyRouteRule
 import io.github.magisk317.smscode.db.entity.AppInfo
@@ -20,9 +20,9 @@ import io.github.magisk317.smscode.db.entity.SmsMsg
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toEntity
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toSmsMsgEntity
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
-import io.github.magisk317.relay.engine.service.AppConfigRepository
-import io.github.magisk317.relay.engine.service.MessageRecordRepository
-import io.github.magisk317.relay.engine.routing.NotifyRouteScope
+import io.github.magisk317.forward.engine.service.AppConfigRepository
+import io.github.magisk317.forward.engine.service.MessageRecordRepository
+import io.github.magisk317.forward.engine.routing.NotifyRouteScope
 import io.github.magisk317.relay.android.data.store.EntityStoreManager
 import io.github.magisk317.relay.android.data.store.EntityType
 import io.github.magisk317.uikit.shell.AppInfoHelper as UiKitAppInfoHelper

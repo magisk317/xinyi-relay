@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.engine.sender
+package io.github.magisk317.forward.engine.sender
 
 import io.github.magisk317.relay.contract.constant.MessageType
 import org.junit.jupiter.api.Assertions.assertEquals

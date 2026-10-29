@@ -58,8 +58,8 @@ import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.platform.icon.AppIconEncoder
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.RecordSettingsUpdate
-import io.github.magisk317.relay.engine.model.ReadSmsBlacklistHitData
-import io.github.magisk317.relay.engine.service.MessageRecordRepository
+import io.github.magisk317.forward.engine.model.ReadSmsBlacklistHitData
+import io.github.magisk317.forward.engine.service.MessageRecordRepository
 import io.github.magisk317.uikit.preference.AppArrowItem
 import io.github.magisk317.relay.ui.common.AppIconCache
 import io.github.magisk317.relay.ui.common.RetentionDialog

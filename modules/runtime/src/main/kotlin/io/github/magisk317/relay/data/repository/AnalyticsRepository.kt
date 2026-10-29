@@ -2,9 +2,9 @@ package io.github.magisk317.relay.data.repository
 
 import android.content.Context
 import io.github.magisk317.relay.android.data.db.AppDatabase
-import io.github.magisk317.relay.engine.model.RuntimeAnalyticsSnapshot
-import io.github.magisk317.relay.engine.model.SenderConfigurationSnapshot
-import io.github.magisk317.relay.engine.service.RuntimeAnalyticsProvider
+import io.github.magisk317.forward.engine.model.RuntimeAnalyticsSnapshot
+import io.github.magisk317.forward.engine.model.SenderConfigurationSnapshot
+import io.github.magisk317.forward.engine.service.RuntimeAnalyticsProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

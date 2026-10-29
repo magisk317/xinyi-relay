@@ -4,9 +4,9 @@ import io.github.magisk317.relay.contract.model.SenderActiveSchedule
 import io.github.magisk317.relay.contract.model.SenderActiveScheduleEvaluator
 import io.github.magisk317.relay.contract.model.SnapshotSender
 import io.github.magisk317.relay.desktop.i18n.DesktopLocale
-import io.github.magisk317.relay.sender.SenderSettingFieldMetadata
-import io.github.magisk317.relay.sender.SenderSettingFieldType
-import io.github.magisk317.relay.sender.SenderSettingSchemas
+import io.github.magisk317.forward.sender.SenderSettingFieldMetadata
+import io.github.magisk317.forward.sender.SenderSettingFieldType
+import io.github.magisk317.forward.sender.SenderSettingSchemas
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray

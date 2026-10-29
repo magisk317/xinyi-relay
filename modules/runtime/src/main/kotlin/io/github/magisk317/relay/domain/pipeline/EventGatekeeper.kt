@@ -6,7 +6,7 @@ import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.AppDatabase
-import io.github.magisk317.relay.engine.event.RelayEvent
+import io.github.magisk317.forward.engine.event.RelayEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import io.github.magisk317.xposed.logging.MagiskOtel

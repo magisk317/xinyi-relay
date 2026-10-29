@@ -3,7 +3,7 @@ package io.github.magisk317.relay.platform.ipc
 import android.content.Context
 import android.content.Intent
 import io.github.magisk317.relay.contract.constant.MessageType
-import io.github.magisk317.relay.engine.event.RelayEvent
+import io.github.magisk317.forward.engine.event.RelayEvent
 import io.github.magisk317.smscode.runtime.common.sim.SmsRoutingIntentExtras
 
 data class ForwardBroadcastPayload(

@@ -20,7 +20,7 @@ android {
 
 dependencies {
     implementation(project(":relay:contract"))
-    implementation(project(":relay:engine:api"))
+    implementation(project(":magisk-forward-core:engine:api"))
     implementation(project(":smscode-core:runtime"))
     implementation(project(":policy"))
     implementation(project(":mobile:core"))

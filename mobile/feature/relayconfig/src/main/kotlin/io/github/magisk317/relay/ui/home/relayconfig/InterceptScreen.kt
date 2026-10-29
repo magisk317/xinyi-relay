@@ -39,8 +39,8 @@ import io.github.magisk317.uikit.surface.AppHorizontalDivider
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.SmsBlacklistSettingsUpdate
-import io.github.magisk317.relay.engine.model.ReadSmsBlacklistHitData
-import io.github.magisk317.relay.engine.service.MessageRecordRepository
+import io.github.magisk317.forward.engine.model.ReadSmsBlacklistHitData
+import io.github.magisk317.forward.engine.service.MessageRecordRepository
 import io.github.magisk317.relay.feature.mode.FeatureGate
 import io.github.magisk317.relay.feature.mode.FeatureGate.Feature.*
 import io.github.magisk317.relay.feature.mode.XposedRuntimeState

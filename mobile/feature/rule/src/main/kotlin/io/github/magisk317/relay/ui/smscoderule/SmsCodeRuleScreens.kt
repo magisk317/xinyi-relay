@@ -46,7 +46,7 @@ import io.github.magisk317.smscode.db.entity.SmsCodeRule
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toEntity
 import io.github.magisk317.relay.android.sms.SmsCodeUtils as RelaySmsCodeUtils
-import io.github.magisk317.relay.engine.service.AppConfigRepository
+import io.github.magisk317.forward.engine.service.AppConfigRepository
 import io.github.magisk317.smscode.rule.model.BuiltinSmsCodeRuleSpec
 import io.github.magisk317.smscode.rule.model.BuiltinSmsCodeRules
 import io.github.magisk317.smscode.rule.catalog.OfficialSmsCodeRule

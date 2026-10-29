@@ -7,10 +7,10 @@ import androidx.lifecycle.viewModelScope
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.app.sender.SenderTestService
 import io.github.magisk317.relay.mobile.core.R
-import io.github.magisk317.relay.engine.model.MsgInfo
-import io.github.magisk317.relay.engine.model.ScheduledTask
-import io.github.magisk317.relay.engine.schedule.CronUtils
-import io.github.magisk317.relay.engine.service.ScheduledTaskRepository
+import io.github.magisk317.forward.engine.model.MsgInfo
+import io.github.magisk317.forward.engine.model.ScheduledTask
+import io.github.magisk317.forward.engine.schedule.CronUtils
+import io.github.magisk317.forward.engine.service.ScheduledTaskRepository
 import io.github.magisk317.relay.mobilefeature.scheduled.BuildConfig
 import java.util.Date
 import kotlinx.coroutines.Dispatchers

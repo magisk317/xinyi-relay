@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.ui.sender
 
 import io.github.magisk317.relay.contract.constant.DispatchStrategy
-import io.github.magisk317.relay.engine.model.Sender
+import io.github.magisk317.forward.engine.model.Sender
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.Test

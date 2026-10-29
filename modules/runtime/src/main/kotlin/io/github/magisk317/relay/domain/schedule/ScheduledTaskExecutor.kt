@@ -5,9 +5,9 @@ import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
-import io.github.magisk317.relay.engine.model.MsgInfo
-import io.github.magisk317.relay.engine.model.ScheduledTask
-import io.github.magisk317.relay.engine.service.SenderRuntimeServiceRegistry
+import io.github.magisk317.forward.engine.model.MsgInfo
+import io.github.magisk317.forward.engine.model.ScheduledTask
+import io.github.magisk317.forward.engine.service.SenderRuntimeServiceRegistry
 import io.github.magisk317.relay.runtime.BuildConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

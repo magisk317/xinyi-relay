@@ -7,7 +7,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import io.github.magisk317.relay.android.common.utils.RelayLogger
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
-import io.github.magisk317.relay.engine.service.AppConfigRepository
+import io.github.magisk317.forward.engine.service.AppConfigRepository
 import io.github.magisk317.xposed.runtime.contract.logging.LogRoute
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers

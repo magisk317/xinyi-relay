@@ -19,7 +19,7 @@ import io.github.magisk317.relay.contract.remote.PatchDeviceRequest
 import io.github.magisk317.relay.contract.remote.RecordsResponse
 import io.github.magisk317.relay.contract.remote.RelayRecord
 import io.github.magisk317.relay.contract.remote.SystemInfoResponse
-import io.github.magisk317.relay.net.RelayHttpClients
+import io.github.magisk317.forward.net.RelayHttpClients
 import java.net.URLEncoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

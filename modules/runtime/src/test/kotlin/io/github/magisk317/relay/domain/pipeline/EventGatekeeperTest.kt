@@ -11,7 +11,7 @@ import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.data.db.dao.AppInfoDao
 import io.github.magisk317.smscode.db.entity.AppInfo
 import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
-import io.github.magisk317.relay.engine.event.RelayEvent
+import io.github.magisk317.forward.engine.event.RelayEvent
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals

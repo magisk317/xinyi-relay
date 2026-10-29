@@ -28,8 +28,8 @@ import io.github.magisk317.relay.contract.constant.DispatchStrategy
 import io.github.magisk317.relay.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.contract.model.ForwardSilentPeriodConfig
 import io.github.magisk317.relay.mobile.core.R
-import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.engine.schedule.ForwardSilentPeriodEvaluator
+import io.github.magisk317.forward.engine.model.Sender
+import io.github.magisk317.forward.engine.schedule.ForwardSilentPeriodEvaluator
 import io.github.magisk317.relay.ui.common.ActiveScheduleTimeValueButton
 import io.github.magisk317.relay.ui.common.ActiveScheduleWeekdayRow
 import io.github.magisk317.relay.ui.common.SegmentedOption

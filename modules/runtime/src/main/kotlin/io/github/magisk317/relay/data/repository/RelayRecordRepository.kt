@@ -12,11 +12,11 @@ import io.github.magisk317.relay.android.data.db.mergeSmsMsgForInsert
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toRecordData
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toSmsMsgEntity
 import io.github.magisk317.smscode.rule.utils.CodeRecordSimilarityUtils
-import io.github.magisk317.relay.engine.model.ReadRecordData
-import io.github.magisk317.relay.engine.model.ReadSmsBlacklistHitData
-import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.engine.service.MessageRecordRepository
-import io.github.magisk317.relay.engine.service.SenderDispatchResult
+import io.github.magisk317.forward.engine.model.ReadRecordData
+import io.github.magisk317.forward.engine.model.ReadSmsBlacklistHitData
+import io.github.magisk317.forward.engine.sender.SenderType
+import io.github.magisk317.forward.engine.service.MessageRecordRepository
+import io.github.magisk317.forward.engine.service.SenderDispatchResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 

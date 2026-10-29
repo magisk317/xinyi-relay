@@ -16,7 +16,7 @@ import io.github.magisk317.relay.android.common.utils.DeviceIdentityUtils
 import io.github.magisk317.relay.android.prefs.AppPreferenceTransactions
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
 import io.github.magisk317.relay.android.prefs.HookPreferenceSpecs
-import io.github.magisk317.relay.engine.schedule.ForwardSilentPeriodEvaluator
+import io.github.magisk317.forward.engine.schedule.ForwardSilentPeriodEvaluator
 import io.github.magisk317.smscode.runtime.contract.prefs.AtomicPreferencePersistence
 import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceCommitResult
 import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceSpec

@@ -11,7 +11,7 @@ import io.github.magisk317.relay.android.data.db.entity.SmsBlacklistHit
 import io.github.magisk317.smscode.db.entity.SmsMsg
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSourceImpl
 import io.github.magisk317.relay.data.repository.RelayRecordRepository
-import io.github.magisk317.relay.engine.service.MessageRecordRepository
+import io.github.magisk317.forward.engine.service.MessageRecordRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.abs

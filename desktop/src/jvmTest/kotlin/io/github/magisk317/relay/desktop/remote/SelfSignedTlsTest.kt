@@ -6,7 +6,7 @@ import io.github.magisk317.relay.desktop.session.DesktopProfile
 import io.github.magisk317.relay.desktop.session.InMemoryDesktopCredentialStore
 import io.github.magisk317.relay.desktop.session.ProfileStore
 import io.github.magisk317.relay.desktop.session.SessionManager
-import io.github.magisk317.relay.net.RelayHttpClients
+import io.github.magisk317.forward.net.RelayHttpClients
 import java.io.IOException
 import java.net.InetSocketAddress
 import java.nio.file.Files

@@ -10,16 +10,16 @@ import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.smscode.db.entity.SmsMsg
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
-import io.github.magisk317.relay.engine.event.RelayEvent
-import io.github.magisk317.relay.engine.service.DispatchPayloadContext
-import io.github.magisk317.relay.engine.service.MessageFormatter
-import io.github.magisk317.relay.engine.service.SenderRuntimeServiceRegistry
-import io.github.magisk317.relay.engine.service.SystemInfoProvider
+import io.github.magisk317.forward.engine.event.RelayEvent
+import io.github.magisk317.forward.engine.service.DispatchPayloadContext
+import io.github.magisk317.forward.engine.service.MessageFormatter
+import io.github.magisk317.forward.engine.service.SenderRuntimeServiceRegistry
+import io.github.magisk317.forward.engine.service.SystemInfoProvider
 import io.github.magisk317.relay.contract.model.ForwardCommonConfig
-import io.github.magisk317.relay.engine.model.MsgInfo
-import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.engine.pipeline.SenderSelector
-import io.github.magisk317.relay.engine.schedule.ForwardSilentPeriodEvaluator
+import io.github.magisk317.forward.engine.model.MsgInfo
+import io.github.magisk317.forward.engine.model.Sender
+import io.github.magisk317.forward.engine.pipeline.SenderSelector
+import io.github.magisk317.forward.engine.schedule.ForwardSilentPeriodEvaluator
 import android.content.Context
 import io.github.magisk317.xposed.logging.MagiskOtel
 

@@ -12,16 +12,16 @@ import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.OverviewSettingsUpdate
-import io.github.magisk317.relay.engine.service.RuntimeAnalyticsProvider
+import io.github.magisk317.forward.engine.service.RuntimeAnalyticsProvider
 import io.github.magisk317.relay.ui.analytics.AnalyticsChartType
 import io.github.magisk317.relay.ui.analytics.AnalyticsChartWindow
 import io.github.magisk317.relay.ui.analytics.AnalyticsSnapshot
 import io.github.magisk317.relay.ui.analytics.loadAnalyticsSnapshot
 import io.github.magisk317.smscode.runtime.common.utils.JsonUtils
 import io.github.magisk317.xposed.logging.XLog
-import io.github.magisk317.relay.engine.model.ReadRecordData
+import io.github.magisk317.forward.engine.model.ReadRecordData
 import io.github.magisk317.smscode.runtime.contract.record.SmsMsgRecordData
-import io.github.magisk317.relay.engine.service.MessageRecordRepository
+import io.github.magisk317.forward.engine.service.MessageRecordRepository
 import io.github.magisk317.relay.android.platform.icon.AppIconEncoder
 import io.github.magisk317.relay.ui.common.AppIconCache
 import kotlinx.serialization.Serializable

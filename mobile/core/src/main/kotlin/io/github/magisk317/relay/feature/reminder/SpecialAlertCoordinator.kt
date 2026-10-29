@@ -3,7 +3,7 @@ package io.github.magisk317.relay.feature.reminder
 import android.content.Context
 import io.github.magisk317.relay.contract.constant.MessageType
 import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
-import io.github.magisk317.relay.engine.event.RelayEvent
+import io.github.magisk317.forward.engine.event.RelayEvent
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.xposed.logging.MagiskOtel

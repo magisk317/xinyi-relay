@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.ui.analytics
 
-import io.github.magisk317.relay.engine.service.RuntimeAnalyticsProvider
+import io.github.magisk317.forward.engine.service.RuntimeAnalyticsProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

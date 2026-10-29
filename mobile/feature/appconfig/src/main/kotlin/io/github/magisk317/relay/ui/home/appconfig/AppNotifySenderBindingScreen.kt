@@ -26,7 +26,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.mobile.core.R
-import io.github.magisk317.relay.engine.model.Sender
+import io.github.magisk317.forward.engine.model.Sender
 import io.github.magisk317.relay.ui.sender.displayName
 import io.github.magisk317.uikit.surface.WorkspaceEmptyState
 import io.github.magisk317.uikit.surface.WorkspaceSearchField

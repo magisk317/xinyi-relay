@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.ui.scheduled
 
-import io.github.magisk317.relay.engine.schedule.CronUtils
-import io.github.magisk317.relay.engine.model.ScheduledTask
+import io.github.magisk317.forward.engine.schedule.CronUtils
+import io.github.magisk317.forward.engine.model.ScheduledTask
 
 /** Validation problem kinds, resolved to localized strings by the ViewModel. */
 enum class ScheduledTaskProblem {

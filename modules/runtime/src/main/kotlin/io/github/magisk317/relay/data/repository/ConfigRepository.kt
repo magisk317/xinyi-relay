@@ -17,14 +17,14 @@ import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toEntity
 import io.github.magisk317.relay.android.data.db.dao.RuleDao
 import io.github.magisk317.relay.android.data.db.dao.SenderDao
-import io.github.magisk317.relay.engine.model.AppInfoData
-import io.github.magisk317.relay.engine.model.ForwardFilterRule
-import io.github.magisk317.relay.engine.model.NotifyRouteRuleData
-import io.github.magisk317.relay.engine.model.Rule
-import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.engine.model.SmsCodeRuleData
-import io.github.magisk317.relay.engine.service.AppConfigRepository
-import io.github.magisk317.relay.engine.service.SenderRuntimeServiceRegistry
+import io.github.magisk317.forward.engine.model.AppInfoData
+import io.github.magisk317.forward.engine.model.ForwardFilterRule
+import io.github.magisk317.forward.engine.model.NotifyRouteRuleData
+import io.github.magisk317.forward.engine.model.Rule
+import io.github.magisk317.forward.engine.model.Sender
+import io.github.magisk317.forward.engine.model.SmsCodeRuleData
+import io.github.magisk317.forward.engine.service.AppConfigRepository
+import io.github.magisk317.forward.engine.service.SenderRuntimeServiceRegistry
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 

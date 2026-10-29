@@ -1,8 +1,8 @@
 package io.github.magisk317.relay.data.repository
 
 import io.github.magisk317.relay.android.data.db.dao.SmsCodeRuleDao
-import io.github.magisk317.relay.engine.model.SmsCodeRuleData
-import io.github.magisk317.relay.engine.service.AppConfigRepository
+import io.github.magisk317.forward.engine.model.SmsCodeRuleData
+import io.github.magisk317.forward.engine.service.AppConfigRepository
 import io.github.magisk317.smscode.rule.model.SmsCodeRuleSpec
 import io.github.magisk317.smscode.rule.repository.SmsCodeRuleRecord
 import io.github.magisk317.smscode.rule.repository.SmsCodeRuleRepository

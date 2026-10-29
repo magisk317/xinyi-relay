@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.ui.record
 
-import io.github.magisk317.relay.engine.model.ReadRecordData
-import io.github.magisk317.relay.engine.model.ReadRecordDataImpl
+import io.github.magisk317.forward.engine.model.ReadRecordData
+import io.github.magisk317.forward.engine.model.ReadRecordDataImpl
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 

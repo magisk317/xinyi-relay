@@ -7,7 +7,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.net.Uri
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.db.AppDatabase
-import io.github.magisk317.relay.engine.service.SenderRuntimeServiceRegistry
+import io.github.magisk317.forward.engine.service.SenderRuntimeServiceRegistry
 import io.github.magisk317.relay.runtime.BuildConfig
 import io.github.magisk317.xposed.logging.MagiskOtel
 import io.github.magisk317.smscode.runtime.common.backup.BackupDatabaseHooks

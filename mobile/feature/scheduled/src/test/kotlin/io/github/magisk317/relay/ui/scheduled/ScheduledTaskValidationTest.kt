@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.ui.scheduled
 
-import io.github.magisk317.relay.engine.model.ScheduledTask
+import io.github.magisk317.forward.engine.model.ScheduledTask
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test

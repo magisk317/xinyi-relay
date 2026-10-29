@@ -34,16 +34,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.mobile.core.R
-import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.sender.E2eeModuleStatus
-import io.github.magisk317.relay.sender.MatrixE2eeAvailability
-import io.github.magisk317.relay.sender.MatrixE2eeAvailabilityProvider
-import io.github.magisk317.relay.sender.MatrixE2eeVerificationProvider
-import io.github.magisk317.relay.sender.MatrixE2eeVerificationState
-import io.github.magisk317.relay.sender.MatrixE2eeVerificationStatus
-import io.github.magisk317.relay.sender.SenderSettingJson
-import io.github.magisk317.relay.sender.SenderSettingDraft
-import io.github.magisk317.relay.sender.config.MatrixSetting
+import io.github.magisk317.forward.engine.sender.SenderType
+import io.github.magisk317.forward.sender.E2eeModuleStatus
+import io.github.magisk317.forward.sender.MatrixE2eeAvailability
+import io.github.magisk317.forward.sender.MatrixE2eeAvailabilityProvider
+import io.github.magisk317.forward.sender.MatrixE2eeVerificationProvider
+import io.github.magisk317.forward.sender.MatrixE2eeVerificationState
+import io.github.magisk317.forward.sender.MatrixE2eeVerificationStatus
+import io.github.magisk317.forward.sender.SenderSettingJson
+import io.github.magisk317.forward.sender.SenderSettingDraft
+import io.github.magisk317.forward.sender.config.MatrixSetting
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import io.github.magisk317.uikit.common.showLatestSnackbar
 import io.github.magisk317.uikit.foundation.LocalSnackbarHostState
@@ -129,7 +129,7 @@ internal val MatrixVisibleFields = listOf(
 
 /**
  * Proxy settings only exist for HTTP/SOCKS; DIRECT sends straight to the homeserver.
- * Mirrors [io.github.magisk317.relay.sender.config.ProxyTypeSerializer], which also
+ * Mirrors [io.github.magisk317.forward.sender.config.ProxyTypeSerializer], which also
  * falls back to DIRECT for blank or unknown values.
  */
 private fun SenderSettingDraft.isMatrixProxyDirect(): Boolean {

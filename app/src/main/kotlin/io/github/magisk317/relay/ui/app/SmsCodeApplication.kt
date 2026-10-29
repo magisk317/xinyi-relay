@@ -4,7 +4,7 @@ import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeCrashLogs
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.uikit.entitlement.MobileGate
 import io.github.magisk317.relay.android.prefs.RelayPreferenceHooks
-import io.github.magisk317.relay.security.CiUpdateGateVault
+import io.github.magisk317.forward.security.CiUpdateGateVault
 import io.github.magisk317.xposed.logging.MagiskLogPolicy
 import android.app.Application
 import android.app.Activity

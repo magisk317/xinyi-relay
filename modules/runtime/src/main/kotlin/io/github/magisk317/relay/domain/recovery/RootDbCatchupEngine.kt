@@ -9,7 +9,7 @@ import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.dao.SmsMsgDao
 import io.github.magisk317.smscode.db.entity.SmsMsg
-import io.github.magisk317.relay.engine.event.RelayEvent
+import io.github.magisk317.forward.engine.event.RelayEvent
 import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.xposed.runtime.contract.logging.LogRoute
 import java.util.concurrent.atomic.AtomicBoolean
