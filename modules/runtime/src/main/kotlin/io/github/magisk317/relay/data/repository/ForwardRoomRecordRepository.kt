@@ -7,10 +7,11 @@ import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.data.db.entity.SmsBlacklistHit
-import io.github.magisk317.smscode.db.entity.SmsMsg
-import io.github.magisk317.relay.android.data.db.mergeSmsMsgForInsert
-import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toRecordData
-import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toSmsMsgEntity
+import io.github.magisk317.forward.db.ForwardDatabase
+import io.github.magisk317.forward.db.ForwardEventEntity
+import io.github.magisk317.relay.android.data.mapper.mergeForwardEventForInsert
+import io.github.magisk317.relay.android.data.mapper.toRecordData
+import io.github.magisk317.relay.android.data.mapper.toForwardEventEntity
 import io.github.magisk317.smscode.rule.utils.CodeRecordSimilarityUtils
 import io.github.magisk317.forward.engine.model.ReadRecordData
 import io.github.magisk317.forward.engine.model.ReadSmsBlacklistHitData
@@ -20,16 +21,17 @@ import io.github.magisk317.forward.engine.service.SenderDispatchResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-class RelayRecordRepository(
+class ForwardRoomRecordRepository(
     context: Context,
     private val db: AppDatabase = AppDatabase.getInstance(context),
+    private val forwardDb: ForwardDatabase = ForwardDatabase.build(context),
     private val preferenceDataSource: PreferenceDataSource,
     private val recordUploadScheduler: ((String) -> Unit)? = null,
 ) : MessageRecordRepository {
     private val appContext = context.applicationContext ?: context
 
     override suspend fun listRecords(limit: Int): List<ReadRecordData> =
-        db.smsMsgDao().getAll().take(limit).map { it.toRecordData() }
+        forwardDb.forwardEventDao().getAll().take(limit).map { it.toRecordData() }
 
     override suspend fun listSmsBlacklistHits(limit: Int): List<ReadSmsBlacklistHitData> =
         db.smsBlacklistHitDao().getRecent(limit)
@@ -62,13 +64,13 @@ class RelayRecordRepository(
 
     /** 观察全量记录的 Flow，Room 自动在 DB 变更时发出新列表。 */
     override fun queryAllFlow(): Flow<List<ReadRecordData>> =
-        db.smsMsgDao().getAllFlow().map { list -> list.map { it.toRecordData() } }
+        forwardDb.forwardEventDao().getAllFlow().map { list -> list.map { it.toRecordData() } }
 
     /** 观察特定包名的通知日志（限额）。 */
     override fun observeLogsForPackage(packageName: String, limit: Int): Flow<List<ReadRecordData>> =
-        db.smsMsgDao().getAllFlow().map { list ->
+        forwardDb.forwardEventDao().getAllFlow().map { list ->
             list.asSequence()
-                .filter { it.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY && it.packageName == packageName }
+                .filter { it.msgType == ForwardEventEntity.MSG_TYPE_APP_NOTIFY && it.packageName == packageName }
                 .take(limit)
                 .toList()
                 .map { it.toRecordData() }
@@ -76,17 +78,17 @@ class RelayRecordRepository(
 
     /** 观察最近使用的通知渠道 ID。 */
     override fun observeRecentNotifyChannelIds(packageName: String, limit: Int): Flow<List<String>> =
-        db.smsMsgDao().observeRecentNotifyChannelIds(packageName, SmsMsg.MSG_TYPE_APP_NOTIFY, limit)
+        forwardDb.forwardEventDao().observeRecentNotifyChannelIds(packageName, ForwardEventEntity.MSG_TYPE_APP_NOTIFY, limit)
 
     /** 一性读取全量记录。 */
-    override suspend fun queryAll(): List<ReadRecordData> = db.smsMsgDao().getAll().map { it.toRecordData() }
+    override suspend fun queryAll(): List<ReadRecordData> = forwardDb.forwardEventDao().getAll().map { it.toRecordData() }
 
     /** 批量插入（用于 undo/restore 场景）。 */
     override suspend fun insertList(list: List<ReadRecordData>) {
         if (list.isEmpty()) return
-        val dao = db.smsMsgDao()
+        val dao = forwardDb.forwardEventDao()
         list.forEach { data ->
-            val smsMsg = data.toSmsMsgEntity()
+            val smsMsg = data.toForwardEventEntity()
             val existing = dao.getByFingerprint(
                 sender = smsMsg.sender,
                 body = smsMsg.body,
@@ -94,7 +96,7 @@ class RelayRecordRepository(
                 msgType = smsMsg.msgType,
             )
             if (existing != null) {
-                dao.update(mergeSmsMsgForInsert(existing, smsMsg))
+                dao.update(mergeForwardEventForInsert(existing, smsMsg))
             } else {
                 dao.insert(smsMsg)
             }
@@ -104,9 +106,9 @@ class RelayRecordRepository(
 
     override suspend fun insertListAndTrim(list: List<ReadRecordData>, maxCount: Int) {
         if (list.isEmpty()) return
-        val dao = db.smsMsgDao()
+        val dao = forwardDb.forwardEventDao()
         list.forEach { data ->
-            val smsMsg = data.toSmsMsgEntity()
+            val smsMsg = data.toForwardEventEntity()
             val existing = dao.getByFingerprint(
                 sender = smsMsg.sender,
                 body = smsMsg.body,
@@ -114,7 +116,7 @@ class RelayRecordRepository(
                 msgType = smsMsg.msgType,
             )
             if (existing != null) {
-                dao.update(mergeSmsMsgForInsert(existing, smsMsg))
+                dao.update(mergeForwardEventForInsert(existing, smsMsg))
             } else {
                 dao.insert(smsMsg)
             }
@@ -131,22 +133,22 @@ class RelayRecordRepository(
     /** 批量删除（同一事务内执行）。 */
     override suspend fun removeList(list: List<ReadRecordData>) {
         if (list.isEmpty()) return
-        db.smsMsgDao().deleteInTx(list.map { it.toSmsMsgEntity() })
+        forwardDb.forwardEventDao().deleteInTx(list.map { it.toForwardEventEntity() })
         scheduleRecordUpload("remove_list")
     }
 
     /** 获取记录总数的实时观察流。 */
-    override fun countFlow(): Flow<Long> = db.smsMsgDao().countFlow()
+    override fun countFlow(): Flow<Long> = forwardDb.forwardEventDao().countFlow()
 
     /** 清空所有记录。 */
     override suspend fun clearAll() {
-        db.smsMsgDao().clearAll()
+        forwardDb.forwardEventDao().clearAll()
         scheduleRecordUpload("clear_all")
     }
 
     override suspend fun deleteRecord(recordId: Long): Boolean {
-        val existing = db.smsMsgDao().getById(recordId) ?: return false
-        db.smsMsgDao().delete(existing)
+        val existing = forwardDb.forwardEventDao().byId(recordId) ?: return false
+        forwardDb.forwardEventDao().delete(existing)
         scheduleRecordUpload("delete_record")
         return true
     }
@@ -157,7 +159,7 @@ class RelayRecordRepository(
         date: Long,
         msgType: Int,
     ): Long? {
-        return db.smsMsgDao()
+        return forwardDb.forwardEventDao()
             .getByFingerprint(sender = sender, body = body, date = date, msgType = msgType)
             ?.id
     }
@@ -180,7 +182,7 @@ class RelayRecordRepository(
         sessionKey: String,
     ): Long? {
         return insertRecord(
-            smsMsg = SmsMsg(
+            smsMsg = ForwardEventEntity(
                 sender = sender,
                 body = body,
                 date = date,
@@ -201,10 +203,10 @@ class RelayRecordRepository(
     }
 
     suspend fun insertRecord(
-        smsMsg: SmsMsg,
+        smsMsg: ForwardEventEntity,
         isCodeSms: Boolean,
     ): Long? {
-        val dao = db.smsMsgDao()
+        val dao = forwardDb.forwardEventDao()
         val normalizedSmsMsg = ensureProcessedTime(smsMsg)
         trimOldRecordsIfNeeded(dao, normalizedSmsMsg.msgType, isCodeSms)
         if (isCodeSms) {
@@ -213,9 +215,9 @@ class RelayRecordRepository(
                 return duplicateId
             }
         }
-        if (normalizedSmsMsg.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY && normalizedSmsMsg.sessionKey.isNotBlank()) {
+        if (normalizedSmsMsg.msgType == ForwardEventEntity.MSG_TYPE_CALL_NOTIFY && normalizedSmsMsg.sessionKey.isNotBlank()) {
             dao.getBySessionKey(normalizedSmsMsg.msgType, normalizedSmsMsg.sessionKey)?.let { existing ->
-                dao.update(mergeSmsMsgForInsert(existing, normalizedSmsMsg))
+                dao.update(mergeForwardEventForInsert(existing, normalizedSmsMsg))
                 scheduleRecordUpload("update_call_session_record")
                 return existing.id
             }
@@ -227,7 +229,7 @@ class RelayRecordRepository(
             msgType = normalizedSmsMsg.msgType,
         )
         if (existing != null) {
-            dao.update(mergeSmsMsgForInsert(existing, normalizedSmsMsg))
+            dao.update(mergeForwardEventForInsert(existing, normalizedSmsMsg))
             scheduleRecordUpload("update_record")
             return existing.id
         }
@@ -249,8 +251,8 @@ class RelayRecordRepository(
     }
 
     private suspend fun findCodeDuplicateRecordId(
-        dao: io.github.magisk317.relay.android.data.db.dao.SmsMsgDao,
-        smsMsg: SmsMsg,
+        dao: io.github.magisk317.forward.db.ForwardEventDao,
+        smsMsg: ForwardEventEntity,
     ): Long? {
         val sender = smsMsg.sender
         val body = smsMsg.body
@@ -334,7 +336,7 @@ class RelayRecordRepository(
         return null
     }
 
-    private fun ensureProcessedTime(smsMsg: SmsMsg): SmsMsg {
+    private fun ensureProcessedTime(smsMsg: ForwardEventEntity): ForwardEventEntity {
         return if (smsMsg.processedTime > 0L) {
             smsMsg
         } else {
@@ -349,16 +351,16 @@ class RelayRecordRepository(
         forceFailed: Boolean,
         forcedStatus: Int?,
     ) {
-        val msgDao = db.smsMsgDao()
-        val existing = msgDao.getById(recordId) ?: return
+        val msgDao = forwardDb.forwardEventDao()
+        val existing = msgDao.byId(recordId) ?: return
         val successResults = results.filter { it.success }
         val failedResults = results.filterNot { it.success }
         val computedStatus = when {
             forcedStatus != null -> forcedStatus
-            forceFailed -> SmsMsg.FORWARD_STATUS_FAILED
-            successResults.isNotEmpty() && failedResults.isNotEmpty() -> SmsMsg.FORWARD_STATUS_PARTIAL
-            successResults.isNotEmpty() -> SmsMsg.FORWARD_STATUS_SUCCESS
-            else -> SmsMsg.FORWARD_STATUS_NONE
+            forceFailed -> ForwardEventEntity.FORWARD_STATUS_FAILED
+            successResults.isNotEmpty() && failedResults.isNotEmpty() -> ForwardEventEntity.FORWARD_STATUS_PARTIAL
+            successResults.isNotEmpty() -> ForwardEventEntity.FORWARD_STATUS_SUCCESS
+            else -> ForwardEventEntity.FORWARD_STATUS_NONE
         }
         val normalizedResults = results.map { result ->
             result.copy(senderName = SenderType.displayName(result.senderType, result.senderName))
@@ -388,7 +390,7 @@ class RelayRecordRepository(
     }
 
     private suspend fun trimOldRecordsIfNeeded(
-        dao: io.github.magisk317.relay.android.data.db.dao.SmsMsgDao,
+        dao: io.github.magisk317.forward.db.ForwardEventDao,
         msgType: Int,
         isCodeSms: Boolean,
     ) {
@@ -406,9 +408,9 @@ class RelayRecordRepository(
 
     private suspend fun getHistoryLimit(msgType: Int, isCodeSms: Boolean): Int {
         val key = when (msgType) {
-            SmsMsg.MSG_TYPE_APP_NOTIFY -> PrefConst.KEY_HISTORY_LIMIT_APP_NOTIFY
-            SmsMsg.MSG_TYPE_CALL_NOTIFY -> PrefConst.KEY_HISTORY_LIMIT_CALL_NOTIFY
-            SmsMsg.MSG_TYPE_SMS -> if (isCodeSms) PrefConst.KEY_HISTORY_LIMIT_CODE else PrefConst.KEY_HISTORY_LIMIT_PLAIN_SMS
+            ForwardEventEntity.MSG_TYPE_APP_NOTIFY -> PrefConst.KEY_HISTORY_LIMIT_APP_NOTIFY
+            ForwardEventEntity.MSG_TYPE_CALL_NOTIFY -> PrefConst.KEY_HISTORY_LIMIT_CALL_NOTIFY
+            ForwardEventEntity.MSG_TYPE_SMS -> if (isCodeSms) PrefConst.KEY_HISTORY_LIMIT_CODE else PrefConst.KEY_HISTORY_LIMIT_PLAIN_SMS
             else -> PrefConst.KEY_HISTORY_LIMIT_CODE
         }
         val previousLimit = preferenceDataSource.getString(PrefConst.KEY_HISTORY_LIMIT, "0")
@@ -427,11 +429,11 @@ class RelayRecordRepository(
         db.smsBlacklistHitDao().trimToLimit(limit)
     }
 
-    private fun recordMatchesType(record: SmsMsg, msgType: Int, isCodeSms: Boolean): Boolean = when (msgType) {
-        SmsMsg.MSG_TYPE_APP_NOTIFY -> record.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY
-        SmsMsg.MSG_TYPE_SMS -> {
+    private fun recordMatchesType(record: ForwardEventEntity, msgType: Int, isCodeSms: Boolean): Boolean = when (msgType) {
+        ForwardEventEntity.MSG_TYPE_APP_NOTIFY -> record.msgType == ForwardEventEntity.MSG_TYPE_APP_NOTIFY
+        ForwardEventEntity.MSG_TYPE_SMS -> {
             val hasCode = !record.smsCode.isNullOrBlank()
-            record.msgType == SmsMsg.MSG_TYPE_SMS && if (isCodeSms) hasCode else !hasCode
+            record.msgType == ForwardEventEntity.MSG_TYPE_SMS && if (isCodeSms) hasCode else !hasCode
         }
         else -> record.msgType == msgType
     }

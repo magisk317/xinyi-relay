@@ -10,11 +10,12 @@ import io.github.magisk317.smscode.db.entity.AutoInputEvent
 import io.github.magisk317.relay.android.data.db.entity.SmsBlacklistHit
 import io.github.magisk317.smscode.db.entity.SmsMsg
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSourceImpl
-import io.github.magisk317.relay.data.repository.RelayRecordRepository
+import io.github.magisk317.relay.data.repository.ForwardRoomRecordRepository
 import io.github.magisk317.forward.engine.service.MessageRecordRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.abs
+import io.github.magisk317.relay.android.data.mapper.toForwardEventEntity
 
 /**
  * Runtime-only persistence facade for lightweight hook / receiver writebacks.
@@ -28,7 +29,7 @@ class RuntimeRecordFacade(
 ) {
     private val appContext = context.applicationContext ?: context
     private val relayRecordRepository: MessageRecordRepository by lazy {
-        relayRecordRepository ?: RelayRecordRepository(
+        relayRecordRepository ?: ForwardRoomRecordRepository(
             context = appContext,
             db = db,
             preferenceDataSource = PreferenceDataSourceImpl(appContext),
@@ -214,10 +215,10 @@ class RuntimeRecordFacade(
         isCodeSms: Boolean,
     ): Long? = withContext(Dispatchers.IO) {
         val id = recordInserter?.invoke(smsMsg, isCodeSms)
-            // Safe cast: the lazy field always creates RelayRecordRepository when
+            // Safe cast: the lazy field always creates ForwardRoomRecordRepository when
             // no explicit inserter lambda was provided (non-Koin call sites).
-            ?: (relayRecordRepository as RelayRecordRepository).insertRecord(
-                smsMsg = smsMsg,
+            ?: (relayRecordRepository as ForwardRoomRecordRepository).insertRecord(
+                smsMsg = smsMsg.toForwardEventEntity(),
                 isCodeSms = isCodeSms,
             )
         MagiskOtel.event(
@@ -238,9 +239,9 @@ class RuntimeRecordFacade(
     suspend fun insertSmsBlacklistHit(hit: XpSmsBlacklistHitRecord): Long? = withContext(Dispatchers.IO) {
         val runtimeHit = hit.toRuntimeHit()
         smsBlacklistHitInserter?.invoke(runtimeHit)
-            // Safe cast: the lazy field always creates RelayRecordRepository when
+            // Safe cast: the lazy field always creates ForwardRoomRecordRepository when
             // no explicit inserter lambda was provided (non-Koin call sites).
-            ?: (relayRecordRepository as RelayRecordRepository).insertSmsBlacklistHit(runtimeHit)
+            ?: (relayRecordRepository as ForwardRoomRecordRepository).insertSmsBlacklistHit(runtimeHit)
     }
 
     suspend fun backfillSmsRouting(

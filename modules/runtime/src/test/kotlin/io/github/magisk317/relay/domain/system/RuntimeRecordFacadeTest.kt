@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test
 class RuntimeRecordFacadeTest {
 
     @Test
-    fun insertSmsRecord_delegatesToRelayRecordRepository() = runBlocking {
+    fun insertSmsRecord_delegatesToForwardRoomRecordRepository() = runBlocking {
         val context = relaxedContext()
         val database = smsMsgDatabaseFixture().database
         val smsMsg = runtimeSmsMsg()

@@ -11,7 +11,7 @@ import io.github.magisk317.relay.contract.repository.SettingsPreferencesReposito
 import io.github.magisk317.relay.data.repository.AnalyticsRepository
 import io.github.magisk317.relay.data.repository.ConfigRepository
 import io.github.magisk317.relay.data.repository.LocalConfigRepositoryImpl
-import io.github.magisk317.relay.data.repository.RelayRecordRepository
+import io.github.magisk317.relay.data.repository.ForwardRoomRecordRepository
 import io.github.magisk317.relay.data.repository.RemoteAgentRepository
 import io.github.magisk317.relay.data.repository.ScheduledTaskRepositoryImpl
 import io.github.magisk317.relay.data.repository.SettingsRepository
@@ -32,6 +32,7 @@ import io.github.magisk317.forward.engine.service.SystemInfoProvider
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 import io.github.magisk317.smscode.rule.repository.SmsCodeRuleRepository
+import io.github.magisk317.relay.android.data.mapper.toForwardEventEntity
 
 /**
  * Single source of truth for the application object graph.
@@ -46,15 +47,15 @@ val coreModule = module {
     single<PreferenceDataSource> { PreferenceDataSourceImpl(androidContext()) }
 
     single<SettingsPreferencesRepository> { SettingsRepository(androidContext(), get()) }
-    single<MessageRecordRepository> { RelayRecordRepository(androidContext(), get(), get()) }
+    single<MessageRecordRepository> { ForwardRoomRecordRepository(androidContext(), preferenceDataSource = get(), recordUploadScheduler = get()) }
     single<RuntimeAnalyticsProvider> { AnalyticsRepository(androidContext(), get()) }
     single {
-        val repo = get<MessageRecordRepository>() as RelayRecordRepository
+        val repo = get<MessageRecordRepository>() as ForwardRoomRecordRepository
         RuntimeRecordFacade(
             context = androidContext(),
             db = get(),
             relayRecordRepository = repo,
-            recordInserter = { smsMsg, isCodeSms -> repo.insertRecord(smsMsg, isCodeSms) },
+            recordInserter = { smsMsg, isCodeSms -> repo.insertRecord(smsMsg.toForwardEventEntity(), isCodeSms) },
             smsBlacklistHitInserter = { hit -> repo.insertSmsBlacklistHit(hit) },
         )
     }

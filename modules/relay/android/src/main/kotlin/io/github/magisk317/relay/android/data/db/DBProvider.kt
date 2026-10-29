@@ -122,7 +122,7 @@ class DBProvider : ContentProvider() {
                     }
                     .build()
                 // This is also the app-owned signal used by RemoteAgentInitializer to restore
-                // RelayRecordRepository's record-upload scheduling after hook writes moved to
+                // ForwardRoomRecordRepository's record-upload scheduling after hook writes moved to
                 // the provider process. Notify accepted duplicates too, matching the old
                 // repository path which scheduled after duplicate resolution.
                 context?.contentResolver?.notifyChange(resultUri, null)
