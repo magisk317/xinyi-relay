@@ -3,7 +3,7 @@ package io.github.magisk317.relay.xp.hook.telephony
 import io.github.magisk317.relay.hookentry.BuildConfig
 import io.github.magisk317.relay.xp.HookTargetDiagnostics
 import io.github.magisk317.relay.xp.hook.helper.XinyiHookHostCapabilities
-import io.github.magisk317.smscode.xposed.hook.HookHostCapabilities
+import io.github.magisk317.smscode.xposed.hook.telephony.SmsHookCapabilities
 import io.github.magisk317.smscode.xposed.hook.telephony.BaseSmsProviderHook
 import io.github.magisk317.smscode.xposed.hook.telephony.SmsProviderHookHost
 import io.github.magisk317.smscode.xposed.hook.telephony.SmsProviderHookInstaller
@@ -20,7 +20,7 @@ import io.github.magisk317.xposed.LoadParam
 private object XinyiSmsProviderHookHost : SmsProviderHookHost {
     override val applicationId: String = BuildConfig.APPLICATION_ID
 
-    override val capabilities: HookHostCapabilities = XinyiHookHostCapabilities
+    override val capabilities: SmsHookCapabilities = XinyiHookHostCapabilities
 
     override fun onTargetProcessHit(param: LoadParam) {
         HookTargetDiagnostics.logTargetProcessHitIfVerbose(

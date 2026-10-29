@@ -62,6 +62,7 @@ androidComponents {
 
 dependencies {
     implementation(project(":magisk-xposed-kit:logging"))
+    implementation(project(":magisk-xposed-kit:capability"))
     implementation(project(":policy"))
     implementation(project(":runtime"))
     implementation(project(":relay:engine:api"))

@@ -1,8 +1,8 @@
 package io.github.magisk317.relay.xp.hook.code.helper
 
 import android.content.Context
-import io.github.magisk317.smscode.runtime.contract.autoinput.AutoInputBroadcastContract
-import io.github.magisk317.smscode.xposed.helper.LocalInputActions
+import io.github.magisk317.xposed.runtime.contract.autoinput.AutoInputBroadcastContract
+import io.github.magisk317.xposed.capability.helper.LocalInputActions
 import io.github.magisk317.xposed.capability.prefs.CorePrefs
 
 /** Thin delegate; implementation lives in core [LocalInputActions]. */

@@ -7,7 +7,7 @@ import android.os.Build
 import android.provider.Telephony
 import io.github.magisk317.relay.hookentry.BuildConfig
 import io.github.magisk317.relay.xp.HookTargetDiagnostics
-import io.github.magisk317.smscode.xposed.utils.ModuleActivationStore
+import io.github.magisk317.xposed.capability.utils.ModuleActivationStore
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
 import io.github.magisk317.relay.xpbridge.XpPrefs
@@ -35,7 +35,7 @@ import io.github.magisk317.xposed.MethodHook
 import io.github.magisk317.xposed.LoadParam
 import io.github.magisk317.xposed.MethodHookParam
 import io.github.magisk317.xposed.logging.MagiskOtel
-import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
+import io.github.magisk317.xposed.runtime.contract.logging.LogRoute
 import java.lang.reflect.Method
 import java.util.Collections
 import java.util.concurrent.Executors

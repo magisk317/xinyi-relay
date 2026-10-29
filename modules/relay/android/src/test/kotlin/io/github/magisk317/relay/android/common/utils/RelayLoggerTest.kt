@@ -2,7 +2,7 @@ package io.github.magisk317.relay.android.common.utils
 
 import io.github.magisk317.relay.android.diagnostics.RuntimeDiagnosticsBridge
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
-import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
+import io.github.magisk317.xposed.runtime.contract.logging.LogRoute
 import io.github.magisk317.xposed.logging.LogEvent
 import io.github.magisk317.xposed.logging.LogSink
 import io.github.magisk317.xposed.logging.XLog as ContractXLog

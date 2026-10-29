@@ -6,7 +6,7 @@ import io.github.magisk317.relay.xpbridge.XpHookDiagnostics
 import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xpbridge.XpSmsCodeParser
 import io.github.magisk317.relay.xpbridge.XpStringEscaper
-import io.github.magisk317.smscode.xposed.hook.HookHostCapabilities
+import io.github.magisk317.smscode.xposed.hook.telephony.SmsHookCapabilities
 
 /**
  * xinyi 侧的统一宿主能力适配器。
@@ -15,7 +15,7 @@ import io.github.magisk317.smscode.xposed.hook.HookHostCapabilities
  * `xpbridge` 门面（[XpPrefs]/[XpStringEscaper]/[XpSmsCodeParser]/[XpHookDiagnostics]），
  * 本对象把这层差异收敛在一处，使 relay 与 XSC 消费同一份契约。
  */
-internal object XinyiHookHostCapabilities : HookHostCapabilities {
+internal object XinyiHookHostCapabilities : SmsHookCapabilities {
     override fun isVerboseLogMode(context: Context): Boolean = XpPrefs.isVerboseLogMode(context)
 
     override fun isSensitiveDebugLogMode(context: Context): Boolean =
