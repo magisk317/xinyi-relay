@@ -16,3 +16,6 @@
 [submodule "magisk-xposed-kit"]
 	path = magisk-xposed-kit
 	url = https://gitlab.com/magisk3171/shared/magisk-xposed-kit.git
+[submodule "forward/core"]
+	path = forward/core
+	url = https://gitlab.com/magisk3171/shared/magisk-forward-core.git

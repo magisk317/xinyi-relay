@@ -93,6 +93,13 @@ include(
     ":magisk-xposed-kit:diagnostics",
     ":magisk-xposed-kit:capability",
     ":magisk-xposed-kit:runtime",
+    ":magisk-forward-core:contract",
+    ":magisk-forward-core:capture",
+    ":magisk-forward-core:runtime",
+    ":magisk-forward-core:engine",
+    ":magisk-forward-core:sender",
+    ":magisk-forward-core:db",
+    ":magisk-forward-core",
     ":magisk-xposed-kit:permission",
     ":magisk-xposed-kit:entitlement",
     ":magisk-xposed-kit:keepalive",
@@ -113,6 +120,13 @@ project(":magisk-xposed-kit:logging").projectDir = file("magisk-xposed-kit/loggi
 project(":magisk-xposed-kit:diagnostics").projectDir = file("magisk-xposed-kit/diagnostics")
 project(":magisk-xposed-kit:capability").projectDir = file("magisk-xposed-kit/capability")
 project(":magisk-xposed-kit:runtime").projectDir = file("magisk-xposed-kit/runtime")
+project(":magisk-forward-core:contract").projectDir = file("forward/core/contract")
+project(":magisk-forward-core:capture").projectDir = file("forward/core/capture")
+project(":magisk-forward-core:runtime").projectDir = file("forward/core/runtime")
+project(":magisk-forward-core:engine").projectDir = file("forward/core/engine")
+project(":magisk-forward-core:sender").projectDir = file("forward/core/sender")
+project(":magisk-forward-core:db").projectDir = file("forward/core/db")
+project(":magisk-forward-core").projectDir = file("forward/core")
 project(":magisk-xposed-kit:permission").projectDir = file("magisk-xposed-kit/permission")
 project(":magisk-xposed-kit:entitlement").projectDir = file("magisk-xposed-kit/entitlement")
 project(":magisk-xposed-kit:keepalive").projectDir = file("magisk-xposed-kit/keepalive")
