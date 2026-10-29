@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.ui.home.relayconfig
 
-import io.github.magisk317.uikit.preference.SectionList
+import io.github.magisk317.uikit.preference.SectionCard
 import io.github.magisk317.relay.ui.common.StateSwitchItem
 import io.github.magisk317.uikit.preference.AppArrowItem
 import io.github.magisk317.uikit.preference.TextInputDialog
@@ -35,7 +35,6 @@ import io.github.magisk317.relay.contract.repository.SettingsPreferencesReposito
 import io.github.magisk317.relay.contract.settings.RelaySettingsSnapshot
 import io.github.magisk317.relay.contract.settings.RelaySettingsUpdate
 import io.github.magisk317.relay.mobile.core.R
-import io.github.magisk317.uikit.surface.DetailDivider
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
 import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
@@ -80,9 +79,9 @@ fun RelayConfigScreen(
             verticalArrangement = Arrangement.spacedBy(Const.SPACING_SMALL.dp),
         ) {
             Spacer(modifier = Modifier.height(Const.PADDING_SMALL.dp))
-            // One flat group: the switch and the entries it gates are a single list, so the
-            // gutter comes from SectionList and no row carries its own horizontal padding.
-            SectionList {
+            // One group holds the switch and the entries it gates, so the gutter comes from the
+            // card and no row carries its own horizontal padding.
+            SectionCard {
                 StateSwitchItem(
                     title = stringResource(id = R.string.pref_relay_features_title),
                     summary = stringResource(id = R.string.pref_relay_features_summary),
@@ -94,28 +93,23 @@ fun RelayConfigScreen(
                     }
                 }
                 if (current.relayFeaturesEnabled) {
-                    DetailDivider()
                     AppArrowItem(
                         title = stringResource(id = R.string.tab_senders),
                         summary = stringResource(id = R.string.pref_enable_forward_summary),
                         modifier = Modifier.testTag(BENCHMARK_RELAY_SENDERS),
                     ) { onOpenSenders() }
-                    DetailDivider()
                     AppArrowItem(
                         title = stringResource(id = R.string.title_notification_rules),
                         summary = stringResource(id = R.string.subtitle_notification_rules),
                     ) { onOpenAppRouting() }
-                    DetailDivider()
                     AppArrowItem(
                         title = stringResource(id = R.string.advanced_filter_title),
                         summary = stringResource(id = R.string.advanced_filter_summary),
                     ) { onOpenFilters() }
-                    DetailDivider()
                     AppArrowItem(
                         title = stringResource(id = R.string.pref_relay_records_title),
                         summary = stringResource(id = R.string.pref_relay_records_summary),
                     ) { onOpenRecords() }
-                    DetailDivider()
                     AppArrowItem(
                         title = stringResource(id = R.string.pref_sms_forward_dedup_window_title),
                         summary = stringResource(
