@@ -13,3 +13,5 @@ a4e9737a5b73d7af0ed168d9b45cd5b7c7c6117f:modules/core/src/main/java/io/github/ma
 a4e9737a5b73d7af0ed168d9b45cd5b7c7c6117f:modules/core/src/test/java/io/github/magisk317/relay/backup/webdav/WebDavConfigCryptoTest.kt:generic-api-key:112
 e41627873f7684957093e581e5a9bcbadeecb887:storage/src/main/java/com/github/magisk317/smscode/common/constant/PrefConst.kt:generic-api-key:105
 e41627873f7684957093e581e5a9bcbadeecb887:storage/src/main/java/com/github/magisk317/smscode/common/constant/PrefConst.kt:generic-api-key:106
+4d22e7ac815bf69f947de01a168a54efab501de5:modules/relay/contract/src/commonMain/kotlin/io/github/magisk317/relay/contract/constant/RelayPrefConst.kt:generic-api-key:200
+4d22e7ac815bf69f947de01a168a54efab501de5:modules/relay/contract/src/commonMain/kotlin/io/github/magisk317/relay/contract/constant/RelayPrefConst.kt:generic-api-key:201
