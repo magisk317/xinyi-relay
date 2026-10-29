@@ -65,6 +65,7 @@ fun SettingsHomeScreen(
     onOpenAdvancedRelay: () -> Unit,
     onOpenCloudBackup: (io.github.magisk317.relay.backup.BackupSource?, Boolean) -> Unit = { _, _ -> },
     onOpenDeviceControl: () -> Unit = {},
+    onOpenDiagnostics: () -> Unit = {},
     onBack: (() -> Unit)? = null,
     isActive: Boolean = true,
     bottomContentPadding: Dp = 0.dp,
@@ -260,6 +261,7 @@ fun SettingsHomeScreen(
                 onRuntimeLogTitleClick = runtimeLogActions.onRuntimeLogTitleClick,
                 onRuntimeLogRetentionClick = runtimeLogActions.onRuntimeLogRetentionClick,
                 onClearLog = runtimeLogActions.onClearLog,
+                onOpenDiagnostics = onOpenDiagnostics,
                 onAnalyticsEnabledChange = { enabled ->
                     scope.launch {
                         diagnostics = repository.updateDiagnosticsSettings(

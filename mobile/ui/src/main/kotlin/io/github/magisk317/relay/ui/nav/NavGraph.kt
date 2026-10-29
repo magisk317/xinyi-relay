@@ -72,6 +72,9 @@ data class RemoteAgentRoute(val bindCode: String = "", val baseUrl: String = "")
 object DeviceControlRoute
 
 @Serializable
+object DiagnosticsRoute
+
+@Serializable
 data class RelayConfigRoute(val origin: String = ROUTE_ORIGIN_ADVANCED)
 
 @Serializable

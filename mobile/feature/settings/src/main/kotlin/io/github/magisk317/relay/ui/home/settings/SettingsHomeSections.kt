@@ -173,6 +173,7 @@ internal fun SettingsDiagnosticsSection(
     onRuntimeLogTitleClick: () -> Unit,
     onRuntimeLogRetentionClick: () -> Unit,
     onClearLog: () -> Unit,
+    onOpenDiagnostics: () -> Unit,
     onAnalyticsEnabledChange: (Boolean) -> Unit,
 ) {
     val updateController = koinInject<AppUpdateController>()
@@ -183,6 +184,11 @@ internal fun SettingsDiagnosticsSection(
         onExpandedChange = onExpandedChange,
         accordionMode = true,
     ) {
+        AppArrowItem(
+            title = stringResource(id = R.string.diagnostics_title),
+            summary = stringResource(id = R.string.diagnostics_summary),
+            onClick = onOpenDiagnostics,
+        )
         RuntimeLogDiagnosticsItems(
             labels = RuntimeLogDiagnosticsLabels(
                 shareLogTitle = stringResource(id = UiKitR.string.pref_share_log_title),
