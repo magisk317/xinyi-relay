@@ -1,11 +1,14 @@
 package io.github.magisk317.relay.domain.diagnostics
 
 import android.content.Context
+import io.github.magisk317.forward.db.ForwardDatabase
 import io.github.magisk317.relay.android.data.db.AppDatabase
+import io.github.magisk317.relay.platform.ipc.ForwardDatabaseBootstrapper
 
 /**
- * Business metrics the settings diagnostics page shows. Queried in this module so the
- * settings UI does not need Room on its compile classpath.
+ * Business metrics the settings diagnostics page shows. SMS and auto-input
+ * metrics remain in the SMS database; forward records and dispatch metrics
+ * come exclusively from forward.db.
  */
 data class DiagnosticsMetrics(
     val recordCount: Long = 0L,
@@ -28,13 +31,16 @@ object DiagnosticsMetricsReader {
     private const val DAY_MS = 24L * 60L * 60L * 1000L
 
     suspend fun read(context: Context, nowMs: Long = System.currentTimeMillis()): DiagnosticsMetrics {
+        ForwardDatabaseBootstrapper.awaitReady()
         val database = runCatching { AppDatabase.getInstance(context) }.getOrNull()
             ?: return DiagnosticsMetrics()
+        val forwardDatabase = runCatching { ForwardDatabase.build(context) }.getOrNull()
+            ?: return DiagnosticsMetrics()
         val from24h = nowMs - DAY_MS
-        val latestSms = runCatching { database.smsMsgDao().getLatest() }.getOrNull()
-        val recordCount = runCatching { database.smsMsgDao().countAll() }.getOrDefault(0L)
-        val dispatchDao = database.senderDispatchLogDao()
-        val latestDispatch = runCatching { dispatchDao.getLatest() }.getOrNull()
+        val latestSms = runCatching { forwardDatabase.forwardEventDao().latestSms() }.getOrNull()
+        val recordCount = runCatching { forwardDatabase.forwardEventDao().count().toLong() }.getOrDefault(0L)
+        val dispatchDao = forwardDatabase.senderDispatchLogDao()
+        val latestDispatch = runCatching { dispatchDao.latest() }.getOrNull()
         val forwardTotal = runCatching { dispatchDao.countTotalFrom(from24h) }.getOrDefault(0L)
         val forwardSuccess = runCatching { dispatchDao.countSuccessFrom(from24h) }.getOrDefault(0L)
         val forwardFailed = runCatching { dispatchDao.countFailedFrom(from24h) }.getOrDefault(0L)

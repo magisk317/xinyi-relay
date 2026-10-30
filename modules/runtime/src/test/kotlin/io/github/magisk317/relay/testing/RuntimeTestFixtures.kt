@@ -5,9 +5,12 @@ import android.content.Intent
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.android.data.db.dao.SmsBlacklistHitDao
 import io.github.magisk317.relay.android.data.db.dao.SmsMsgDao
-import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySmsMsg as SmsMsg
 import io.mockk.every
 import io.mockk.mockk
+import io.github.magisk317.forward.db.ForwardDatabase
+import io.github.magisk317.forward.db.ForwardEventDao
+import io.github.magisk317.forward.db.ForwardEventEntity
 import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastContract
 
 data class RuntimeDatabaseFixture(
@@ -40,6 +43,45 @@ fun runtimeSmsMsg(
     smsCode = smsCode,
     packageName = packageName,
     msgType = msgType,
+)
+
+data class ForwardDatabaseFixture(
+    val database: ForwardDatabase,
+    val forwardEventDao: ForwardEventDao,
+)
+
+fun forwardDatabaseFixture(): ForwardDatabaseFixture {
+    val database = mockk<ForwardDatabase>(relaxed = true)
+    val forwardEventDao = mockk<ForwardEventDao>(relaxed = true)
+    every { database.forwardEventDao() } returns forwardEventDao
+    return ForwardDatabaseFixture(
+        database = database,
+        forwardEventDao = forwardEventDao,
+    )
+}
+
+fun runtimeForwardEvent(
+    id: Long = 0L,
+    sender: String = "1068",
+    body: String = "code 123456",
+    date: Long = 100L,
+    company: String? = "Bank",
+    smsCode: String? = "123456",
+    packageName: String? = "com.bank.app",
+    msgType: Int = ForwardEventEntity.MSG_TYPE_SMS,
+    simSlot: Int = -1,
+    subId: Int = 0,
+): ForwardEventEntity = ForwardEventEntity(
+    id = id,
+    sender = sender,
+    body = body,
+    date = date,
+    company = company,
+    smsCode = smsCode,
+    packageName = packageName,
+    msgType = msgType,
+    simSlot = simSlot,
+    subId = subId,
 )
 
 fun smsMsgDatabaseFixture(): RuntimeDatabaseFixture {

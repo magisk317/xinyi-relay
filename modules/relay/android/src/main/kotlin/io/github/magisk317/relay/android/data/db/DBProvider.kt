@@ -12,11 +12,12 @@ import android.os.Binder
 import android.os.Bundle
 import androidx.room.withTransaction
 import io.github.magisk317.xposed.logging.XLog
-import io.github.magisk317.relay.android.data.db.dao.SmsMsgDao
+import io.github.magisk317.forward.db.ForwardEventDao
 import io.github.magisk317.forward.db.ForwardAppInfoEntity
 import io.github.magisk317.forward.db.ForwardDatabase
 import io.github.magisk317.smscode.db.entity.SmsCodeRule
-import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.forward.db.ForwardEventEntity
+import io.github.magisk317.relay.android.data.mapper.mergeForwardEventForInsert
 import io.github.magisk317.smscode.runtime.common.record.CodeRecordChannel
 import io.github.magisk317.smscode.runtime.common.record.CodeRecordTrimPolicy
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
@@ -85,7 +86,7 @@ class DBProvider : ContentProvider() {
         }
         when (uriType) {
             SMS_MSG_DIR -> {
-                val msg = SmsMsg(
+                val msg = ForwardEventEntity(
                     sender = values?.getAsString("sender"),
                     body = values?.getAsString("body"),
                     date = values?.getAsLong("date") ?: 0L,
@@ -98,23 +99,24 @@ class DBProvider : ContentProvider() {
                     subId = values?.getAsInteger("sub_id") ?: 0,
                     contactName = values?.getAsString("contact_name").orEmpty(),
                     phoneArea = values?.getAsString("phone_area").orEmpty(),
-                    msgType = values?.getAsInteger("msg_type") ?: SmsMsg.MSG_TYPE_SMS,
+                    msgType = values?.getAsInteger("msg_type") ?: ForwardEventEntity.MSG_TYPE_SMS,
                     callType = values?.getAsInteger("call_type") ?: 0,
                     sessionKey = values?.getAsString("session_key").orEmpty(),
-                    forwardStatus = values?.getAsInteger("forward_status") ?: SmsMsg.FORWARD_STATUS_NONE,
+                    forwardStatus = values?.getAsInteger("forward_status")
+                        ?: ForwardEventEntity.FORWARD_STATUS_NONE,
                     forwardTarget = values?.getAsString("forward_target"),
                     forwardMessage = values?.getAsString("forward_message"),
                     forwardTime = values?.getAsLong("forward_time") ?: 0L,
                 )
-                val database = mDatabase ?: return null
+                val forwardDatabase = mForwardDatabase ?: return null
                 val outcome = runBlocking {
-                    database.withTransaction {
+                    forwardDatabase.withTransaction {
                         val result = insertSmsMsgOrGetExisting(
-                            dao = database.smsMsgDao(),
+                            dao = forwardDatabase.forwardEventDao(),
                             incoming = msg,
                             deduplicate = parseBooleanValue(values, KEY_DEDUPLICATE, true),
                         )
-                        trimOldRecordsIfNeeded(ctx, database.smsMsgDao(), msg)
+                        trimOldRecordsIfNeeded(ctx, forwardDatabase.forwardEventDao(), msg)
                         result
                     }
                 }
@@ -192,15 +194,15 @@ class DBProvider : ContentProvider() {
     }
 
     private fun deleteSmsMsgById(id: Long): Int = runBlocking {
-        val dao = mDatabase!!.smsMsgDao()
-        val msg = dao.getById(id) ?: return@runBlocking 0
+        val dao = mForwardDatabase!!.forwardEventDao()
+        val msg = dao.byId(id) ?: return@runBlocking 0
         dao.delete(msg)
         1
     }
 
     private suspend fun insertSmsMsgOrGetExisting(
-        dao: SmsMsgDao,
-        incoming: SmsMsg,
+        dao: ForwardEventDao,
+        incoming: ForwardEventEntity,
         deduplicate: Boolean,
     ): SmsMsgInsertOutcome {
         dao.getByFingerprint(
@@ -209,17 +211,19 @@ class DBProvider : ContentProvider() {
             date = incoming.date,
             msgType = incoming.msgType,
         )?.let { existing ->
-            dao.update(mergeSmsMsgForInsert(existing, incoming))
-            return SmsMsgInsertOutcome(id = existing.id ?: error("persisted SMS row missing id"), duplicate = true)
+            dao.update(mergeForwardEventForInsert(existing, incoming))
+            return SmsMsgInsertOutcome(id = existing.id, duplicate = true)
         }
 
         if (deduplicate) {
             findWindowDuplicate(dao, incoming)?.let { existing ->
-                return SmsMsgInsertOutcome(id = existing.id ?: error("persisted SMS row missing id"), duplicate = true)
+                return SmsMsgInsertOutcome(id = existing.id, duplicate = true)
             }
         }
 
-        val insertedId = dao.insertIfAbsent(incoming)
+        // forward_event carries no unique fingerprint index, so the conflict is resolved by
+        // re-reading inside the same transaction and merging into the row that won the race.
+        val insertedId = runCatching { dao.insert(incoming) }.getOrElse { -1L }
         if (insertedId > 0L) {
             return SmsMsgInsertOutcome(id = insertedId, duplicate = false)
         }
@@ -230,11 +234,14 @@ class DBProvider : ContentProvider() {
             date = incoming.date,
             msgType = incoming.msgType,
         ) ?: error("SMS fingerprint conflict without an existing row")
-        dao.update(mergeSmsMsgForInsert(raced, incoming))
-        return SmsMsgInsertOutcome(id = raced.id ?: error("persisted SMS row missing id"), duplicate = true)
+        dao.update(mergeForwardEventForInsert(raced, incoming))
+        return SmsMsgInsertOutcome(id = raced.id, duplicate = true)
     }
 
-    private suspend fun findWindowDuplicate(dao: SmsMsgDao, incoming: SmsMsg): SmsMsg? {
+    private suspend fun findWindowDuplicate(
+        dao: ForwardEventDao,
+        incoming: ForwardEventEntity,
+    ): ForwardEventEntity? {
         val timestamp = incoming.date.takeIf { it > 0L } ?: System.currentTimeMillis()
         val from = (timestamp - CodeRecordSimilarityUtils.DEFAULT_WINDOW_MS).coerceAtLeast(0L)
         val to = timestamp + CodeRecordSimilarityUtils.DEFAULT_WINDOW_MS
@@ -265,8 +272,10 @@ class DBProvider : ContentProvider() {
             }
         }
 
-        if (!incoming.sender.isNullOrBlank() && !incoming.body.isNullOrBlank()) {
-            dao.getByFingerprintInRange(incoming.sender, incoming.body, incoming.msgType, from, to)
+        val sender = incoming.sender
+        val body = incoming.body
+        if (!sender.isNullOrBlank() && !body.isNullOrBlank()) {
+            dao.getByFingerprintInRange(sender, body, incoming.msgType, from, to)
                 ?.let { return it }
         }
         return null
@@ -283,7 +292,7 @@ class DBProvider : ContentProvider() {
     }
 
     private fun querySmsMsgs(projection: Array<String>?, sortOrder: String?): Cursor = runBlocking {
-        val rows = mDatabase!!.smsMsgDao().getAll().let { list ->
+        val rows = mForwardDatabase!!.forwardEventDao().getAll().let { list ->
             when (sortOrder?.trim()?.lowercase()) {
                 "date asc" -> list.sortedBy { it.date }
                 "date desc", null, "" -> list.sortedByDescending { it.date }
@@ -292,8 +301,8 @@ class DBProvider : ContentProvider() {
         }
         val columns = projection ?: SmsMsgCursorContract.defaultColumns
         val cursor = MatrixCursor(columns)
-        rows.forEach { msg ->
-            cursor.addRow(buildRow(columns) { column -> valueFromSmsMsg(msg, column) })
+        rows.forEach { event ->
+            cursor.addRow(buildRow(columns) { column -> valueFromForwardEvent(event, column) })
         }
         return@runBlocking cursor
     }
@@ -302,9 +311,9 @@ class DBProvider : ContentProvider() {
         val id = uri.lastPathSegment?.toLongOrNull() ?: throw IllegalArgumentException("Invalid URI: $uri")
         val columns = projection ?: SmsMsgCursorContract.defaultColumns
         val cursor = MatrixCursor(columns)
-        val msg = mDatabase!!.smsMsgDao().getById(id)
-        if (msg != null) {
-            cursor.addRow(buildRow(columns) { column -> valueFromSmsMsg(msg, column) })
+        val event = mForwardDatabase!!.forwardEventDao().byId(id)
+        if (event != null) {
+            cursor.addRow(buildRow(columns) { column -> valueFromForwardEvent(event, column) })
         }
         return@runBlocking cursor
     }
@@ -370,12 +379,28 @@ class DBProvider : ContentProvider() {
             else -> null
         }
 
-    private fun valueFromSmsMsg(msg: SmsMsg, column: String): Any? =
-        SmsMsgCursorContract.valueFromRecord(msg, column) ?: when (column) {
-            "sim_slot" -> msg.simSlot
-            "sub_id" -> msg.subId
-            "contact_name" -> msg.contactName
-            "phone_area" -> msg.phoneArea
+    private fun valueFromForwardEvent(event: ForwardEventEntity, column: String): Any? =
+        when (column.lowercase()) {
+            "_id", "id" -> event.id
+            "sender" -> event.sender
+            "body" -> event.body
+            "date" -> event.date
+            "processed_time" -> event.processedTime
+            "company" -> event.company
+            "sms_code" -> event.smsCode
+            "package_name" -> event.packageName
+            "notify_channel_id" -> event.notifyChannelId
+            "sim_slot" -> event.simSlot
+            "sub_id" -> event.subId
+            "msg_type" -> event.msgType
+            "call_type" -> event.callType
+            "contact_name" -> event.contactName
+            "phone_area" -> event.phoneArea
+            "session_key" -> event.sessionKey
+            "forward_status" -> event.forwardStatus
+            "forward_target" -> event.forwardTarget
+            "forward_message" -> event.forwardMessage
+            "forward_time" -> event.forwardTime
             else -> null
         }
 
@@ -641,8 +666,8 @@ class DBProvider : ContentProvider() {
     }
 
     private fun updateSmsMsgById(id: Long, values: ContentValues?): Int = runBlocking {
-        val dao = mDatabase!!.smsMsgDao()
-        val existing = dao.getById(id) ?: return@runBlocking 0
+        val dao = mForwardDatabase!!.forwardEventDao()
+        val existing = dao.byId(id) ?: return@runBlocking 0
         val updated = existing.copy(
             sender = values?.getAsString("sender") ?: existing.sender,
             body = values?.getAsString("body") ?: existing.body,
@@ -767,7 +792,7 @@ class DBProvider : ContentProvider() {
         }
     }
 
-    private suspend fun trimOldRecordsIfNeeded(ctx: Context, dao: SmsMsgDao, msg: SmsMsg) {
+    private suspend fun trimOldRecordsIfNeeded(ctx: Context, dao: ForwardEventDao, msg: ForwardEventEntity) {
         val channel = channelOf(msg)
         val limit = CodeRecordTrimPolicy.resolveLimit(
             readString = { key, default -> AppPreferencesDataStore.getString(ctx, key, default) },
@@ -784,10 +809,10 @@ class DBProvider : ContentProvider() {
         if (outdated.isNotEmpty()) dao.deleteInTx(outdated)
     }
 
-    private fun channelOf(record: SmsMsg): CodeRecordChannel = when (record.msgType) {
-        SmsMsg.MSG_TYPE_APP_NOTIFY -> CodeRecordChannel.APP_NOTIFY
-        SmsMsg.MSG_TYPE_CALL_NOTIFY -> CodeRecordChannel.CALL_NOTIFY
-        SmsMsg.MSG_TYPE_SMS -> if (!record.smsCode.isNullOrBlank()) CodeRecordChannel.SMS_CODE else CodeRecordChannel.SMS_PLAIN
+    private fun channelOf(record: ForwardEventEntity): CodeRecordChannel = when (record.msgType) {
+        ForwardEventEntity.MSG_TYPE_APP_NOTIFY -> CodeRecordChannel.APP_NOTIFY
+        ForwardEventEntity.MSG_TYPE_CALL_NOTIFY -> CodeRecordChannel.CALL_NOTIFY
+        ForwardEventEntity.MSG_TYPE_SMS -> if (!record.smsCode.isNullOrBlank()) CodeRecordChannel.SMS_CODE else CodeRecordChannel.SMS_PLAIN
         else -> CodeRecordChannel.SMS_CODE
     }
 
@@ -830,84 +855,4 @@ class DBProvider : ContentProvider() {
         val id: Long,
         val duplicate: Boolean,
     )
-}
-
-fun mergeSmsMsgForInsert(existing: SmsMsg, incoming: SmsMsg): SmsMsg {
-    val incomingHasForwardState = incoming.forwardStatus != SmsMsg.FORWARD_STATUS_NONE ||
-        !incoming.forwardTarget.isNullOrBlank() ||
-        !incoming.forwardMessage.isNullOrBlank() ||
-        incoming.forwardTime > 0L
-    val preferred = preferRicherSmsMsg(existing, incoming)
-    val fallback = if (preferred === existing) incoming else existing
-    return existing.copy(
-        sender = preferred.sender ?: fallback.sender ?: existing.sender,
-        body = preferred.body ?: fallback.body ?: existing.body,
-        date = incoming.date.takeIf { it > 0L } ?: existing.date,
-        processedTime = existing.processedTime.takeIf { it > 0L }
-            ?: incoming.processedTime.takeIf { it > 0L }
-            ?: 0L,
-        company = preferred.company?.takeIf { it.isNotBlank() }
-            ?: fallback.company?.takeIf { it.isNotBlank() }
-            ?: existing.company,
-        smsCode = preferred.smsCode?.takeIf { it.isNotBlank() }
-            ?: fallback.smsCode?.takeIf { it.isNotBlank() }
-            ?: existing.smsCode,
-        packageName = preferred.packageName?.takeIf { it.isNotBlank() }
-            ?: fallback.packageName?.takeIf { it.isNotBlank() }
-            ?: existing.packageName,
-        notifyChannelId = preferred.notifyChannelId.takeIf { it.isNotBlank() }
-            ?: fallback.notifyChannelId.takeIf { it.isNotBlank() }
-            ?: existing.notifyChannelId,
-        simSlot = preferred.simSlot.takeIf { it >= 0 }
-            ?: fallback.simSlot.takeIf { it >= 0 }
-            ?: existing.simSlot,
-        subId = preferred.subId.takeIf { it > 0 }
-            ?: fallback.subId.takeIf { it > 0 }
-            ?: existing.subId,
-        contactName = preferred.contactName.takeIf { it.isNotBlank() }
-            ?: fallback.contactName.takeIf { it.isNotBlank() }
-            ?: existing.contactName,
-        phoneArea = preferred.phoneArea.takeIf { it.isNotBlank() }
-            ?: fallback.phoneArea.takeIf { it.isNotBlank() }
-            ?: existing.phoneArea,
-        msgType = incoming.msgType,
-        callType = preferred.callType.takeIf { it != 0 }
-            ?: fallback.callType.takeIf { it != 0 }
-            ?: existing.callType,
-        sessionKey = preferred.sessionKey.takeIf { it.isNotBlank() }
-            ?: fallback.sessionKey.takeIf { it.isNotBlank() }
-            ?: existing.sessionKey,
-        forwardStatus = if (incomingHasForwardState) incoming.forwardStatus else existing.forwardStatus,
-        forwardTarget = if (incomingHasForwardState) incoming.forwardTarget else existing.forwardTarget,
-        forwardMessage = if (incomingHasForwardState) incoming.forwardMessage else existing.forwardMessage,
-        forwardTime = if (incomingHasForwardState) incoming.forwardTime else existing.forwardTime,
-    )
-}
-
-private fun preferRicherSmsMsg(existing: SmsMsg, incoming: SmsMsg): SmsMsg {
-    val existingScore = scoreSmsMsg(existing)
-    val incomingScore = scoreSmsMsg(incoming)
-    return when {
-        incomingScore > existingScore -> incoming
-        incomingScore < existingScore -> existing
-        incoming.date > existing.date -> incoming
-        else -> existing
-    }
-}
-
-private fun scoreSmsMsg(record: SmsMsg): Int {
-    var score = 0
-    val pkg = record.packageName.orEmpty()
-    if (pkg.isNotBlank() && !isSystemSmsPackage(pkg)) score += 4
-    if (record.company.orEmpty().isNotBlank()) score += 2
-    if (record.simSlot >= 0) score += 2
-    if (record.sender.orEmpty().isNotBlank()) score += 1
-    if (record.contactName.isNotBlank()) score += 1
-    return score
-}
-
-private fun isSystemSmsPackage(packageName: String): Boolean {
-    return packageName == "com.android.mms" ||
-        packageName == "com.android.messaging" ||
-        packageName == "com.google.android.apps.messaging"
 }

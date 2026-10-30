@@ -6,6 +6,7 @@ import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.forward.db.ForwardDatabase
+import io.github.magisk317.relay.platform.ipc.ForwardDatabaseBootstrapper
 import io.github.magisk317.forward.engine.event.RelayEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -21,6 +22,7 @@ class EventGatekeeper(
     private val preferenceDataSource: PreferenceDataSource,
 ) {
     suspend fun check(event: RelayEvent, traceId: String): GateDecision {
+        ForwardDatabaseBootstrapper.awaitReady()
         val decision = evaluate(event, traceId)
         MagiskOtel.event(
             name = "sms.pipeline",

@@ -6,9 +6,11 @@ import android.os.Build
 import android.telephony.SubscriptionManager
 import io.github.magisk317.relay.contract.xpbridge.XpSmsBlacklistHitRecord
 import io.github.magisk317.relay.android.data.db.AppDatabase
+import io.github.magisk317.forward.db.ForwardDatabase
+import io.github.magisk317.forward.db.ForwardEventEntity
 import io.github.magisk317.smscode.db.entity.AutoInputEvent
 import io.github.magisk317.relay.android.data.db.entity.SmsBlacklistHit
-import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySmsMsg as SmsMsg
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSourceImpl
 import io.github.magisk317.relay.data.repository.ForwardRoomRecordRepository
 import io.github.magisk317.forward.engine.service.MessageRecordRepository
@@ -23,6 +25,7 @@ import io.github.magisk317.relay.android.data.mapper.toForwardEventEntity
 class RuntimeRecordFacade(
     context: Context,
     private val db: AppDatabase = AppDatabase.getInstance(context),
+    private val forwardDb: ForwardDatabase = ForwardDatabase.build(context),
     relayRecordRepository: MessageRecordRepository? = null,
     private val recordInserter: (suspend (SmsMsg, Boolean) -> Long?)? = null,
     private val smsBlacklistHitInserter: (suspend (SmsBlacklistHit) -> Long?)? = null,
@@ -42,7 +45,7 @@ class RuntimeRecordFacade(
         date: Long,
         msgType: Int = SmsMsg.MSG_TYPE_SMS,
     ): Boolean = withContext(Dispatchers.IO) {
-        val duplicate = db.smsMsgDao().getByFingerprint(sender, body, date, msgType) != null
+        val duplicate = forwardDb.forwardEventDao().getByFingerprint(sender, body, date, msgType) != null
         MagiskOtel.event(
             name = "sms.record",
             attributes = mapOf(
@@ -63,7 +66,7 @@ class RuntimeRecordFacade(
         date: Long,
         msgType: Int = SmsMsg.MSG_TYPE_SMS,
     ): Long? = withContext(Dispatchers.IO) {
-        db.smsMsgDao().getByFingerprint(sender, body, date, msgType)?.id
+        forwardDb.forwardEventDao().getByFingerprint(sender, body, date, msgType)?.id
     }
 
     suspend fun insertAutoInputAttempt(
@@ -122,7 +125,8 @@ class RuntimeRecordFacade(
         dateTo: Long,
         msgType: Int = SmsMsg.MSG_TYPE_SMS,
     ): Boolean = withContext(Dispatchers.IO) {
-        db.smsMsgDao().getByFingerprintInRange(sender, body, msgType, dateFrom, dateTo) != null
+        forwardDb.forwardEventDao()
+            .getByFingerprintInRange(sender.orEmpty(), body.orEmpty(), msgType, dateFrom, dateTo) != null
     }
 
     suspend fun hasSmsCodeDuplicateByPackageInRange(
@@ -132,7 +136,8 @@ class RuntimeRecordFacade(
         dateTo: Long,
         msgType: Int = SmsMsg.MSG_TYPE_SMS,
     ): Boolean = withContext(Dispatchers.IO) {
-        db.smsMsgDao().getByCodeAndPackageInRange(smsCode, packageName, msgType, dateFrom, dateTo) != null
+        forwardDb.forwardEventDao()
+            .getByCodeAndPackageInRange(smsCode.orEmpty(), packageName.orEmpty(), msgType, dateFrom, dateTo) != null
     }
 
     suspend fun hasSmsCodeDuplicateByCompanyInRange(
@@ -142,7 +147,8 @@ class RuntimeRecordFacade(
         dateTo: Long,
         msgType: Int = SmsMsg.MSG_TYPE_SMS,
     ): Boolean = withContext(Dispatchers.IO) {
-        db.smsMsgDao().getByCodeAndCompanyInRange(smsCode, company, msgType, dateFrom, dateTo) != null
+        forwardDb.forwardEventDao()
+            .getByCodeAndCompanyInRange(smsCode.orEmpty(), company.orEmpty(), msgType, dateFrom, dateTo) != null
     }
 
     suspend fun querySmsRecordsByCodeInRange(
@@ -150,8 +156,8 @@ class RuntimeRecordFacade(
         dateFrom: Long,
         dateTo: Long,
         msgType: Int = SmsMsg.MSG_TYPE_SMS,
-    ): List<SmsMsg> = withContext(Dispatchers.IO) {
-        db.smsMsgDao().getByCodeInRange(smsCode, msgType, dateFrom, dateTo)
+    ): List<ForwardEventEntity> = withContext(Dispatchers.IO) {
+        forwardDb.forwardEventDao().getByCodeInRange(smsCode.orEmpty(), msgType, dateFrom, dateTo)
     }
 
     suspend fun persistSmsForwardResult(
@@ -161,7 +167,7 @@ class RuntimeRecordFacade(
         message: String,
         maxMessageLength: Int = 300,
     ) = withContext(Dispatchers.IO) {
-        val dao = db.smsMsgDao()
+        val dao = forwardDb.forwardEventDao()
         val timestamp = smsMsg.date.takeIf { it > 0L } ?: System.currentTimeMillis()
         val processedTime = smsMsg.processedTime.takeIf { it > 0L } ?: System.currentTimeMillis()
         val existing = dao.getByFingerprint(
@@ -170,8 +176,8 @@ class RuntimeRecordFacade(
             date = timestamp,
             msgType = smsMsg.msgType,
         )
-        val updated = (existing ?: smsMsg.copy(date = timestamp, processedTime = processedTime)).copy(
-            forwardStatus = if (success) SmsMsg.FORWARD_STATUS_SUCCESS else SmsMsg.FORWARD_STATUS_FAILED,
+        val updated = (existing ?: smsMsg.toForwardEventEntity().copy(date = timestamp, processedTime = processedTime)).copy(
+            forwardStatus = if (success) ForwardEventEntity.FORWARD_STATUS_SUCCESS else ForwardEventEntity.FORWARD_STATUS_FAILED,
             forwardTarget = target,
             forwardMessage = message.take(maxMessageLength),
             forwardTime = System.currentTimeMillis(),
@@ -260,7 +266,7 @@ class RuntimeRecordFacade(
         }
 
         val timestamp = date.takeIf { it > 0L } ?: System.currentTimeMillis()
-        val candidates = db.smsMsgDao()
+        val candidates = forwardDb.forwardEventDao()
             .getAll()
             .asSequence()
             .filter { it.msgType == msgType }
@@ -289,7 +295,7 @@ class RuntimeRecordFacade(
         if (newSimSlot == existing.simSlot && newSubId == existing.subId) {
             return@withContext false
         }
-        db.smsMsgDao().update(existing.copy(simSlot = newSimSlot, subId = newSubId))
+        forwardDb.forwardEventDao().update(existing.copy(simSlot = newSimSlot, subId = newSubId))
         true
     }
 

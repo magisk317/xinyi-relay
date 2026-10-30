@@ -2,6 +2,7 @@ package io.github.magisk317.relay.domain.pipeline
 
 import io.github.magisk317.forward.contract.constant.MessageType
 import io.github.magisk317.forward.db.ForwardDatabase
+import io.github.magisk317.relay.platform.ipc.ForwardDatabaseBootstrapper
 import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
 import io.github.magisk317.forward.engine.event.RelayEvent
 import io.github.magisk317.forward.engine.model.Sender
@@ -35,6 +36,7 @@ class RoutingResolver(private val db: ForwardDatabase) {
         event: RelayEvent,
         traceId: String? = null,
     ): SenderRoutingResolution {
+        ForwardDatabaseBootstrapper.awaitReady()
         val forwardFilterRules = if (needsFilterEvaluation(event.messageType)) {
             db.forwardFilterRuleDao().getEnabledByMsgType(event.messageType.runtimeType).map { it.toDomain() }
         } else {
@@ -111,6 +113,7 @@ class RoutingResolver(private val db: ForwardDatabase) {
     suspend fun evaluatePreRoute(
         event: RelayEvent,
     ): ForwardFilterDecision {
+        ForwardDatabaseBootstrapper.awaitReady()
         val decision = when {
             needsFilterEvaluation(event.messageType) -> {
                 val rules = db.forwardFilterRuleDao().getEnabledByMsgType(event.messageType.runtimeType).map { it.toDomain() }

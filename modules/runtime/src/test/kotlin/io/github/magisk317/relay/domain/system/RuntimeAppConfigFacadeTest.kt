@@ -2,7 +2,7 @@ package io.github.magisk317.relay.domain.system
 
 import android.content.Context
 import io.mockk.mockk
-import io.github.magisk317.smscode.db.entity.AppInfo
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacyAppInfo as AppInfo
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue

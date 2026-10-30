@@ -3,7 +3,7 @@ package io.github.magisk317.relay.data.mapper
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toEntity
-import io.github.magisk317.smscode.db.entity.Sender
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySender as Sender
 import io.github.magisk317.forward.engine.sender.SenderActiveSchedule
 import io.github.magisk317.forward.engine.sender.SenderActiveScheduleConst
 import io.github.magisk317.forward.engine.sender.SenderActiveScheduleRange

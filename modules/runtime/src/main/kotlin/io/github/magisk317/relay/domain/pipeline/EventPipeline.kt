@@ -7,7 +7,8 @@ import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.forward.db.ForwardDatabase
-import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.relay.platform.ipc.ForwardDatabaseBootstrapper
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySmsMsg as SmsMsg
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
 import io.github.magisk317.relay.android.data.mapper.ForwardConfigMapper.toDomain
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
@@ -76,6 +77,7 @@ class EventPipeline(
             MagiskOtel.event(name = "sms.event", attributes = attrs, statusOk = statusOk)
         }
         try {
+            ForwardDatabaseBootstrapper.awaitReady()
             var recordContext = resolveRecordContext(event, preferredRecordId)
             val gateDecision = eventGatekeeper.check(event, traceId.orEmpty())
             if (!gateDecision.allowed) {

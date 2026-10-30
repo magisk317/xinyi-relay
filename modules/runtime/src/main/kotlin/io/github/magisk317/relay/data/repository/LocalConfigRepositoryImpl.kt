@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.forward.db.ForwardDatabase
+import io.github.magisk317.relay.platform.ipc.ForwardDatabaseBootstrapper
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toEntity
 import io.github.magisk317.relay.android.data.mapper.ForwardConfigMapper.toDomain
@@ -309,6 +310,7 @@ class LocalConfigRepositoryImpl(
     override fun observeMutationSources(): Flow<String> = mutationSources
 
     private suspend fun buildLocalMirrorModel(): LocalConfigMirrorPayload {
+        ForwardDatabaseBootstrapper.awaitReady()
         return LocalConfigMirrorPayload(
             general = settingsRepository.getGeneralSettings(),
             verification = settingsRepository.getVerificationSettings(),

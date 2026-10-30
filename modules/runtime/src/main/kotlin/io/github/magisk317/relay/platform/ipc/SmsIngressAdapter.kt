@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.Intent
 import io.github.magisk317.forward.contract.constant.MessageType
 import io.github.magisk317.relay.android.sms.SmsCodeUtils
-import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySmsMsg as SmsMsg
 import io.github.magisk317.smscode.rule.utils.SmsCodeParsedMetadataResolver
 import io.github.magisk317.xposed.logging.MagiskOtel
 import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastPayload
