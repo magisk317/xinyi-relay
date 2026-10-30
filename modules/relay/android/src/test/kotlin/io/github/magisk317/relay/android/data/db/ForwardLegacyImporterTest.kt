@@ -2,7 +2,7 @@ package io.github.magisk317.relay.android.data.db
 
 import io.github.magisk317.forward.db.ForwardEventEntity
 import io.github.magisk317.relay.android.data.db.entity.SenderDispatchLog
-import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySmsMsg as SmsMsg
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -97,6 +97,23 @@ class ForwardLegacyImporterTest {
 
         assertFalse(report.ok)
         assertEquals("missing event for legacy id=1", report.firstEventMismatch)
+    }
+
+    @Test
+    fun `parity flags a changed event field`() {
+        val msg = SmsMsg(id = 1, sender = "a", body = "b", date = 10, msgType = 0)
+        val imported = listOf(ForwardLegacyImporter.projectEvent(msg).copy(body = "changed"))
+
+        val report = ForwardLegacyImporter.checkParity(
+            legacy = listOf(msg),
+            imported = imported,
+            legacyLogs = emptyList(),
+            importedLogs = emptyList(),
+            recordIdMap = mapOf(1L to 1L),
+        )
+
+        assertFalse(report.ok)
+        assertEquals("event mismatch id=1", report.firstEventMismatch)
     }
 
     @Test

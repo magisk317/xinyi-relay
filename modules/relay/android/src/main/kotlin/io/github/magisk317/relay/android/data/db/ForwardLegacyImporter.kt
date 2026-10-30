@@ -9,10 +9,10 @@ import io.github.magisk317.forward.db.ForwardEventEntity
 import io.github.magisk317.forward.db.ForwardAppInfoEntity
 import io.github.magisk317.forward.db.ForwardRuleEntity
 import io.github.magisk317.forward.db.SenderDispatchLogEntity
-import io.github.magisk317.smscode.db.entity.ForwardFilterRule
-import io.github.magisk317.smscode.db.entity.NotifyRouteRule
-import io.github.magisk317.smscode.db.entity.Sender
-import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacyForwardFilterRule as ForwardFilterRule
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacyNotifyRouteRule as NotifyRouteRule
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySender as Sender
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySmsMsg as SmsMsg
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
 import io.github.magisk317.forward.contract.json.RelayJson
 import io.github.magisk317.forward.engine.model.Sender as ForwardSender
@@ -111,29 +111,43 @@ object ForwardLegacyImporter {
     ): ParityReport {
         val eventCountMatches = legacy.size == imported.size
         val logCountMatches = legacyLogs.size == importedLogs.size
-        val byLegacyId = imported.associateBy { it.id }
+        val importedById = imported.associateBy { it.id }
         val firstEventMismatch = legacy.firstNotNullOfOrNull { msg ->
-            val projected = projectEvent(msg)
-            val actual = msg.id?.let { byLegacyId[it] }
+            val expected = projectEvent(msg)
+            val expectedId = msg.id?.let { recordIdMap[it] } ?: expected.id
+            val actual = importedById[expectedId]
             when {
                 actual == null -> "missing event for legacy id=${msg.id}"
-                actual.msgType != projected.msgType -> "msgType ${actual.msgType} != ${projected.msgType} id=${msg.id}"
-                actual.date != projected.date -> "date ${actual.date} != ${projected.date} id=${msg.id}"
-                actual.forwardStatus != projected.forwardStatus -> "forwardStatus ${actual.forwardStatus} != ${projected.forwardStatus} id=${msg.id}"
-                actual.sender != projected.sender -> "sender mismatch id=${msg.id}"
-                actual.body != projected.body -> "body mismatch id=${msg.id}"
+                actual.copy(id = expected.id) != expected -> "event mismatch id=${msg.id}"
                 else -> null
             }
+        } ?: if (!eventCountMatches) {
+            "event count ${legacy.size}!=${imported.size}"
+        } else {
+            null
         }
-        val importedBySignature = importedLogs.groupBy { Triple(it.senderId, it.createdAt, it.success) }
         val firstDispatchLogMismatch = legacyLogs.firstNotNullOfOrNull { log ->
-            val expectedRecordId = log.recordId?.let { recordIdMap[it] }
-            val candidates = importedBySignature[Triple(log.senderId, log.createdAt, log.success)].orEmpty()
-            if (candidates.none { it.recordId == expectedRecordId }) {
-                "dispatch log senderId=${log.senderId} createdAt=${log.createdAt} recordId=$expectedRecordId not imported"
-            } else {
-                null
+            val expected = projectDispatchLog(log, recordIdMap)
+            val actual = importedLogs.firstOrNull {
+                it.recordId == expected.recordId &&
+                    it.senderId == expected.senderId &&
+                    it.senderType == expected.senderType &&
+                    it.msgType == expected.msgType &&
+                    it.success == expected.success &&
+                    it.createdAt == expected.createdAt
             }
+            when {
+                actual == null ->
+                    "dispatch log senderId=${log.senderId} createdAt=${log.createdAt} " +
+                        "recordId=${expected.recordId} not imported"
+                actual.copy(id = expected.id) != expected ->
+                    "dispatch log mismatch recordId=${expected.recordId} senderId=${expected.senderId}"
+                else -> null
+            }
+        } ?: if (!logCountMatches) {
+            "dispatch log count ${legacyLogs.size}!=${importedLogs.size}"
+        } else {
+            null
         }
         return ParityReport(
             eventCountMatches = eventCountMatches,
@@ -172,13 +186,13 @@ object ForwardLegacyImporter {
         createdAt = task.createdAt,
     )
 
-    fun projectAppInfo(info: io.github.magisk317.smscode.db.entity.AppInfo): ForwardAppInfoEntity = ForwardAppInfoEntity(
+    fun projectAppInfo(info: io.github.magisk317.relay.android.data.db.legacy.entity.LegacyAppInfo): ForwardAppInfoEntity = ForwardAppInfoEntity(
         packageName = info.packageName, label = info.label, blocked = info.blocked,
         forwarding = info.forwarding, forwardingConfigured = info.forwardingConfigured,
         notifyTemplate = info.notifyTemplate,
     )
 
-    fun projectRule(rule: io.github.magisk317.smscode.db.entity.Rule): ForwardRuleEntity = ForwardRuleEntity(
+    fun projectRule(rule: io.github.magisk317.relay.android.data.db.legacy.entity.LegacyRule): ForwardRuleEntity = ForwardRuleEntity(
         id = rule.id, type = rule.type, filed = rule.filed, check = rule.check, value = rule.value,
         senderId = rule.senderId, smsTemplate = rule.smsTemplate, regexReplace = rule.regexReplace,
         simSlot = rule.simSlot, status = rule.status, time = rule.time,
@@ -201,62 +215,49 @@ object ForwardLegacyImporter {
         suspend fun <T> applyCategory(
             name: String,
             rows: List<T>,
-            targetCount: suspend () -> Int,
+            targetRows: suspend () -> List<T>,
             write: suspend (List<T>) -> Unit,
         ) {
             when {
                 rows.isEmpty() -> Unit
-                targetCount() > 0 -> skipped += name
+                targetRows().isNotEmpty() -> skipped += name
                 else -> {
                     write(rows)
-                    val after = targetCount()
-                    if (after == rows.size) {
+                    val actual = targetRows()
+                    if (actual.toSet() == rows.toSet()) {
                         imported += name
                     } else {
-                        mismatches += "$name rows ${rows.size}!=$after"
+                        mismatches +=
+                            "$name parity expected=${rows.size} actual=${actual.size}"
                     }
                 }
             }
         }
 
         val senders = legacy.senderDao().getAll().map { projectSender(it) }
-        applyCategory("senders", senders, { target.forwardSenderDao().count() }) {
+        applyCategory("senders", senders, { target.forwardSenderDao().all() }) {
             target.forwardSenderDao().upsertAll(it)
         }
         val routes = legacy.notifyRouteRuleDao().getAll().map { projectRouteRule(it) }
-        applyCategory("routes", routes, { target.forwardRouteRuleDao().count() }) {
+        applyCategory("routes", routes, { target.forwardRouteRuleDao().all() }) {
             target.forwardRouteRuleDao().upsertAll(it)
         }
         val filters = legacy.forwardFilterRuleDao().getAll().map { projectFilterRule(it) }
-        applyCategory("filters", filters, { target.forwardFilterRuleDao().count() }) {
+        applyCategory("filters", filters, { target.forwardFilterRuleDao().all() }) {
             target.forwardFilterRuleDao().upsertAll(it)
         }
         val tasks = legacy.scheduledTaskDao().getAll().map { projectScheduledTask(it) }
-        applyCategory("scheduled", tasks, { target.forwardScheduledTaskDao().count() }) {
+        applyCategory("scheduled", tasks, { target.forwardScheduledTaskDao().all() }) {
             target.forwardScheduledTaskDao().upsertAll(it)
         }
         val appInfos = legacy.appInfoDao().getAll().map { projectAppInfo(it) }
-        applyCategory("appInfo", appInfos, { target.forwardAppInfoDao().count() }) {
+        applyCategory("appInfo", appInfos, { target.forwardAppInfoDao().all() }) {
             target.forwardAppInfoDao().upsertAll(it)
         }
         val rules = legacy.ruleDao().getAll().map { projectRule(it) }
-        applyCategory("rules", rules, { target.forwardRuleDao().count() }) {
+        applyCategory("rules", rules, { target.forwardRuleDao().all() }) {
             target.forwardRuleDao().upsertAll(it)
         }
-
-        val missingSenderIds = senders.map { it.id }.toSet() - target.forwardSenderDao().all().map { it.id }.toSet()
-        if (missingSenderIds.isNotEmpty()) mismatches += "sender missing ${missingSenderIds.size}"
-        val missingRouteIds = routes.map { it.id }.toSet() - target.forwardRouteRuleDao().all().map { it.id }.toSet()
-        if (missingRouteIds.isNotEmpty()) mismatches += "route missing ${missingRouteIds.size}"
-        val missingFilterIds = filters.map { it.id }.toSet() - target.forwardFilterRuleDao().all().map { it.id }.toSet()
-        if (missingFilterIds.isNotEmpty()) mismatches += "filter missing ${missingFilterIds.size}"
-        val missingTaskIds = tasks.map { it.id }.toSet() - target.forwardScheduledTaskDao().all().map { it.id }.toSet()
-        if (missingTaskIds.isNotEmpty()) mismatches += "scheduled missing ${missingTaskIds.size}"
-        val missingPackages = appInfos.map { it.packageName }.toSet() -
-            target.forwardAppInfoDao().all().map { it.packageName }.toSet()
-        if (missingPackages.isNotEmpty()) mismatches += "app info missing ${missingPackages.size}"
-        val missingRuleIds = rules.map { it.id }.toSet() - target.forwardRuleDao().all().map { it.id }.toSet()
-        if (missingRuleIds.isNotEmpty()) mismatches += "rule missing ${missingRuleIds.size}"
 
         return ConfigImportReport(imported = imported, skipped = skipped, mismatches = mismatches)
     }
@@ -272,7 +273,7 @@ object ForwardLegacyImporter {
         val dispatchLogs = logs.map { projectDispatchLog(it, recordIdMap) }
         target.senderDispatchLogDao().insertAll(dispatchLogs)
         val importedEvents = insertedIds.mapNotNull { target.forwardEventDao().byId(it) }
-        val importedLogs = recordIdMap.values.flatMap { target.senderDispatchLogDao().byRecordId(it) }
+        val importedLogs = target.senderDispatchLogDao().all()
         val parity = checkParity(msgs, importedEvents, logs, importedLogs, recordIdMap)
         return ImportReport(
             eventsImported = events.size,
