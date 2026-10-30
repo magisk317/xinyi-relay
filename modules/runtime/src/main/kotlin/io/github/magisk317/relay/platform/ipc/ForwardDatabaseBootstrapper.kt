@@ -40,14 +40,15 @@ object ForwardDatabaseBootstrapper {
         val appContext = context.applicationContext ?: context
         scope.launch {
             try {
-                val legacy = AppDatabase.getInstance(appContext)
-                val target = ForwardDatabase.build(appContext)
-                importEventsIfNeeded(legacy, target)
-                importConfigIfNeeded(legacy, target)
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Exception) {
-                XLog.e(message = "Forward legacy import failed", error)
+                runCatching {
+                    val legacy = AppDatabase.getInstance(appContext)
+                    val target = ForwardDatabase.build(appContext)
+                    importEventsIfNeeded(legacy, target)
+                    importConfigIfNeeded(legacy, target)
+                }.exceptionOrNull()?.let { error ->
+                    if (error is CancellationException) throw error
+                    XLog.e(message = "Forward legacy import failed", error)
+                }
             } finally {
                 ready.complete(Unit)
             }

@@ -163,7 +163,9 @@ object ForwardLegacyImporter {
         pattern = rule.pattern, enabled = rule.enabled, updateTime = rule.updateTime,
     )
 
-    fun projectScheduledTask(task: io.github.magisk317.relay.android.data.db.entity.ScheduledTaskEntity): ForwardScheduledTaskEntity = ForwardScheduledTaskEntity(
+    fun projectScheduledTask(
+        task: io.github.magisk317.relay.android.data.db.entity.ScheduledTaskEntity,
+    ): ForwardScheduledTaskEntity = ForwardScheduledTaskEntity(
         id = task.id, name = task.name, taskType = task.taskType, cronExpression = task.cronExpression,
         simSlot = task.simSlot, mobiles = task.mobiles, content = task.content,
         status = task.status, lastRunTime = task.lastRunTime, nextRunTime = task.nextRunTime,
