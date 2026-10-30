@@ -47,7 +47,7 @@ val coreModule = module {
     single<PreferenceDataSource> { PreferenceDataSourceImpl(androidContext()) }
 
     single<SettingsPreferencesRepository> { SettingsRepository(androidContext(), get()) }
-    single<MessageRecordRepository> { ForwardRoomRecordRepository(androidContext(), preferenceDataSource = get(), recordUploadScheduler = get()) }
+    single<MessageRecordRepository> { ForwardRoomRecordRepository(androidContext(), preferenceDataSource = get()) }
     single<RuntimeAnalyticsProvider> { AnalyticsRepository(androidContext(), get()) }
     single {
         val repo = get<MessageRecordRepository>() as ForwardRoomRecordRepository
