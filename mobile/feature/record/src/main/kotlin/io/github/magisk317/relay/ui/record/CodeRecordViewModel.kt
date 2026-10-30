@@ -28,7 +28,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
-import io.github.magisk317.smscode.rule.utils.CodeRecordSimilarityUtils
+import io.github.magisk317.xposed.contract.util.CodeRecordSimilarityUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job

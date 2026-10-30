@@ -12,7 +12,7 @@ import io.github.magisk317.forward.db.ForwardEventEntity
 import io.github.magisk317.relay.android.data.mapper.mergeForwardEventForInsert
 import io.github.magisk317.relay.android.data.mapper.toRecordData
 import io.github.magisk317.relay.android.data.mapper.toForwardEventEntity
-import io.github.magisk317.smscode.rule.utils.CodeRecordSimilarityUtils
+import io.github.magisk317.xposed.contract.util.CodeRecordSimilarityUtils
 import io.github.magisk317.forward.engine.model.ReadRecordData
 import io.github.magisk317.forward.engine.model.ReadSmsBlacklistHitData
 import io.github.magisk317.forward.engine.sender.SenderType

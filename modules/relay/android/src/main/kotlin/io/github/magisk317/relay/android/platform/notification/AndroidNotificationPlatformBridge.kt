@@ -3,7 +3,7 @@ package io.github.magisk317.relay.android.platform.notification
 import android.content.Context
 import io.github.magisk317.forward.contract.notification.RelayNotificationPlatformBridge
 import io.github.magisk317.smscode.runtime.common.notification.AndroidNotificationPlatformBridge as SharedAndroidNotificationPlatformBridge
-import io.github.magisk317.smscode.runtime.contract.notification.NotificationDeliveryDiagnostics
+import io.github.magisk317.xposed.runtime.contract.notification.NotificationDeliveryDiagnostics
 
 object AndroidNotificationPlatformBridge : RelayNotificationPlatformBridge {
     private val platform = SharedAndroidNotificationPlatformBridge(recoverDeletedChannels = true)

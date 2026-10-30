@@ -161,6 +161,7 @@ tasks.matching { it.name.endsWith("GoogleServices") }.configureEach {
 }
 
 dependencies {
+    implementation(project(":magisk-xposed-kit:runtime"))
     implementation(libs.mobile.entitlement.android)
     implementation(project(":policy"))
     implementation(project(":runtime"))

@@ -20,9 +20,9 @@ import io.github.magisk317.relay.xp.hook.helper.XinyiHookHostCapabilities
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeSession
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
-import io.github.magisk317.smscode.rule.utils.RecentEventDeduplicator
-import io.github.magisk317.smscode.rule.utils.SmsForwardDedupKeyFactory
-import io.github.magisk317.smscode.rule.utils.SmsForwardDedupSpec
+import io.github.magisk317.xposed.contract.dedup.RecentEventDeduplicator
+import io.github.magisk317.xposed.contract.dedup.SmsForwardDedupKeyFactory
+import io.github.magisk317.xposed.contract.dedup.SmsForwardDedupSpec
 import io.github.magisk317.smscode.runtime.verification.SmsIntentHookSupport
 import io.github.magisk317.xposed.HookHelpers
 import io.github.magisk317.xposed.BaseHook

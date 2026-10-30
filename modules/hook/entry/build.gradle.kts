@@ -40,6 +40,8 @@ android {
 }
 
 dependencies {
+    implementation(project(":magisk-xposed-kit:runtime"))
+    implementation(project(":magisk-xposed-kit:contract"))
     compileOnly(libs.libxposed.api)
 
     implementation(project(":xpbridge:core"))

@@ -83,6 +83,7 @@ include(
     ":magisk-ui-kit:billing",
     ":magisk-ui-kit:update",
     ":magisk-xposed-kit",
+    ":magisk-xposed-kit:contract",
     ":magisk-xposed-kit:logging",
     ":magisk-xposed-kit:diagnostics",
     ":magisk-xposed-kit:capability",
@@ -115,6 +116,7 @@ project(":smscode-core:runtime").projectDir = file("smscode/core/runtime")
 project(":smscode-core:verification").projectDir = file("smscode/core/verification")
 project(":smscode-core:db").projectDir = file("smscode/core/db")
 project(":smscode-core").projectDir = file("smscode/core")
+project(":magisk-xposed-kit:contract").projectDir = file("magisk-xposed-kit/contract")
 project(":magisk-xposed-kit:logging").projectDir = file("magisk-xposed-kit/logging")
 project(":magisk-xposed-kit:capture").projectDir = file("magisk-xposed-kit/capture")
 project(":magisk-xposed-kit:diagnostics").projectDir = file("magisk-xposed-kit/diagnostics")
