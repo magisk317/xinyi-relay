@@ -13,7 +13,8 @@ import android.os.Bundle
 import androidx.room.withTransaction
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.db.dao.SmsMsgDao
-import io.github.magisk317.smscode.db.entity.AppInfo
+import io.github.magisk317.forward.db.ForwardAppInfoEntity
+import io.github.magisk317.forward.db.ForwardDatabase
 import io.github.magisk317.smscode.db.entity.SmsCodeRule
 import io.github.magisk317.smscode.db.entity.SmsMsg
 import io.github.magisk317.smscode.runtime.common.record.CodeRecordChannel
@@ -32,12 +33,14 @@ import kotlinx.coroutines.runBlocking
 
 class DBProvider : ContentProvider() {
     private var mDatabase: AppDatabase? = null
+    private var mForwardDatabase: ForwardDatabase? = null
     private lateinit var uriMatcher: UriMatcher
     private lateinit var authority: String
 
     override fun onCreate(): Boolean {
         context?.let {
             mDatabase = AppDatabase.getInstance(it)
+            mForwardDatabase = ForwardDatabase.build(it)
             StorageUtils.repairExternalAppDataPermissions(it)
             ProviderCallerPolicy.updateLiveScope(readCachedXposedScope(it))
             authority = "${it.packageName}.db.provider"
@@ -322,7 +325,7 @@ class DBProvider : ContentProvider() {
         selection: String?,
         selectionArgs: Array<String>?,
     ): Cursor = runBlocking {
-        var rows = mDatabase!!.appInfoDao().getAll()
+        var rows = mForwardDatabase!!.forwardAppInfoDao().all()
         if (!selection.isNullOrBlank()) {
             val normalized = selection.replace("`", "").trim().lowercase()
             if (normalized == "blocked = ?" && !selectionArgs.isNullOrEmpty()) {
@@ -335,7 +338,7 @@ class DBProvider : ContentProvider() {
         }
         val columns = projection ?: arrayOf("package_name", "label", "blocked", "forwarding", "notify_template")
         val cursor = MatrixCursor(columns)
-        rows.forEach { app: AppInfo ->
+        rows.forEach { app: ForwardAppInfoEntity ->
             cursor.addRow(buildRow(columns) { column -> valueFromAppInfo(app, column) })
         }
         return@runBlocking cursor
@@ -348,7 +351,7 @@ class DBProvider : ContentProvider() {
         if (packageName.isBlank()) {
             return@runBlocking cursor
         }
-        val app = mDatabase!!.appInfoDao().getByPackageName(packageName)
+        val app = mForwardDatabase!!.forwardAppInfoDao().byPackage(packageName)
         if (app != null) {
             cursor.addRow(buildRow(columns) { column -> valueFromAppInfo(app, column) })
         }
@@ -376,7 +379,7 @@ class DBProvider : ContentProvider() {
             else -> null
         }
 
-    private fun valueFromAppInfo(app: AppInfo, column: String): Any? =
+    private fun valueFromAppInfo(app: ForwardAppInfoEntity, column: String): Any? =
         when (column) {
             "package_name" -> app.packageName
             "label" -> app.label
@@ -692,10 +695,10 @@ class DBProvider : ContentProvider() {
     }
 
     private fun updateAppInfoByPackageName(packageName: String, values: ContentValues?): Int {
-        val dao = mDatabase!!.appInfoDao()
+        val dao = mForwardDatabase!!.forwardAppInfoDao()
         val existing = runBlocking {
-            dao.getByPackageName(packageName)
-        } ?: AppInfo(packageName = packageName)
+            dao.byPackage(packageName)
+        } ?: ForwardAppInfoEntity(packageName = packageName)
         val blocked = parseBooleanValue(values, "blocked", existing.blocked)
         val forwarding = parseBooleanValue(values, "forwarding", existing.forwarding)
         val forwardingConfigured = when {
@@ -716,7 +719,7 @@ class DBProvider : ContentProvider() {
             else -> existing.notifyTemplate
         }
         runBlocking {
-            dao.insert(
+            dao.upsert(
                 existing.copy(
                     label = label,
                     blocked = blocked,
@@ -745,8 +748,8 @@ class DBProvider : ContentProvider() {
         if (packageName.isBlank()) {
             return@runBlocking 0
         }
-        val dao = mDatabase!!.appInfoDao()
-        val app = dao.getByPackageName(packageName) ?: return@runBlocking 0
+        val dao = mForwardDatabase!!.forwardAppInfoDao()
+        val app = dao.byPackage(packageName) ?: return@runBlocking 0
         dao.delete(app)
         1
     }

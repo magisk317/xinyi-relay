@@ -11,8 +11,8 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.xposed.logging.MagiskOtel
-import io.github.magisk317.relay.android.data.db.AppDatabase
-import io.github.magisk317.relay.android.data.db.entity.ScheduledTaskEntity
+import io.github.magisk317.forward.db.ForwardDatabase
+import io.github.magisk317.forward.db.ForwardScheduledTaskEntity
 import io.github.magisk317.forward.engine.schedule.CronUtils
 import io.github.magisk317.relay.runtime.BuildConfig
 import kotlinx.coroutines.Dispatchers
@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit
 
 class ScheduledTaskManager(
     private val context: Context,
-    private val appDatabase: AppDatabase
+    private val appDatabase: ForwardDatabase
 ) {
     companion object {
         const val ALARM_ACTION = "io.github.magisk317.relay.action.SCHEDULED_TASK"
@@ -35,7 +35,7 @@ class ScheduledTaskManager(
     suspend fun scheduleAllActiveTasks() {
         withContext(Dispatchers.IO) {
             val startedAt = System.nanoTime()
-            val tasks = appDatabase.scheduledTaskDao().getActiveTasks()
+            val tasks = appDatabase.forwardScheduledTaskDao().getActiveTasks()
             if (!BuildConfig.ENABLE_SMS_CHANNEL) {
                 tasks.forEach { task -> cancelTask(task.id) }
                 updateFallbackWorker(false)
@@ -91,14 +91,14 @@ class ScheduledTaskManager(
                 XLog.w("ScheduledTask $taskId not rescheduled: SMS channel disabled in current distribution")
                 return@withContext
             }
-            val task = appDatabase.scheduledTaskDao().getById(taskId)
+            val task = appDatabase.forwardScheduledTaskDao().getById(taskId)
             if (task != null) {
                 if (task.status == 1) {
                     runCatching {
                         scheduleTask(task)
                     }.onFailure { e ->
                         XLog.e("Failed to reschedule task ${task.id}", e)
-                        appDatabase.scheduledTaskDao().update(task.apply { nextRunTime = 0L })
+                        appDatabase.forwardScheduledTaskDao().update(task.apply { nextRunTime = 0L })
                         cancelTask(taskId)
                     }
                 } else {
@@ -115,10 +115,10 @@ class ScheduledTaskManager(
         }
     }
 
-    private suspend fun scheduleTask(task: ScheduledTaskEntity) {
+    private suspend fun scheduleTask(task: ForwardScheduledTaskEntity) {
         val nextRun = CronUtils.getNextRunTime(task.cronExpression)
         task.nextRunTime = nextRun
-        appDatabase.scheduledTaskDao().update(task)
+        appDatabase.forwardScheduledTaskDao().update(task)
 
         val intent = Intent(context, ScheduledTaskReceiver::class.java).apply {
             action = ALARM_ACTION
@@ -165,7 +165,7 @@ class ScheduledTaskManager(
             updateFallbackWorker(false)
             return
         }
-        val hasActiveTasks = appDatabase.scheduledTaskDao().getActiveTasks().isNotEmpty()
+        val hasActiveTasks = appDatabase.forwardScheduledTaskDao().getActiveTasks().isNotEmpty()
         updateFallbackWorker(hasActiveTasks)
     }
 

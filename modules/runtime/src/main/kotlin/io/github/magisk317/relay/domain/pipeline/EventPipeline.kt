@@ -6,9 +6,10 @@ import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
-import io.github.magisk317.relay.android.data.db.AppDatabase
+import io.github.magisk317.forward.db.ForwardDatabase
 import io.github.magisk317.smscode.db.entity.SmsMsg
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
+import io.github.magisk317.relay.android.data.mapper.ForwardConfigMapper.toDomain
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.forward.engine.event.RelayEvent
 import io.github.magisk317.forward.engine.service.DispatchPayloadContext
@@ -44,7 +45,7 @@ private data class SenderResolution(
 
 class EventPipeline(
     private val context: Context,
-    private val db: AppDatabase,
+    private val forwardDb: ForwardDatabase,
     private val eventGatekeeper: EventGatekeeper,
     private val routingResolver: RoutingResolver,
     private val senderSelector: SenderSelector,
@@ -330,7 +331,7 @@ class EventPipeline(
         traceId: String?,
     ): SenderResolution {
         val senderConfigSanitizer = SenderRuntimeServiceRegistry.requireInstalled().configSanitizer
-        val allSenders = db.senderDao().getAll()
+        val allSenders = forwardDb.forwardSenderDao().all()
             .map { it.toDomain() }
             .map(senderConfigSanitizer::sanitizeSenderLenient)
         val enabledSenders = allSenders.filter { it.status == 1 }
@@ -401,7 +402,7 @@ class EventPipeline(
     ): ForwardCommonConfig {
         return when (event.messageType) {
             MessageType.APP_NOTIFY -> {
-                val appConfig = db.appInfoDao().getByPackageName(event.packageName)
+                val appConfig = forwardDb.forwardAppInfoDao().byPackage(event.packageName)
                 if (appConfig?.notifyTemplate?.isNotBlank() == true) {
                     commonConfig.copy(messageTemplate = appConfig.notifyTemplate)
                 } else {

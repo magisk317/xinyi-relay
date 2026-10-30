@@ -32,8 +32,8 @@ class ConfigDiagnosticsInitializer : AppInitializer {
         val rules = configRepository.getAllRules()
         val smsRules = configRepository.getAllSmsCodeRules()
         val forwardingApps = configRepository.getAllAppInfo().count { it.forwarding }
-        val notifyRoutes = runtimeGraph.database.notifyRouteRuleDao().getAll().size
-        val forwardFilters = runtimeGraph.database.forwardFilterRuleDao().getAll().size
+        val notifyRoutes = runtimeGraph.forwardDatabase.forwardRouteRuleDao().all().size
+        val forwardFilters = runtimeGraph.forwardDatabase.forwardFilterRuleDao().all().size
         val enabledSenders = senders.count { it.status == 1 }
         val appNotifyEnabledSenders = senders.count { it.status == 1 && it.receiveAppNotify == 1 }
 

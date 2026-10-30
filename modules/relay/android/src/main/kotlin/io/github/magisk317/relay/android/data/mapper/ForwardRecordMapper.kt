@@ -156,5 +156,5 @@ fun SmsMsg.toForwardEventEntity(): ForwardEventEntity = ForwardEventEntity(
     forwardStatus = forwardStatus,
     forwardTarget = forwardTarget,
     forwardMessage = forwardMessage,
-    forwardTime = forwardTime ?: 0,
+    forwardTime = forwardTime,
 )

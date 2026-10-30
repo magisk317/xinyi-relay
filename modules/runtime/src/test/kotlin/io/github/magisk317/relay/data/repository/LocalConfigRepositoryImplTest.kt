@@ -127,6 +127,7 @@ class LocalConfigRepositoryImplTest {
             settingsRepository = mockk<SettingsPreferencesRepository>(relaxed = true),
             configRepository = mockk<AppConfigRepository>(relaxed = true),
             database = mockk<AppDatabase>(relaxed = true),
+            forwardDatabase = mockk(relaxed = true),
         )
     }
 }

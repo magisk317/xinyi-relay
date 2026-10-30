@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.domain.pipeline
 
 import io.github.magisk317.forward.contract.constant.MessageType
-import io.github.magisk317.relay.android.data.db.AppDatabase
+import io.github.magisk317.forward.db.ForwardDatabase
 import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
 import io.github.magisk317.forward.engine.event.RelayEvent
 import io.github.magisk317.forward.engine.model.Sender
@@ -11,7 +11,7 @@ import io.github.magisk317.forward.engine.routing.NotifyRouteRuleReader
 import io.github.magisk317.forward.engine.routing.NotifyRoutingResolver
 import io.github.magisk317.forward.engine.routing.NotifyRoutingResult
 import io.github.magisk317.forward.engine.sender.SenderType
-import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
+import io.github.magisk317.relay.android.data.mapper.ForwardConfigMapper.toDomain
 import io.github.magisk317.xposed.logging.MagiskOtel
 
 data class SenderRoutingResolution(
@@ -20,7 +20,7 @@ data class SenderRoutingResolution(
     val filteredReasonParts: List<String> = emptyList(),
 )
 
-class RoutingResolver(private val db: AppDatabase) {
+class RoutingResolver(private val db: ForwardDatabase) {
     /** 消息类型是否需要走过滤引擎。 */
     private fun needsFilterEvaluation(messageType: MessageType): Boolean = when (messageType) {
         MessageType.SMS_CODE,
@@ -48,11 +48,11 @@ class RoutingResolver(private val db: AppDatabase) {
             runCatching {
                 val routeRules = object : NotifyRouteRuleReader {
                     override suspend fun getSenderIdsByScopeAndPackage(scope: Int, packageName: String): List<Long> {
-                        return db.notifyRouteRuleDao().getSenderIdsByScopeAndPackage(scope, packageName)
+                        return db.forwardRouteRuleDao().getSenderIdsByScopeAndPackage(scope, packageName)
                     }
 
                     override suspend fun getDistinctSenderIdsByScopeIn(scope: Int, senderIds: List<Long>): List<Long> {
-                        return db.notifyRouteRuleDao().getDistinctSenderIdsByScopeIn(scope, senderIds)
+                        return db.forwardRouteRuleDao().getDistinctSenderIdsByScopeIn(scope, senderIds)
                     }
                 }
                 NotifyRoutingResolver.resolveAppNotifySenders(

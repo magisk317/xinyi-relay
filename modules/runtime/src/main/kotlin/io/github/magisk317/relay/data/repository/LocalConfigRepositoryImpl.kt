@@ -5,9 +5,11 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.AppDatabase
+import io.github.magisk317.forward.db.ForwardDatabase
 import io.github.magisk317.smscode.db.entity.AppInfo
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toEntity
+import io.github.magisk317.relay.android.data.mapper.ForwardConfigMapper.toDomain
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.forward.contract.json.RelayJson
 import io.github.magisk317.relay.contract.model.LocalConfigMirrorPayload
@@ -50,6 +52,7 @@ class LocalConfigRepositoryImpl(
     private val settingsRepository: SettingsPreferencesRepository,
     private val configRepository: AppConfigRepository,
     private val database: AppDatabase,
+    private val forwardDatabase: ForwardDatabase,
 ) : LocalConfigRepository {
     private val appContext = context.applicationContext ?: context
     private val mutationSources = MutableSharedFlow<String>(
@@ -339,8 +342,8 @@ class LocalConfigRepositoryImpl(
                 ).map { it.toSnapshot() }
                 deviceAppInfos
             },
-            notifyRoutes = database.notifyRouteRuleDao().getAll().map { it.toSnapshot() },
-            forwardFilters = database.forwardFilterRuleDao().getAll().map { it.toDomain().toSnapshot() },
+            notifyRoutes = forwardDatabase.forwardRouteRuleDao().all().map { it.toDomain().toSnapshot() },
+            forwardFilters = forwardDatabase.forwardFilterRuleDao().all().map { it.toDomain().toSnapshot() },
         )
     }
 

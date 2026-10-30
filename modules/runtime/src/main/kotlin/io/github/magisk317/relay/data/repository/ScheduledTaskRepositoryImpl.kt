@@ -2,8 +2,8 @@ package io.github.magisk317.relay.data.repository
 
 import android.content.Context
 import io.github.magisk317.xposed.logging.XLog
-import io.github.magisk317.relay.android.data.db.AppDatabase
-import io.github.magisk317.relay.android.data.db.entity.ScheduledTaskEntity
+import io.github.magisk317.forward.db.ForwardDatabase
+import io.github.magisk317.forward.db.ForwardScheduledTaskEntity
 import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.domain.schedule.ScheduledTaskManager
 import io.github.magisk317.forward.engine.model.ScheduledTask
@@ -13,10 +13,10 @@ import kotlinx.coroutines.flow.map
 
 class ScheduledTaskRepositoryImpl(
     private val context: Context,
-    private val database: AppDatabase
+    private val database: ForwardDatabase
 ) : ScheduledTaskRepository {
 
-    private val scheduledTaskDao = database.scheduledTaskDao()
+    private val scheduledTaskDao = database.forwardScheduledTaskDao()
     private val taskManager by lazy { ScheduledTaskManager(context, database) }
 
     override fun getAllTasksFlow(): Flow<List<ScheduledTask>> {
@@ -73,7 +73,7 @@ class ScheduledTaskRepositoryImpl(
         taskManager.scheduleAllActiveTasks()
     }
 
-    private fun ScheduledTaskEntity.toDomain(): ScheduledTask {
+    private fun ForwardScheduledTaskEntity.toDomain(): ScheduledTask {
         return ScheduledTask(
             id = id,
             name = name,
@@ -89,8 +89,8 @@ class ScheduledTaskRepositoryImpl(
         )
     }
 
-    private fun ScheduledTask.toEntity(): ScheduledTaskEntity {
-        return ScheduledTaskEntity(
+    private fun ScheduledTask.toEntity(): ForwardScheduledTaskEntity {
+        return ForwardScheduledTaskEntity(
             id = id,
             name = name,
             taskType = taskType,

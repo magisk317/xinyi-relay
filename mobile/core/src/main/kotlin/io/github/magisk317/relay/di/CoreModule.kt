@@ -3,6 +3,7 @@ package io.github.magisk317.relay.di
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSourceImpl
 import io.github.magisk317.relay.android.data.db.AppDatabase
+import io.github.magisk317.forward.db.ForwardDatabase
 import io.github.magisk317.relay.android.service.SystemInfoProviderImpl
 import io.github.magisk317.relay.app.sender.SenderTestService
 import io.github.magisk317.relay.contract.repository.ConfigSyncCoordinator
@@ -44,11 +45,19 @@ import io.github.magisk317.relay.android.data.mapper.toForwardEventEntity
  */
 val coreModule = module {
     single { AppDatabase.getInstance(androidContext()) }
+    single { ForwardDatabase.build(androidContext()) }
     single<PreferenceDataSource> { PreferenceDataSourceImpl(androidContext()) }
 
     single<SettingsPreferencesRepository> { SettingsRepository(androidContext(), get()) }
-    single<MessageRecordRepository> { ForwardRoomRecordRepository(androidContext(), preferenceDataSource = get()) }
-    single<RuntimeAnalyticsProvider> { AnalyticsRepository(androidContext(), get()) }
+    single<MessageRecordRepository> {
+        ForwardRoomRecordRepository(
+            context = androidContext(),
+            db = get(),
+            forwardDb = get(),
+            preferenceDataSource = get(),
+        )
+    }
+    single<RuntimeAnalyticsProvider> { AnalyticsRepository(androidContext(), get(), get()) }
     single {
         val repo = get<MessageRecordRepository>() as ForwardRoomRecordRepository
         RuntimeRecordFacade(
@@ -64,15 +73,17 @@ val coreModule = module {
     single<SmsCodeRuleRepository> { get<AppConfigRepository>() as SmsCodeRuleRepository }
     single<AppConfigRepository> {
         val db = get<AppDatabase>()
+        val forwardDb = get<ForwardDatabase>()
         ConfigRepository(
             context = androidContext(),
             db = db,
+            forwardDb = forwardDb,
             smsCodeRuleDao = db.smsCodeRuleDao(),
-            appInfoDao = db.appInfoDao(),
-            notifyRouteRuleDao = db.notifyRouteRuleDao(),
-            forwardFilterRuleDao = db.forwardFilterRuleDao(),
-            ruleDao = db.ruleDao(),
-            senderDao = db.senderDao(),
+            forwardAppInfoDao = forwardDb.forwardAppInfoDao(),
+            forwardRouteRuleDao = forwardDb.forwardRouteRuleDao(),
+            forwardFilterRuleDao = forwardDb.forwardFilterRuleDao(),
+            forwardRuleDao = forwardDb.forwardRuleDao(),
+            forwardSenderDao = forwardDb.forwardSenderDao(),
         )
     }
     single<LocalConfigRepository> {
@@ -82,6 +93,7 @@ val coreModule = module {
             settingsRepository = get(),
             configRepository = get(),
             database = get(),
+            forwardDatabase = get(),
         )
     }
     single { RemoteAgentRepository(androidContext(), get(), get()) }
@@ -97,7 +109,7 @@ val coreModule = module {
         )
     }
     single { EventGatekeeper(get(), get()) }
-    single { RoutingResolver(get()) }
+    single { RoutingResolver(get<ForwardDatabase>()) }
     single { SenderSelector() }
     single {
         DispatchExecutor {
@@ -108,7 +120,7 @@ val coreModule = module {
     single {
         EventPipeline(
             context = androidContext(),
-            db = get(),
+            forwardDb = get(),
             eventGatekeeper = get(),
             routingResolver = get(),
             senderSelector = get(),

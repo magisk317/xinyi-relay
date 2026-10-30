@@ -74,7 +74,7 @@ class RelayForwardIngressEnvironment(
 
     override suspend fun appForwardingState(packageName: String): AppForwardingState? {
         val appInfo = runCatching {
-            RuntimeDependencies.get().database.appInfoDao().getByPackageName(packageName)
+            RuntimeDependencies.get().forwardDatabase.forwardAppInfoDao().byPackage(packageName)
         }.getOrNull() ?: return null
         val enabled = appInfo.forwarding == true
         return AppForwardingState(

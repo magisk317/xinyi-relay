@@ -55,12 +55,13 @@ class SmsCodeRuleContractTest {
         val repo = ConfigRepository(
             context = mockk(relaxed = true),
             db = mockk(relaxed = true),
+            forwardDb = mockk(relaxed = true),
             smsCodeRuleDao = dao,
-            appInfoDao = mockk(relaxed = true),
-            notifyRouteRuleDao = mockk(relaxed = true),
+            forwardAppInfoDao = mockk(relaxed = true),
+            forwardRouteRuleDao = mockk(relaxed = true),
             forwardFilterRuleDao = mockk(relaxed = true),
-            ruleDao = mockk(relaxed = true),
-            senderDao = mockk(relaxed = true),
+            forwardRuleDao = mockk(relaxed = true),
+            forwardSenderDao = mockk(relaxed = true),
         )
         // The screens inject AppConfigRepository; the contract must be the same object
         // so both views read and write one set of rules.

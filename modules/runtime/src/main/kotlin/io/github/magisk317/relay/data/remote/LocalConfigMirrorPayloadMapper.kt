@@ -10,6 +10,7 @@ import io.github.magisk317.relay.contract.model.SnapshotRule
 import io.github.magisk317.relay.contract.model.SnapshotSender
 import io.github.magisk317.relay.contract.model.SnapshotSmsCodeRule
 import io.github.magisk317.forward.engine.model.ForwardFilterRule
+import io.github.magisk317.forward.engine.model.NotifyRouteRuleData
 import io.github.magisk317.forward.engine.model.Rule
 import io.github.magisk317.forward.engine.model.Sender
 import io.github.magisk317.forward.engine.sender.SenderActiveSchedule as ForwardSenderActiveSchedule
@@ -125,6 +126,14 @@ internal fun SnapshotSmsCodeRule.toSnapshotEntity(): SmsCodeRule = SmsCodeRule(
 )
 
 internal fun NotifyRouteRule.toSnapshot(): SnapshotNotifyRouteRule = SnapshotNotifyRouteRule(
+    id = id,
+    scope = scope,
+    packageName = packageName,
+    senderId = senderId,
+    updateTime = updateTime,
+)
+
+internal fun NotifyRouteRuleData.toSnapshot(): SnapshotNotifyRouteRule = SnapshotNotifyRouteRule(
     id = id,
     scope = scope,
     packageName = packageName,

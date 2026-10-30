@@ -4,6 +4,7 @@ import android.content.Context
 import io.github.magisk317.relay.contract.backup.AutoBackupTrigger
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.AppDatabase
+import io.github.magisk317.forward.db.ForwardDatabase
 import io.github.magisk317.relay.contract.repository.ConfigSyncCoordinator
 import io.github.magisk317.relay.contract.repository.LocalConfigRepository
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
@@ -42,6 +43,7 @@ object RuntimeGraph {
     private val koin get() = GlobalContext.get()
 
     val database: AppDatabase get() = koin.get()
+    val forwardDatabase: ForwardDatabase get() = koin.get()
     val preferenceDataSource: PreferenceDataSource get() = koin.get()
     val settingsRepository: SettingsPreferencesRepository get() = koin.get()
     val relayRecordRepository: MessageRecordRepository get() = koin.get()

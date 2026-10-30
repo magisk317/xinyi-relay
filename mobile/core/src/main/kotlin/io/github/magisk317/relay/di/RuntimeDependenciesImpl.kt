@@ -2,6 +2,7 @@ package io.github.magisk317.relay.di
 
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.AppDatabase
+import io.github.magisk317.forward.db.ForwardDatabase
 import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.contract.backup.AutoBackupTrigger
 import io.github.magisk317.relay.contract.repository.ConfigSyncCoordinator
@@ -24,6 +25,7 @@ import org.koin.core.qualifier.named
  */
 class RuntimeDependenciesImpl(private val koin: Koin) : RuntimeDependencies {
     override val database: AppDatabase get() = koin.get()
+    override val forwardDatabase: ForwardDatabase get() = koin.get()
     override val preferenceDataSource: PreferenceDataSource get() = koin.get()
     override val settingsRepository: SettingsPreferencesRepository get() = koin.get()
     override val relayRecordRepository: MessageRecordRepository get() = koin.get()
