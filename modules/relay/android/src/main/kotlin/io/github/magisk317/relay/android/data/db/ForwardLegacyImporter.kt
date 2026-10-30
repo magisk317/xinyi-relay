@@ -6,11 +6,17 @@ import io.github.magisk317.forward.db.ForwardRouteRuleEntity
 import io.github.magisk317.forward.db.ForwardScheduledTaskEntity
 import io.github.magisk317.forward.db.ForwardSenderEntity
 import io.github.magisk317.forward.db.ForwardEventEntity
+import io.github.magisk317.forward.db.ForwardAppInfoEntity
+import io.github.magisk317.forward.db.ForwardRuleEntity
 import io.github.magisk317.forward.db.SenderDispatchLogEntity
 import io.github.magisk317.smscode.db.entity.ForwardFilterRule
 import io.github.magisk317.smscode.db.entity.NotifyRouteRule
 import io.github.magisk317.smscode.db.entity.Sender
 import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
+import io.github.magisk317.forward.contract.json.RelayJson
+import io.github.magisk317.forward.engine.model.Sender as ForwardSender
+import kotlinx.serialization.builtins.ListSerializer
 
 /**
  * One-shot import of the legacy mixed schema into [ForwardDatabase].
@@ -20,6 +26,22 @@ import io.github.magisk317.smscode.db.entity.SmsMsg
  * until the product ships the field strip; the import only fills the new
  * database and proves parity.
  */
+/** Outcome of the idempotent configuration import. */
+data class ConfigImportReport(
+    val imported: List<String>,
+    val skipped: List<String>,
+    val mismatches: List<String>,
+) {
+    val ok: Boolean get() = mismatches.isEmpty()
+
+    fun summary(): String = buildString {
+        append("ok=").append(ok)
+        if (imported.isNotEmpty()) append(" imported=").append(imported.joinToString(","))
+        if (skipped.isNotEmpty()) append(" skipped=").append(skipped.joinToString(","))
+        if (mismatches.isNotEmpty()) append(" mismatches=").append(mismatches.joinToString(";"))
+    }
+}
+
 object ForwardLegacyImporter {
 
     data class ImportReport(
@@ -145,25 +167,96 @@ object ForwardLegacyImporter {
         id = task.id, name = task.name, taskType = task.taskType, cronExpression = task.cronExpression,
         simSlot = task.simSlot, mobiles = task.mobiles, content = task.content,
         status = task.status, lastRunTime = task.lastRunTime, nextRunTime = task.nextRunTime,
+        createdAt = task.createdAt,
     )
 
-    /** Imports the four configuration tables 1:1 and proves row-count parity. */
-    suspend fun importConfig(legacy: AppDatabase, target: ForwardDatabase): String {
-        val senders = legacy.senderDao().getAll().map { projectSender(it) }
-        target.forwardSenderDao().upsertAll(senders)
-        val routes = legacy.notifyRouteRuleDao().getAll().map { projectRouteRule(it) }
-        target.forwardRouteRuleDao().upsertAll(routes)
-        val filters = legacy.forwardFilterRuleDao().getAll().map { projectFilterRule(it) }
-        target.forwardFilterRuleDao().upsertAll(filters)
-        val tasks = legacy.scheduledTaskDao().getAll().map { projectScheduledTask(it) }
-        target.forwardScheduledTaskDao().upsertAll(tasks)
-        val mismatches = buildList {
-            if (senders.size != target.forwardSenderDao().count()) add("sender count ${senders.size}")
-            if (routes.size != target.forwardRouteRuleDao().count()) add("route count ${routes.size}")
-            if (filters.size != target.forwardFilterRuleDao().count()) add("filter count ${filters.size}")
-            if (tasks.size != target.forwardScheduledTaskDao().count()) add("scheduled count ${tasks.size}")
+    fun projectAppInfo(info: io.github.magisk317.smscode.db.entity.AppInfo): ForwardAppInfoEntity = ForwardAppInfoEntity(
+        packageName = info.packageName, label = info.label, blocked = info.blocked,
+        forwarding = info.forwarding, forwardingConfigured = info.forwardingConfigured,
+        notifyTemplate = info.notifyTemplate,
+    )
+
+    fun projectRule(rule: io.github.magisk317.smscode.db.entity.Rule): ForwardRuleEntity = ForwardRuleEntity(
+        id = rule.id, type = rule.type, filed = rule.filed, check = rule.check, value = rule.value,
+        senderId = rule.senderId, smsTemplate = rule.smsTemplate, regexReplace = rule.regexReplace,
+        simSlot = rule.simSlot, status = rule.status, time = rule.time,
+        senderListJson = RelayJson.encode(ListSerializer(ForwardSender.serializer()), rule.senderList.map { it.toDomain() }),
+        senderLogic = rule.senderLogic, silentPeriodStart = rule.silentPeriodStart,
+        silentPeriodEnd = rule.silentPeriodEnd, silentDayOfWeek = rule.silentDayOfWeek, title = rule.title,
+    )
+
+    /**
+     * Imports each configuration table only while its forward counterpart is
+     * still empty, so a partial or interrupted import can be retried without
+     * overwriting newer writes. Parity is proven per table by row count and by
+     * legacy identity (primary key, or package name for app info).
+     */
+    suspend fun importConfigIfNeeded(legacy: AppDatabase, target: ForwardDatabase): ConfigImportReport {
+        val imported = mutableListOf<String>()
+        val skipped = mutableListOf<String>()
+        val mismatches = mutableListOf<String>()
+
+        suspend fun <T> applyCategory(
+            name: String,
+            rows: List<T>,
+            targetCount: suspend () -> Int,
+            write: suspend (List<T>) -> Unit,
+        ) {
+            when {
+                rows.isEmpty() -> Unit
+                targetCount() > 0 -> skipped += name
+                else -> {
+                    write(rows)
+                    val after = targetCount()
+                    if (after == rows.size) {
+                        imported += name
+                    } else {
+                        mismatches += "$name rows ${rows.size}!=$after"
+                    }
+                }
+            }
         }
-        return if (mismatches.isEmpty()) "ok" else mismatches.joinToString(";")
+
+        val senders = legacy.senderDao().getAll().map { projectSender(it) }
+        applyCategory("senders", senders, { target.forwardSenderDao().count() }) {
+            target.forwardSenderDao().upsertAll(it)
+        }
+        val routes = legacy.notifyRouteRuleDao().getAll().map { projectRouteRule(it) }
+        applyCategory("routes", routes, { target.forwardRouteRuleDao().count() }) {
+            target.forwardRouteRuleDao().upsertAll(it)
+        }
+        val filters = legacy.forwardFilterRuleDao().getAll().map { projectFilterRule(it) }
+        applyCategory("filters", filters, { target.forwardFilterRuleDao().count() }) {
+            target.forwardFilterRuleDao().upsertAll(it)
+        }
+        val tasks = legacy.scheduledTaskDao().getAll().map { projectScheduledTask(it) }
+        applyCategory("scheduled", tasks, { target.forwardScheduledTaskDao().count() }) {
+            target.forwardScheduledTaskDao().upsertAll(it)
+        }
+        val appInfos = legacy.appInfoDao().getAll().map { projectAppInfo(it) }
+        applyCategory("appInfo", appInfos, { target.forwardAppInfoDao().count() }) {
+            target.forwardAppInfoDao().upsertAll(it)
+        }
+        val rules = legacy.ruleDao().getAll().map { projectRule(it) }
+        applyCategory("rules", rules, { target.forwardRuleDao().count() }) {
+            target.forwardRuleDao().upsertAll(it)
+        }
+
+        val missingSenderIds = senders.map { it.id }.toSet() - target.forwardSenderDao().all().map { it.id }.toSet()
+        if (missingSenderIds.isNotEmpty()) mismatches += "sender missing ${missingSenderIds.size}"
+        val missingRouteIds = routes.map { it.id }.toSet() - target.forwardRouteRuleDao().all().map { it.id }.toSet()
+        if (missingRouteIds.isNotEmpty()) mismatches += "route missing ${missingRouteIds.size}"
+        val missingFilterIds = filters.map { it.id }.toSet() - target.forwardFilterRuleDao().all().map { it.id }.toSet()
+        if (missingFilterIds.isNotEmpty()) mismatches += "filter missing ${missingFilterIds.size}"
+        val missingTaskIds = tasks.map { it.id }.toSet() - target.forwardScheduledTaskDao().all().map { it.id }.toSet()
+        if (missingTaskIds.isNotEmpty()) mismatches += "scheduled missing ${missingTaskIds.size}"
+        val missingPackages = appInfos.map { it.packageName }.toSet() -
+            target.forwardAppInfoDao().all().map { it.packageName }.toSet()
+        if (missingPackages.isNotEmpty()) mismatches += "app info missing ${missingPackages.size}"
+        val missingRuleIds = rules.map { it.id }.toSet() - target.forwardRuleDao().all().map { it.id }.toSet()
+        if (missingRuleIds.isNotEmpty()) mismatches += "rule missing ${missingRuleIds.size}"
+
+        return ConfigImportReport(imported = imported, skipped = skipped, mismatches = mismatches)
     }
 
     /** Room I/O shell: import everything and prove parity. Run once per empty target. */
