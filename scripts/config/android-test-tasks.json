@@ -22,6 +22,7 @@
     ":magisk-ui-kit:update:testGithubDebugUnitTest",
     ":policy:jvmTest",
     ":relay:android:testGithubDebugUnitTest",
+    ":runtime:testGithubDebugUnitTest",
     ":relay:contract:jvmTest",
     ":magisk-forward-core:engine:jvmTest",
     ":relay:matrix-e2ee:jvmTest",
