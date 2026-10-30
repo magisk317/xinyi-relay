@@ -9,7 +9,7 @@ import io.github.magisk317.relay.contract.prefs.XpCapabilities
 import io.github.magisk317.relay.contract.prefs.PrefReadResult
 import io.github.magisk317.relay.contract.prefs.PrefsSource
 import io.github.magisk317.relay.contract.prefs.XpRuntimeBridge
-import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySmsMsg as SmsMsg
 import io.github.magisk317.relay.android.BuildConfig
 import io.github.magisk317.smscode.runtime.common.prefs.PrefsResolver
 import io.github.magisk317.smscode.runtime.common.prefs.PrefsSnapshot

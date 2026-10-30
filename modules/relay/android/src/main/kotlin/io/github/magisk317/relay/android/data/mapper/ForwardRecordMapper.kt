@@ -3,7 +3,7 @@ package io.github.magisk317.relay.android.data.mapper
 import io.github.magisk317.forward.db.ForwardEventEntity
 import io.github.magisk317.forward.engine.model.ReadRecordData
 import io.github.magisk317.forward.engine.model.ReadRecordDataImpl
-import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySmsMsg as SmsMsg
 
 /** Maps the forward-domain event record onto the engine read model. */
 fun ForwardEventEntity.toRecordData(): ReadRecordData = ReadRecordDataImpl(

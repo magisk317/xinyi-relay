@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.ui.home.appconfig
 
-import io.github.magisk317.smscode.db.entity.AppInfo
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacyAppInfo as AppInfo
 import kotlinx.collections.immutable.toImmutableList
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse

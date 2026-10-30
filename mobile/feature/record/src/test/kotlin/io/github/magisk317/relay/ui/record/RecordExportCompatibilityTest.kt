@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.ui.record
 
-import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySmsMsg as SmsMsg
 import io.github.magisk317.smscode.runtime.contract.record.SmsMsgRecordData
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -25,10 +25,6 @@ class RecordExportCompatibilityTest {
             subId = 2,
             contactName = "Alice",
             phoneArea = "+86",
-            forwardStatus = SmsMsg.FORWARD_STATUS_SUCCESS,
-            forwardTarget = "tg",
-            forwardMessage = "ok",
-            forwardTime = 1_700_000_001_000L,
             msgType = SmsMsg.MSG_TYPE_SMS,
             callType = 3,
             sessionKey = "session",
@@ -48,10 +44,6 @@ class RecordExportCompatibilityTest {
             subId = entity.subId,
             contactName = entity.contactName,
             phoneArea = entity.phoneArea,
-            forwardStatus = entity.forwardStatus,
-            forwardTarget = entity.forwardTarget,
-            forwardMessage = entity.forwardMessage,
-            forwardTime = entity.forwardTime,
             msgType = entity.msgType,
             callType = entity.callType,
             sessionKey = entity.sessionKey,

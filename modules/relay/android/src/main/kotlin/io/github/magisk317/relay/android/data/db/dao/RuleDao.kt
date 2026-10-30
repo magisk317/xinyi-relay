@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.android.data.db.dao
 
 import androidx.room.*
-import io.github.magisk317.smscode.db.entity.Rule
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacyRule as Rule
 import kotlinx.coroutines.flow.Flow
 
 @Dao

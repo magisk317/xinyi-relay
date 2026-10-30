@@ -2,7 +2,7 @@ package io.github.magisk317.relay.ui.record
 
 import android.content.Context
 import io.github.magisk317.xposed.logging.XLog
-import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySmsMsg as SmsMsg
 import io.github.magisk317.smscode.runtime.contract.record.SmsMsgRecordData
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toRecordData
 import io.github.magisk317.relay.bootstrap.RuntimeGraph

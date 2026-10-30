@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.mobile.core.R
-import io.github.magisk317.smscode.db.entity.AppInfo
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacyAppInfo as AppInfo
 import io.github.magisk317.relay.ui.common.AppIconBitmapImage
 import io.github.magisk317.uikit.foundation.LoadingIndicatorTokens
 import io.github.magisk317.uikit.foundation.PolygonMorphLoadingIndicator

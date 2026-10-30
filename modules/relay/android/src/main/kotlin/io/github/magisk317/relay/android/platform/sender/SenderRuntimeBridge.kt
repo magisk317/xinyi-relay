@@ -2,6 +2,7 @@ package io.github.magisk317.relay.android.platform.sender
 
 import android.content.Context
 import io.github.magisk317.forward.sender.E2eePluginRepository
+import io.github.magisk317.forward.sender.MatrixLoginIdentity
 import io.github.magisk317.forward.sender.ForwardSenderHostConfig
 import io.github.magisk317.forward.sender.OAuthCredentialNamespace
 import io.github.magisk317.forward.sender.SenderRuntimeInstaller
@@ -20,9 +21,14 @@ object SenderRuntimeBridge {
             baseUrl = "https://gitlab.com/api/v4/projects/84113188/packages/generic/xinyi-e2ee-plugin",
             fileNamePrefix = "xinyi-e2ee-plugin",
         ),
+        matrixLogin = MatrixLoginIdentity(
+            deviceId = "XINYI_RELAY",
+            displayName = "XinyiRelay",
+        ),
     )
 
     fun install(context: Context? = null) {
+        SenderRuntimeInstaller.installMatrixLogin(HOST_CONFIG)
         if (context != null) {
             SenderRuntimeInstaller.installEmailOAuth(context, HOST_CONFIG)
         }

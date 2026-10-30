@@ -475,10 +475,6 @@ class SettingsViewModel(
                                     packageName = it.packageName,
                                     msgType = it.msgType,
                                     callType = it.callType,
-                                    forwardStatus = it.forwardStatus,
-                                    forwardTarget = it.forwardTarget,
-                                    forwardMessage = it.forwardMessage,
-                                    forwardTime = it.forwardTime,
                                 )
                             }
                     }
@@ -632,7 +628,7 @@ class SettingsViewModel(
         }
         val beforeCount = recordRepository.queryAll().size
         val entities = records.map {
-            io.github.magisk317.smscode.db.entity.SmsMsg(
+            io.github.magisk317.relay.android.data.db.legacy.entity.LegacySmsMsg(
                 sender = it.sender,
                 body = it.body,
                 date = it.date,
@@ -642,10 +638,6 @@ class SettingsViewModel(
                 packageName = it.packageName,
                 msgType = it.msgType,
                 callType = it.callType,
-                forwardStatus = it.forwardStatus,
-                forwardTarget = it.forwardTarget,
-                forwardMessage = it.forwardMessage,
-                forwardTime = it.forwardTime,
             )
         }
         recordRepository.insertList(entities.map { it.toRecordData() })

@@ -6,13 +6,13 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import io.github.magisk317.smscode.db.entity.ForwardFilterRule
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacyForwardFilterRule
 import io.github.magisk317.relay.android.data.db.dao.RuleDao
 import io.github.magisk317.relay.android.data.db.dao.SenderDao
-import io.github.magisk317.smscode.db.ext.ConvertersDate
-import io.github.magisk317.smscode.db.ext.ConvertersSenderList
-import io.github.magisk317.smscode.db.entity.Rule
-import io.github.magisk317.smscode.db.entity.Sender
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacyConvertersDate as ConvertersDate
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacyConvertersSenderList as ConvertersSenderList
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacyRule
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySender
 import io.github.magisk317.relay.android.data.db.dao.AppInfoDao
 import io.github.magisk317.relay.android.data.db.dao.AutoInputEventDao
 import io.github.magisk317.relay.android.data.db.dao.ForwardFilterRuleDao
@@ -21,11 +21,11 @@ import io.github.magisk317.relay.android.data.db.dao.SenderDispatchLogDao
 import io.github.magisk317.relay.android.data.db.dao.SmsBlacklistHitDao
 import io.github.magisk317.relay.android.data.db.dao.SmsCodeRuleDao
 import io.github.magisk317.relay.android.data.db.dao.SmsMsgDao
-import io.github.magisk317.smscode.db.entity.AppInfo
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacyAppInfo
 import io.github.magisk317.smscode.db.entity.AutoInputEvent
-import io.github.magisk317.smscode.db.entity.NotifyRouteRule
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacyNotifyRouteRule
 import io.github.magisk317.smscode.db.entity.SmsCodeRule
-import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySmsMsg
 import io.github.magisk317.relay.android.data.db.entity.SenderDispatchLog
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.db.entity.ScheduledTaskEntity
@@ -33,15 +33,15 @@ import io.github.magisk317.relay.android.data.db.entity.SmsBlacklistHit
 
 @Database(entities = [
     SmsCodeRule::class,
-    SmsMsg::class,
+    LegacySmsMsg::class,
     SmsBlacklistHit::class,
-    AppInfo::class,
+    LegacyAppInfo::class,
     AutoInputEvent::class,
     SenderDispatchLog::class,
-    NotifyRouteRule::class,
-    ForwardFilterRule::class,
-    Sender::class,
-    Rule::class,
+    LegacyNotifyRouteRule::class,
+    LegacyForwardFilterRule::class,
+    LegacySender::class,
+    LegacyRule::class,
     ScheduledTaskEntity::class
 ], version = 33, exportSchema = true)
 @TypeConverters(ConvertersDate::class, ConvertersSenderList::class)

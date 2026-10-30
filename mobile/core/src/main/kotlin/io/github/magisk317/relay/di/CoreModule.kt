@@ -116,7 +116,7 @@ val coreModule = module {
             SenderRuntimeServiceRegistry.requireInstalled().createDispatcher(androidContext())
         }
     }
-    single { DispatchResultWriter(get(), get(), get()) }
+    single { DispatchResultWriter(get<ForwardDatabase>(), get(), get()) }
     single {
         EventPipeline(
             context = androidContext(),

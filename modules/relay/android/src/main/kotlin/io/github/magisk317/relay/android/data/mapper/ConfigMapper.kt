@@ -1,13 +1,13 @@
 package io.github.magisk317.relay.android.data.mapper
 
-import io.github.magisk317.smscode.db.entity.AppInfo
-import io.github.magisk317.smscode.db.entity.ForwardFilterRule
-import io.github.magisk317.smscode.db.entity.Rule
-import io.github.magisk317.smscode.db.entity.Sender
-import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacyAppInfo as AppInfo
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacyForwardFilterRule as ForwardFilterRule
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacyRule as Rule
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySender as Sender
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySmsMsg as SmsMsg
 import io.github.magisk317.smscode.runtime.contract.record.SmsMsgRecordData
 import io.github.magisk317.smscode.db.entity.SmsCodeRule
-import io.github.magisk317.smscode.db.entity.NotifyRouteRule
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacyNotifyRouteRule as NotifyRouteRule
 import io.github.magisk317.forward.engine.model.AppInfoData
 import io.github.magisk317.forward.engine.model.AppInfoImpl
 import io.github.magisk317.forward.engine.model.SmsCodeRuleData
@@ -204,10 +204,10 @@ object ConfigMapper {
         subId = subId,
         contactName = contactName,
         phoneArea = phoneArea,
-        forwardStatus = forwardStatus,
-        forwardTarget = forwardTarget,
-        forwardMessage = forwardMessage,
-        forwardTime = forwardTime,
+        forwardStatus = 0,
+        forwardTarget = null,
+        forwardMessage = null,
+        forwardTime = 0L,
         msgType = msgType,
         callType = callType,
         sessionKey = sessionKey,

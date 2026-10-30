@@ -1,13 +1,13 @@
 package io.github.magisk317.relay.android.data.db.dao
 
 import androidx.room.*
-import io.github.magisk317.smscode.db.entity.ForwardFilterRule
-import io.github.magisk317.smscode.db.entity.AppInfo
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacyForwardFilterRule as ForwardFilterRule
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacyAppInfo as AppInfo
 import io.github.magisk317.smscode.db.entity.AutoInputEvent
-import io.github.magisk317.smscode.db.entity.NotifyRouteRule
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacyNotifyRouteRule as NotifyRouteRule
 import io.github.magisk317.relay.android.data.db.entity.SmsBlacklistHit
 import io.github.magisk317.smscode.db.entity.SmsCodeRule
-import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySmsMsg as SmsMsg
 import io.github.magisk317.relay.android.data.db.entity.SenderDispatchLog
 import io.github.magisk317.forward.engine.model.SenderDispatchStat
 import kotlinx.coroutines.flow.Flow
