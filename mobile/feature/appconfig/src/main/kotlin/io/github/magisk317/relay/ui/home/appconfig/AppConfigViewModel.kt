@@ -14,7 +14,7 @@ import io.github.magisk317.forward.engine.filter.ForwardFilterConst
 import io.github.magisk317.forward.sender.SenderSettingSanitizer
 import io.github.magisk317.forward.sender.sanitizeSenderLenient
 import io.github.magisk317.xposed.logging.XLog
-import io.github.magisk317.smscode.db.entity.NotifyRouteRule
+import io.github.magisk317.forward.engine.model.NotifyRouteRuleImpl
 import io.github.magisk317.smscode.db.entity.AppInfo
 import io.github.magisk317.smscode.db.entity.SmsMsg
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toEntity
@@ -486,12 +486,12 @@ class AppConfigViewModel(
                     val updateTime = System.currentTimeMillis()
                     configRepository.insertNotifyRouteRules(
                         senderIds.map { senderId ->
-                            NotifyRouteRule(
+                            NotifyRouteRuleImpl(
                                 scope = NotifyRouteScope.APP_ALLOW_SENDER,
                                 packageName = normalizedPackageName,
                                 senderId = senderId,
                                 updateTime = updateTime,
-                            ).toDomain()
+                            )
                         },
                     )
                 }

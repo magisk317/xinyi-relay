@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import io.github.magisk317.forward.engine.model.ForwardFilterRule
 import io.github.magisk317.forward.contract.model.ForwardCommonConfig
 import io.github.magisk317.forward.engine.model.Sender
-import io.github.magisk317.smscode.db.entity.NotifyRouteRule
+import io.github.magisk317.forward.engine.model.NotifyRouteRuleImpl
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
 import io.github.magisk317.relay.android.common.utils.DeviceIdentityUtils
 import io.github.magisk317.relay.app.sender.SenderTestService
@@ -361,24 +361,24 @@ class SenderViewModel(
             if (normalizedAllow.isNotEmpty()) {
                 configRepository.insertNotifyRouteRules(
                     normalizedAllow.map { packageName ->
-                        NotifyRouteRule(
+                        NotifyRouteRuleImpl(
                             scope = NotifyRouteScope.SENDER_ALLOW_APP,
                             packageName = packageName,
                             senderId = senderId,
                             updateTime = updateTime,
-                        ).toDomain()
+                        )
                     },
                 )
             }
             if (normalizedDeny.isNotEmpty()) {
                 configRepository.insertNotifyRouteRules(
                     normalizedDeny.map { packageName ->
-                        NotifyRouteRule(
+                        NotifyRouteRuleImpl(
                             scope = NotifyRouteScope.SENDER_DENY_APP,
                             packageName = packageName,
                             senderId = senderId,
                             updateTime = updateTime,
-                        ).toDomain()
+                        )
                     },
                 )
             }

@@ -1,7 +1,5 @@
 package io.github.magisk317.relay.data.remote
 
-import io.github.magisk317.smscode.db.entity.AppInfo
-import io.github.magisk317.smscode.db.entity.NotifyRouteRule
 import io.github.magisk317.smscode.db.entity.SmsCodeRule
 import io.github.magisk317.relay.contract.model.SnapshotAppInfo
 import io.github.magisk317.relay.contract.model.SnapshotForwardFilterRule
@@ -9,7 +7,10 @@ import io.github.magisk317.relay.contract.model.SnapshotNotifyRouteRule
 import io.github.magisk317.relay.contract.model.SnapshotRule
 import io.github.magisk317.relay.contract.model.SnapshotSender
 import io.github.magisk317.relay.contract.model.SnapshotSmsCodeRule
+import io.github.magisk317.forward.engine.model.AppInfoData
+import io.github.magisk317.forward.engine.model.AppInfoImpl
 import io.github.magisk317.forward.engine.model.ForwardFilterRule
+import io.github.magisk317.forward.engine.model.NotifyRouteRuleImpl
 import io.github.magisk317.forward.engine.model.NotifyRouteRuleData
 import io.github.magisk317.forward.engine.model.Rule
 import io.github.magisk317.forward.engine.model.Sender
@@ -93,7 +94,7 @@ internal fun SnapshotRule.toSnapshotDomain(): Rule = Rule(
     title = title,
 )
 
-internal fun AppInfo.toSnapshot(): SnapshotAppInfo = SnapshotAppInfo(
+internal fun AppInfoData.toSnapshot(): SnapshotAppInfo = SnapshotAppInfo(
     packageName = packageName,
     label = label,
     blocked = blocked,
@@ -102,7 +103,7 @@ internal fun AppInfo.toSnapshot(): SnapshotAppInfo = SnapshotAppInfo(
     notifyTemplate = notifyTemplate,
 )
 
-internal fun SnapshotAppInfo.toSnapshotEntity(): AppInfo = AppInfo(
+internal fun SnapshotAppInfo.toSnapshotDomain(): AppInfoData = AppInfoImpl(
     packageName = packageName,
     label = label,
     blocked = blocked,
@@ -125,14 +126,6 @@ internal fun SnapshotSmsCodeRule.toSnapshotEntity(): SmsCodeRule = SmsCodeRule(
     id = id,
 )
 
-internal fun NotifyRouteRule.toSnapshot(): SnapshotNotifyRouteRule = SnapshotNotifyRouteRule(
-    id = id,
-    scope = scope,
-    packageName = packageName,
-    senderId = senderId,
-    updateTime = updateTime,
-)
-
 internal fun NotifyRouteRuleData.toSnapshot(): SnapshotNotifyRouteRule = SnapshotNotifyRouteRule(
     id = id,
     scope = scope,
@@ -141,7 +134,7 @@ internal fun NotifyRouteRuleData.toSnapshot(): SnapshotNotifyRouteRule = Snapsho
     updateTime = updateTime,
 )
 
-internal fun SnapshotNotifyRouteRule.toSnapshotEntity(): NotifyRouteRule = NotifyRouteRule(
+internal fun SnapshotNotifyRouteRule.toSnapshotDomain(): NotifyRouteRuleData = NotifyRouteRuleImpl(
     id = id,
     scope = scope,
     packageName = packageName,
