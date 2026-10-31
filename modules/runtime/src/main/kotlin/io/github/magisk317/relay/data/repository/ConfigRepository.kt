@@ -19,7 +19,7 @@ import io.github.magisk317.forward.engine.model.ForwardFilterRule
 import io.github.magisk317.forward.engine.model.NotifyRouteRuleData
 import io.github.magisk317.forward.engine.model.Rule
 import io.github.magisk317.forward.engine.model.Sender
-import io.github.magisk317.forward.engine.model.SmsCodeRuleData
+import io.github.magisk317.forward.engine.model.AppCodeRuleData
 import io.github.magisk317.forward.engine.service.AppConfigRepository
 import io.github.magisk317.forward.db.ForwardDatabase
 import io.github.magisk317.forward.db.ForwardAppInfoDao
@@ -45,7 +45,7 @@ class ConfigRepository(
 ) : AppConfigRepository, SmsCodeRuleRepository {
     private val appContext = context.applicationContext ?: context
 
-    private fun validateSmsCodeRule(rule: SmsCodeRuleData) {
+    private fun validateSmsCodeRule(rule: AppCodeRuleData) {
         val regex = rule.codeRegex
         if (regex.isNotBlank()) {
             runCatching { Regex(regex) }.onFailure {
@@ -59,20 +59,20 @@ class ConfigRepository(
     }
 
     // Legacy SmsCodeRule
-    override fun observeSmsCodeRulesFlow(): Flow<List<SmsCodeRuleData>> = smsCodeRuleDao.getAllFlow().map { list -> list.map { it.toDomain() } }
-    override suspend fun getAllSmsCodeRules(): List<SmsCodeRuleData> = smsCodeRuleDao.getAll().map { it.toDomain() }
-    override suspend fun getSmsCodeRuleById(id: Long): SmsCodeRuleData? = smsCodeRuleDao.getById(id)?.toDomain()
-    override suspend fun upsertSmsCodeRule(rule: SmsCodeRuleData): Long {
+    override fun observeSmsCodeRulesFlow(): Flow<List<AppCodeRuleData>> = smsCodeRuleDao.getAllFlow().map { list -> list.map { it.toDomain() } }
+    override suspend fun getAllSmsCodeRules(): List<AppCodeRuleData> = smsCodeRuleDao.getAll().map { it.toDomain() }
+    override suspend fun getSmsCodeRuleById(id: Long): AppCodeRuleData? = smsCodeRuleDao.getById(id)?.toDomain()
+    override suspend fun upsertSmsCodeRule(rule: AppCodeRuleData): Long {
         validateSmsCodeRule(rule)
         val result = smsCodeRuleDao.insert(rule.toEntity())
         noteMutation("config.sms_code_rule_upsert")
         return result
     }
-    override suspend fun deleteSmsCodeRule(rule: SmsCodeRuleData) {
+    override suspend fun deleteSmsCodeRule(rule: AppCodeRuleData) {
         smsCodeRuleDao.delete(rule.toEntity())
         noteMutation("config.sms_code_rule_delete")
     }
-    override suspend fun insertSmsCodeRules(rules: List<SmsCodeRuleData>) {
+    override suspend fun insertSmsCodeRules(rules: List<AppCodeRuleData>) {
         smsCodeRuleDao.insertAll(rules.map { it.toEntity() })
         noteMutation("config.sms_code_rules_replace")
     }
@@ -362,7 +362,7 @@ class ConfigRepository(
 }
 
 
-private fun SmsCodeRuleData.toRecord(): SmsCodeRuleRecord = SmsCodeRuleRecord(
+private fun AppCodeRuleData.toRecord(): SmsCodeRuleRecord = SmsCodeRuleRecord(
     id = id,
     spec = SmsCodeRuleSpec(
         company = company,
@@ -372,7 +372,7 @@ private fun SmsCodeRuleData.toRecord(): SmsCodeRuleRecord = SmsCodeRuleRecord(
     ),
 )
 
-private fun SmsCodeRuleRecord.toData(): SmsCodeRuleData = object : SmsCodeRuleData {
+private fun SmsCodeRuleRecord.toData(): AppCodeRuleData = object : AppCodeRuleData {
     override val id: Long = this@toData.id
     override val company: String? = spec.company
     override val codeKeyword: String = spec.codeKeyword

@@ -10,8 +10,8 @@ import io.github.magisk317.smscode.db.entity.SmsCodeRule
 import io.github.magisk317.relay.android.data.db.legacy.entity.LegacyNotifyRouteRule as NotifyRouteRule
 import io.github.magisk317.forward.engine.model.AppInfoData
 import io.github.magisk317.forward.engine.model.AppInfoImpl
-import io.github.magisk317.forward.engine.model.SmsCodeRuleData
-import io.github.magisk317.forward.engine.model.SmsCodeRuleImpl
+import io.github.magisk317.forward.engine.model.AppCodeRuleData
+import io.github.magisk317.forward.engine.model.AppCodeRuleImpl
 import io.github.magisk317.forward.engine.model.NotifyRouteRuleData
 import io.github.magisk317.forward.engine.model.ReadRecordData
 import io.github.magisk317.forward.engine.model.ReadRecordDataImpl
@@ -114,14 +114,14 @@ object ConfigMapper {
         notifyTemplate = notifyTemplate,
     )
 
-    fun SmsCodeRuleData.toEntity(): SmsCodeRule = SmsCodeRule(
+    fun AppCodeRuleData.toEntity(): SmsCodeRule = SmsCodeRule(
         company = company,
         codeKeyword = codeKeyword,
         codeRegex = codeRegex,
         id = id,
     )
 
-    fun SmsCodeRule.toDomain(): SmsCodeRuleData = SmsCodeRuleImpl(
+    fun SmsCodeRule.toDomain(): AppCodeRuleData = AppCodeRuleImpl(
         id = id ?: 0L,
         company = company,
         codeKeyword = codeKeyword,

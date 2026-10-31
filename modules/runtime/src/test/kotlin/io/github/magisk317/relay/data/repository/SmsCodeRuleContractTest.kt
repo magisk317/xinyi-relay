@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.data.repository
 
 import io.github.magisk317.relay.android.data.db.dao.SmsCodeRuleDao
-import io.github.magisk317.forward.engine.model.SmsCodeRuleData
+import io.github.magisk317.forward.engine.model.AppCodeRuleData
 import io.github.magisk317.forward.engine.service.AppConfigRepository
 import io.github.magisk317.smscode.rule.model.SmsCodeRuleSpec
 import io.github.magisk317.smscode.rule.repository.SmsCodeRuleRecord
@@ -28,7 +28,7 @@ class SmsCodeRuleContractTest {
         company: String? = "Acme",
         keyword: String = "CODE",
         regex: String = "\\d{6}",
-    ): SmsCodeRuleData = object : SmsCodeRuleData {
+    ): AppCodeRuleData = object : AppCodeRuleData {
         override val id: Long = id
         override val company: String? = company
         override val codeKeyword: String = keyword
