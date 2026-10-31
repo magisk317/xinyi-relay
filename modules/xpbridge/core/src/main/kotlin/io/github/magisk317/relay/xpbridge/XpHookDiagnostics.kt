@@ -3,8 +3,8 @@ package io.github.magisk317.relay.xpbridge
 import android.content.Context
 import io.github.magisk317.relay.contract.xpbridge.NoopXpDiagnosticsRuntimeBridge
 import io.github.magisk317.relay.contract.xpbridge.XpDiagnosticsRuntimeBridge
-import io.github.magisk317.smscode.xposed.runtime.CoreLogSink
-import io.github.magisk317.smscode.xposed.runtime.CoreLogSinkHolder
+import io.github.magisk317.xposed.capability.runtime.CoreLogSink
+import io.github.magisk317.xposed.capability.runtime.CoreLogSinkHolder
 import io.github.magisk317.xposed.logging.XposedLogClient
 
 object XpHookDiagnostics {
@@ -49,12 +49,70 @@ object XpHookDiagnostics {
         processName: String,
         source: String,
         verboseLogging: Boolean,
+        moduleVersion: Int = 0,
     ) {
         runtimeBridge.recordSmsHookHeartbeat(
             context = context,
             packageName = packageName,
             processName = processName,
             source = source,
+            verboseLogging = verboseLogging,
+            moduleVersion = moduleVersion,
+        )
+    }
+
+    fun recordCallNotificationSource(
+        context: Context,
+        packageName: String,
+        channelId: String,
+        category: String,
+        verboseLogging: Boolean,
+    ) {
+        runtimeBridge.recordCallNotificationSource(
+            context = context,
+            packageName = packageName,
+            channelId = channelId,
+            category = category,
+            verboseLogging = verboseLogging,
+        )
+    }
+
+    fun recordHookInstall(
+        context: Context,
+        hook: String,
+        status: String,
+        packageName: String,
+        processName: String,
+        detail: String,
+        verboseLogging: Boolean = false,
+    ) {
+        runtimeBridge.recordHookInstall(
+            context = context,
+            hook = hook,
+            status = status,
+            packageName = packageName,
+            processName = processName,
+            detail = detail,
+            verboseLogging = verboseLogging,
+        )
+    }
+
+    fun recordNotifyEvent(
+        context: Context,
+        source: String,
+        packageName: String,
+        channelId: String,
+        msgType: String,
+        skipReason: String,
+        verboseLogging: Boolean = false,
+    ) {
+        runtimeBridge.recordNotifyEvent(
+            context = context,
+            source = source,
+            packageName = packageName,
+            channelId = channelId,
+            msgType = msgType,
+            skipReason = skipReason,
             verboseLogging = verboseLogging,
         )
     }

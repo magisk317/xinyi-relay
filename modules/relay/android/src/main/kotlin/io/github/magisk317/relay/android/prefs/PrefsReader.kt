@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.android.prefs
 
 import android.content.Context
-import io.github.magisk317.relay.contract.constant.MessageType
+import io.github.magisk317.forward.contract.constant.MessageType
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.contract.prefs.NoopXpRuntimeBridge
@@ -9,7 +9,7 @@ import io.github.magisk317.relay.contract.prefs.XpCapabilities
 import io.github.magisk317.relay.contract.prefs.PrefReadResult
 import io.github.magisk317.relay.contract.prefs.PrefsSource
 import io.github.magisk317.relay.contract.prefs.XpRuntimeBridge
-import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySmsMsg as SmsMsg
 import io.github.magisk317.relay.android.BuildConfig
 import io.github.magisk317.smscode.runtime.common.prefs.PrefsResolver
 import io.github.magisk317.smscode.runtime.common.prefs.PrefsSnapshot
@@ -166,15 +166,21 @@ object PrefsReader {
     }
 
     private fun safeWarn(message: String, vararg args: Any?) {
-        runCatching { XLog.w(message, *args) }
+        runCatching { XLog.w(message, *args) }.onFailure {
+            XLog.w("prefs-bridge: the warn log call itself failed: ${it.message}", it)
+        }
     }
 
     private fun safeWarn(message: String, error: Throwable?) {
-        runCatching { XLog.w(message, error) }
+        runCatching { XLog.w(message, error) }.onFailure {
+            XLog.w("prefs-bridge: the warn log call itself failed: ${it.message}", it)
+        }
     }
 
     private fun safeInfo(message: String, vararg args: Any?) {
-        runCatching { XLog.i(message, *args) }
+        runCatching { XLog.i(message, *args) }.onFailure {
+            XLog.w("prefs-bridge: the info log call itself failed: ${it.message}", it)
+        }
     }
 
     private fun getBooleanViaProvider(context: Context, key: String, defaultValue: Boolean): Boolean {

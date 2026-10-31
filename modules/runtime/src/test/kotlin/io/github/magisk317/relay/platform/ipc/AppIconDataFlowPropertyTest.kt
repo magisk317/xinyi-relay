@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.platform.ipc
 
-import io.github.magisk317.relay.engine.service.DispatchPayloadContext
+import io.github.magisk317.forward.engine.service.DispatchPayloadContext
 import io.github.magisk317.relay.testing.relaxedIntent
 import io.github.magisk317.relay.testing.stubStringExtra
 import io.kotest.property.Arb
@@ -10,6 +10,8 @@ import io.kotest.property.checkAll
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastPayload
+import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastContract
 
 /**
  * Property 7: appIcon 数据流透传保持

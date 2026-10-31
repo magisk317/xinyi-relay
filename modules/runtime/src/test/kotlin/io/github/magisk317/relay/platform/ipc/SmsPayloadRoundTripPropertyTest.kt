@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.platform.ipc
 
-import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySmsMsg as SmsMsg
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.long
 import io.kotest.property.arbitrary.string
@@ -8,6 +8,8 @@ import io.kotest.property.checkAll
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
+import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastPayload
+import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastContract
 
 /**
  * Property 2: SMS Payload Round Trip

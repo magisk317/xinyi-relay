@@ -4,11 +4,13 @@ import io.github.magisk317.relay.testing.relaxedIntent
 import io.github.magisk317.relay.testing.stubLongExtra
 import io.github.magisk317.relay.testing.stubSimRouting
 import io.github.magisk317.relay.testing.stubStringExtra
-import io.github.magisk317.relay.contract.constant.MessageType
+import io.github.magisk317.forward.contract.constant.MessageType
 import io.mockk.every
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
+import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastContract
+import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastPayload
 
 class ForwardBroadcastPayloadTest {
 

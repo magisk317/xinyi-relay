@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.contract.remote
 
-import io.github.magisk317.relay.contract.json.RelayJson
+import io.github.magisk317.forward.contract.json.RelayJson
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject

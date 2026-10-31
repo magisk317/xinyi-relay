@@ -1,25 +1,27 @@
 package io.github.magisk317.relay.domain.pipeline
 
-import io.github.magisk317.relay.contract.constant.MessageType
+import io.github.magisk317.forward.contract.constant.MessageType
 import io.github.magisk317.relay.android.platform.icon.AppIconEncoder
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
-import io.github.magisk317.relay.android.data.db.AppDatabase
-import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.forward.db.ForwardDatabase
+import io.github.magisk317.relay.platform.ipc.ForwardDatabaseBootstrapper
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySmsMsg as SmsMsg
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
+import io.github.magisk317.relay.android.data.mapper.ForwardConfigMapper.toDomain
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
-import io.github.magisk317.relay.engine.event.RelayEvent
-import io.github.magisk317.relay.engine.service.DispatchPayloadContext
-import io.github.magisk317.relay.engine.service.MessageFormatter
-import io.github.magisk317.relay.engine.service.SenderRuntimeServiceRegistry
-import io.github.magisk317.relay.engine.service.SystemInfoProvider
-import io.github.magisk317.relay.contract.model.ForwardCommonConfig
-import io.github.magisk317.relay.engine.model.MsgInfo
-import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.engine.pipeline.SenderSelector
-import io.github.magisk317.relay.engine.schedule.ForwardSilentPeriodEvaluator
+import io.github.magisk317.forward.engine.event.RelayEvent
+import io.github.magisk317.forward.engine.service.DispatchPayloadContext
+import io.github.magisk317.forward.engine.service.MessageFormatter
+import io.github.magisk317.forward.engine.service.SenderRuntimeServiceRegistry
+import io.github.magisk317.forward.engine.service.SystemInfoProvider
+import io.github.magisk317.forward.contract.model.ForwardCommonConfig
+import io.github.magisk317.forward.engine.model.MsgInfo
+import io.github.magisk317.forward.engine.model.Sender
+import io.github.magisk317.forward.engine.pipeline.SenderSelector
+import io.github.magisk317.forward.engine.schedule.ForwardSilentPeriodEvaluator
 import android.content.Context
 import io.github.magisk317.xposed.logging.MagiskOtel
 
@@ -44,7 +46,7 @@ private data class SenderResolution(
 
 class EventPipeline(
     private val context: Context,
-    private val db: AppDatabase,
+    private val forwardDb: ForwardDatabase,
     private val eventGatekeeper: EventGatekeeper,
     private val routingResolver: RoutingResolver,
     private val senderSelector: SenderSelector,
@@ -75,6 +77,7 @@ class EventPipeline(
             MagiskOtel.event(name = "sms.event", attributes = attrs, statusOk = statusOk)
         }
         try {
+            ForwardDatabaseBootstrapper.awaitReady()
             var recordContext = resolveRecordContext(event, preferredRecordId)
             val gateDecision = eventGatekeeper.check(event, traceId.orEmpty())
             if (!gateDecision.allowed) {
@@ -330,7 +333,7 @@ class EventPipeline(
         traceId: String?,
     ): SenderResolution {
         val senderConfigSanitizer = SenderRuntimeServiceRegistry.requireInstalled().configSanitizer
-        val allSenders = db.senderDao().getAll()
+        val allSenders = forwardDb.forwardSenderDao().all()
             .map { it.toDomain() }
             .map(senderConfigSanitizer::sanitizeSenderLenient)
         val enabledSenders = allSenders.filter { it.status == 1 }
@@ -401,7 +404,7 @@ class EventPipeline(
     ): ForwardCommonConfig {
         return when (event.messageType) {
             MessageType.APP_NOTIFY -> {
-                val appConfig = db.appInfoDao().getByPackageName(event.packageName)
+                val appConfig = forwardDb.forwardAppInfoDao().byPackage(event.packageName)
                 if (appConfig?.notifyTemplate?.isNotBlank() == true) {
                     commonConfig.copy(messageTemplate = appConfig.notifyTemplate)
                 } else {

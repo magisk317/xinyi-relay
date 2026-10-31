@@ -1,22 +1,22 @@
 package io.github.magisk317.relay.data.repository
 
 import android.content.Context
-import io.github.magisk317.relay.contract.constant.DispatchStrategy
-import io.github.magisk317.relay.contract.constant.MessageType
+import io.github.magisk317.forward.contract.constant.DispatchStrategy
+import io.github.magisk317.forward.contract.constant.MessageType
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.contract.settings.*
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.otel.MagiskOtelBootstrap
 import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
-import io.github.magisk317.relay.contract.model.ForwardCommonConfig
-import io.github.magisk317.relay.contract.model.ForwardSilentPeriodConfig
+import io.github.magisk317.forward.contract.model.ForwardCommonConfig
+import io.github.magisk317.forward.contract.model.ForwardSilentPeriodConfig
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.android.common.utils.DeviceIdentityUtils
 import io.github.magisk317.relay.android.prefs.AppPreferenceTransactions
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
 import io.github.magisk317.relay.android.prefs.HookPreferenceSpecs
-import io.github.magisk317.relay.engine.schedule.ForwardSilentPeriodEvaluator
+import io.github.magisk317.forward.engine.schedule.ForwardSilentPeriodEvaluator
 import io.github.magisk317.smscode.runtime.contract.prefs.AtomicPreferencePersistence
 import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceCommitResult
 import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceSpec
@@ -144,7 +144,7 @@ class SettingsRepository(
                 PrefConst.RUNTIME_LOG_RETENTION_DAYS_DEFAULT,
             ),
             autoUpdateOnStart = preferenceDataSource.getBoolean(PrefConst.KEY_AUTO_UPDATE_ON_START, true),
-            autoUpdateWifiOnly = preferenceDataSource.getBoolean(PrefConst.KEY_AUTO_UPDATE_WIFI_ONLY, true),
+            autoUpdateWifiOnly = preferenceDataSource.getBoolean(PrefConst.KEY_AUTO_UPDATE_WIFI_ONLY, false),
             analyticsEnabled = preferenceDataSource.getBoolean(PrefConst.KEY_ENABLE_ANALYTICS, true),
             keepAliveOomAdj = preferenceDataSource.getBoolean(PrefConst.KEY_KEEPALIVE_OOM_ADJ, false),
             keepAliveAntiKill = preferenceDataSource.getBoolean(PrefConst.KEY_KEEPALIVE_ANTI_KILL, false),

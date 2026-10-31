@@ -12,8 +12,8 @@ import io.github.magisk317.relay.contract.remote.DeviceConfigCommandResponse
 import io.github.magisk317.relay.contract.remote.DeviceConfigStateResponse
 import io.github.magisk317.relay.contract.remote.HeartbeatRequest
 import io.github.magisk317.relay.contract.remote.RelayRecordsBatchRequest
-import io.github.magisk317.relay.contract.json.RelayJson
-import io.github.magisk317.relay.net.RelayHttpClients
+import io.github.magisk317.forward.contract.json.RelayJson
+import io.github.magisk317.forward.net.RelayHttpClients
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.SerializationStrategy
 import okhttp3.MediaType.Companion.toMediaType

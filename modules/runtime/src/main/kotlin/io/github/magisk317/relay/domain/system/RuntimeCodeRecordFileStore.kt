@@ -2,7 +2,8 @@ package io.github.magisk317.relay.domain.system
 
 import android.content.Context
 import io.github.magisk317.xposed.logging.XLog
-import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySmsMsg as SmsMsg
+import io.github.magisk317.smscode.runtime.contract.record.SmsMsgRecordData
 import io.github.magisk317.smscode.runtime.common.record.CodeRecordFileStore
 import java.io.File
 
@@ -14,18 +15,18 @@ import java.io.File
  */
 object RuntimeCodeRecordFileStore {
     private val store = CodeRecordFileStore(
-        recordSerializer = SmsMsg.serializer(),
+        recordSerializer = SmsMsgRecordData.serializer(),
         fileNameFor = { record -> "CodeRecord_" + record.date },
     )
 
     @JvmStatic
     fun exportToFile(context: Context, smsMsg: SmsMsg): Boolean {
-        return store.exportToFile(context, smsMsg)
+        return store.exportToFile(context, smsMsg.toRecordFileData())
     }
 
     suspend fun importRecordFiles(
         recordFiles: Array<File>?,
-        insertRecords: suspend (List<SmsMsg>) -> Unit,
+        insertRecords: suspend (List<SmsMsgRecordData>) -> Unit,
         logSuccess: (String) -> Unit = XLog::d,
         logError: (String, Throwable) -> Unit = XLog::e,
     ): Boolean {
@@ -37,3 +38,27 @@ object RuntimeCodeRecordFileStore {
         return store.getRecordFiles(context)
     }
 }
+
+/**
+ * Converts the stored entity to the file-format record. Field names and defaults of
+ * [SmsMsgRecordData] mirror this entity's serialization surface, keeping record files
+ * written by earlier builds importable.
+ */
+internal fun SmsMsg.toRecordFileData(): SmsMsgRecordData = SmsMsgRecordData(
+    id = id,
+    sender = sender,
+    body = body,
+    date = date,
+    processedTime = processedTime,
+    company = company,
+    smsCode = smsCode,
+    packageName = packageName,
+    notifyChannelId = notifyChannelId,
+    simSlot = simSlot,
+    subId = subId,
+    contactName = contactName,
+    phoneArea = phoneArea,
+    msgType = msgType,
+    callType = callType,
+    sessionKey = sessionKey,
+)

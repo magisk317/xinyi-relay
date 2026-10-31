@@ -16,6 +16,7 @@ import io.github.magisk317.relay.xp.hook.code.SmsHandlerHook
 import io.github.magisk317.relay.xp.hook.forward.SmsForwardHook
 import io.github.magisk317.relay.xp.hook.me.ModuleUtilsHook
 import io.github.magisk317.relay.xp.hook.mms.MmsMessagesHook
+import io.github.magisk317.relay.xp.hook.helper.XinyiHookHostCapabilities
 import io.github.magisk317.relay.xp.hook.keepalive.RelayKeepAliveHook
 import io.github.magisk317.relay.xp.hook.telephony.SmsProviderHook
 import io.github.magisk317.relay.xp.runtime.RuntimeBridgeFactory
@@ -27,12 +28,12 @@ import io.github.magisk317.relay.xpbridge.XpNotificationBridge
 import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xpbridge.XpRecordFacade
 import io.github.magisk317.relay.xpbridge.XpSmsRuntimeBridge
-import io.github.magisk317.smscode.xposed.hook.notification.NotificationManagerHook
-import io.github.magisk317.smscode.xposed.hook.permission.PermissionGranterHook
-import io.github.magisk317.smscode.xposed.hook.system.SystemInputInjectorHook
+import io.github.magisk317.relay.xp.notification.RelayNotificationCaptureHook
+import io.github.magisk317.xposed.capability.permission.PermissionGranterHook
+import io.github.magisk317.xposed.capability.system.SystemInputInjectorHook
 import io.github.magisk317.xposed.HookEnv
-import io.github.magisk317.smscode.xposed.runtime.CoreRuntime
-import io.github.magisk317.smscode.xposed.runtime.CoreRuntimeAccess
+import io.github.magisk317.xposed.capability.runtime.CoreRuntime
+import io.github.magisk317.xposed.capability.runtime.CoreRuntimeAccess
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.xposed.BaseHook
 import io.github.magisk317.xposed.BaseLibXposedEntry
@@ -43,6 +44,8 @@ import io.github.magisk317.xposed.LoadParam
 
 class LibXposedEntry : BaseLibXposedEntry {
 
+    // libxposed instantiates this constructor reflectively, so nothing in the module ever
+    // calls it -- "unused"/"UnusedParameter" silence the IDE inspection, not a compiler warning.
     @Suppress("unused", "UnusedParameter")
     constructor(xposed: XposedInterface, loadedParam: ModuleLoadedParam) : super(xposed, loadedParam)
     constructor() : super()
@@ -56,7 +59,7 @@ class LibXposedEntry : BaseLibXposedEntry {
         ModuleUtilsHook(),
         PermissionGranterHook(),
         SystemInputInjectorHook(),
-        NotificationManagerHook(),
+        RelayNotificationCaptureHook(XinyiHookHostCapabilities),
         SmsProviderHook(),
         RelayKeepAliveHook(),
     )
@@ -113,7 +116,37 @@ class LibXposedEntry : BaseLibXposedEntry {
                 loadParam.processName,
             )
         }
+        reportHookProcessOnlineOnce(loadParam)
     }
+
+    /**
+     * Reports the process this module actually got injected into. The settings UI compares
+     * the report against the boot time, which is how a user learns that a module installed
+     * after boot still needs a reboot before the system-server hooks exist.
+     */
+    private fun reportHookProcessOnlineOnce(loadParam: LoadParam) {
+        if (!processOnlineReported.compareAndSet(false, true)) return
+        val context = HookTargetDiagnostics.resolveModuleContext() ?: return
+        val processName = loadParam.processName.ifBlank { loadParam.packageName }
+        runCatching {
+            XpHookDiagnostics.recordSmsHookHeartbeat(
+                context = context,
+                packageName = loadParam.packageName,
+                processName = processName,
+                source = "process_online",
+                verboseLogging = false,
+                moduleVersion = BuildConfig.MODULE_VERSION,
+            )
+        }.onFailure { error ->
+            XLog.w(
+                message = "LibXposedEntry process online heartbeat failed pkg=%s err=%s",
+                loadParam.packageName,
+                error.message ?: error.javaClass.simpleName,
+            )
+        }
+    }
+
+    private val processOnlineReported = java.util.concurrent.atomic.AtomicBoolean(false)
 
     private fun isCriticalHookTarget(packageName: String): Boolean {
         return packageName == "android" ||

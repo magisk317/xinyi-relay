@@ -1,12 +1,13 @@
 package io.github.magisk317.relay.domain.pipeline
 
-import io.github.magisk317.relay.contract.constant.MessageType
+import io.github.magisk317.forward.contract.constant.MessageType
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.diagnostics.ForwardFlowLog
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
-import io.github.magisk317.relay.android.data.db.AppDatabase
-import io.github.magisk317.relay.engine.event.RelayEvent
+import io.github.magisk317.forward.db.ForwardDatabase
+import io.github.magisk317.relay.platform.ipc.ForwardDatabaseBootstrapper
+import io.github.magisk317.forward.engine.event.RelayEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import io.github.magisk317.xposed.logging.MagiskOtel
@@ -17,10 +18,11 @@ data class GateDecision(
 )
 
 class EventGatekeeper(
-    private val db: AppDatabase,
+    private val db: ForwardDatabase,
     private val preferenceDataSource: PreferenceDataSource,
 ) {
     suspend fun check(event: RelayEvent, traceId: String): GateDecision {
+        ForwardDatabaseBootstrapper.awaitReady()
         val decision = evaluate(event, traceId)
         MagiskOtel.event(
             name = "sms.pipeline",
@@ -53,7 +55,7 @@ class EventGatekeeper(
             }
             val appInfo = runCatching {
                 withContext(Dispatchers.IO) {
-                    db.appInfoDao().getByPackageName(pkg)
+                    db.forwardAppInfoDao().byPackage(pkg)
                 }
             }.getOrElse { error ->
                 ForwardFlowLog.e(traceId, "App notify gate query failed pkg=$pkg final_decision=drop", error)

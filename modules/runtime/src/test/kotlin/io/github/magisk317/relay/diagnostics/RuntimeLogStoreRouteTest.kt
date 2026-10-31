@@ -35,7 +35,7 @@ class RuntimeLogStoreRouteTest {
         )
         assertEquals(
             RuntimeLogStore.ROUTE_NMS_HOOK,
-            RuntimeLogStore.routeFromCallerClassName("io.github.magisk317.smscode.xposed.hook.notification.NotificationManagerHook"),
+            RuntimeLogStore.routeFromCallerClassName("io.github.magisk317.relay.xp.notification.RelayNotificationCaptureHook"),
         )
         assertEquals(
             RuntimeLogStore.ROUTE_SYSTEM_INPUT,

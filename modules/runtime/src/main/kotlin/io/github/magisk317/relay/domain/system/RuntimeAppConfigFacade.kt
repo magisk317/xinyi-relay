@@ -2,7 +2,7 @@ package io.github.magisk317.relay.domain.system
 
 import android.content.Context
 import io.github.magisk317.relay.android.data.db.DBProvider
-import io.github.magisk317.smscode.db.entity.AppInfo
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacyAppInfo as AppInfo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

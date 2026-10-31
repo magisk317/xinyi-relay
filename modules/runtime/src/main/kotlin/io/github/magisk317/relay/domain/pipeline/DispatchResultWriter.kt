@@ -4,14 +4,14 @@ import io.github.magisk317.relay.android.otel.MagiskOtelBootstrap
 import io.github.magisk317.relay.analytics.AnalyticsTracker
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.xposed.logging.XLog
-import io.github.magisk317.relay.engine.service.SenderDispatchResult
+import io.github.magisk317.forward.engine.service.SenderDispatchResult
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
-import io.github.magisk317.relay.android.data.db.AppDatabase
-import io.github.magisk317.relay.android.data.db.entity.SenderDispatchLog
-import io.github.magisk317.relay.engine.service.MessageRecordRepository
+import io.github.magisk317.forward.db.ForwardDatabase
+import io.github.magisk317.forward.db.SenderDispatchLogEntity
+import io.github.magisk317.forward.engine.service.MessageRecordRepository
 
 class DispatchResultWriter(
-    private val db: AppDatabase,
+    private val forwardDb: ForwardDatabase,
     private val relayRecordRepository: MessageRecordRepository,
     private val preferenceDataSource: PreferenceDataSource,
 ) {
@@ -109,11 +109,11 @@ class DispatchResultWriter(
     ) {
         if (results.isEmpty()) return
         val now = System.currentTimeMillis()
-        val dao = db.senderDispatchLogDao()
+        val dao = forwardDb.senderDispatchLogDao()
         results.forEach { result ->
             runCatching {
                 dao.insert(
-                    SenderDispatchLog(
+                    SenderDispatchLogEntity(
                         recordId = recordId,
                         senderId = result.senderId,
                         senderType = result.senderType,

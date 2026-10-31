@@ -1,7 +1,5 @@
 package io.github.magisk317.relay.data.remote
 
-import io.github.magisk317.smscode.db.entity.AppInfo
-import io.github.magisk317.smscode.db.entity.NotifyRouteRule
 import io.github.magisk317.smscode.db.entity.SmsCodeRule
 import io.github.magisk317.relay.contract.model.SnapshotAppInfo
 import io.github.magisk317.relay.contract.model.SnapshotForwardFilterRule
@@ -9,9 +7,19 @@ import io.github.magisk317.relay.contract.model.SnapshotNotifyRouteRule
 import io.github.magisk317.relay.contract.model.SnapshotRule
 import io.github.magisk317.relay.contract.model.SnapshotSender
 import io.github.magisk317.relay.contract.model.SnapshotSmsCodeRule
-import io.github.magisk317.relay.engine.model.ForwardFilterRule
-import io.github.magisk317.relay.engine.model.Rule
-import io.github.magisk317.relay.engine.model.Sender
+import io.github.magisk317.forward.engine.model.AppInfoData
+import io.github.magisk317.forward.engine.model.AppInfoImpl
+import io.github.magisk317.forward.engine.model.ForwardFilterRule
+import io.github.magisk317.forward.engine.model.NotifyRouteRuleImpl
+import io.github.magisk317.forward.engine.model.NotifyRouteRuleData
+import io.github.magisk317.forward.engine.model.Rule
+import io.github.magisk317.forward.engine.model.Sender
+import io.github.magisk317.forward.engine.sender.SenderActiveSchedule as ForwardSenderActiveSchedule
+import io.github.magisk317.forward.engine.sender.SenderActiveScheduleRange as ForwardSenderActiveScheduleRange
+import io.github.magisk317.forward.engine.sender.SenderActiveScheduleRule as ForwardSenderActiveScheduleRule
+import io.github.magisk317.forward.contract.model.SenderActiveSchedule as LegacySenderActiveSchedule
+import io.github.magisk317.forward.contract.model.SenderActiveScheduleRange as LegacySenderActiveScheduleRange
+import io.github.magisk317.forward.contract.model.SenderActiveScheduleRule as LegacySenderActiveScheduleRule
 import java.util.Date
 
 internal fun Sender.toSnapshot(): SnapshotSender = SnapshotSender(
@@ -25,7 +33,7 @@ internal fun Sender.toSnapshot(): SnapshotSender = SnapshotSender(
     receiveNonCode = receiveNonCode,
     receiveAppNotify = receiveAppNotify,
     receiveCallNotify = receiveCallNotify,
-    activeSchedule = activeSchedule,
+    activeSchedule = activeSchedule.toLegacySchedule(),
     priority = priority,
     customTemplate = customTemplate,
 )
@@ -41,7 +49,7 @@ internal fun SnapshotSender.toSnapshotDomain(): Sender = Sender(
     receiveNonCode = receiveNonCode,
     receiveAppNotify = receiveAppNotify,
     receiveCallNotify = receiveCallNotify,
-    activeSchedule = activeSchedule,
+    activeSchedule = activeSchedule.toForwardSchedule(),
     priority = priority,
     customTemplate = customTemplate,
 )
@@ -86,7 +94,7 @@ internal fun SnapshotRule.toSnapshotDomain(): Rule = Rule(
     title = title,
 )
 
-internal fun AppInfo.toSnapshot(): SnapshotAppInfo = SnapshotAppInfo(
+internal fun AppInfoData.toSnapshot(): SnapshotAppInfo = SnapshotAppInfo(
     packageName = packageName,
     label = label,
     blocked = blocked,
@@ -95,7 +103,7 @@ internal fun AppInfo.toSnapshot(): SnapshotAppInfo = SnapshotAppInfo(
     notifyTemplate = notifyTemplate,
 )
 
-internal fun SnapshotAppInfo.toSnapshotEntity(): AppInfo = AppInfo(
+internal fun SnapshotAppInfo.toSnapshotDomain(): AppInfoData = AppInfoImpl(
     packageName = packageName,
     label = label,
     blocked = blocked,
@@ -118,7 +126,7 @@ internal fun SnapshotSmsCodeRule.toSnapshotEntity(): SmsCodeRule = SmsCodeRule(
     id = id,
 )
 
-internal fun NotifyRouteRule.toSnapshot(): SnapshotNotifyRouteRule = SnapshotNotifyRouteRule(
+internal fun NotifyRouteRuleData.toSnapshot(): SnapshotNotifyRouteRule = SnapshotNotifyRouteRule(
     id = id,
     scope = scope,
     packageName = packageName,
@@ -126,7 +134,7 @@ internal fun NotifyRouteRule.toSnapshot(): SnapshotNotifyRouteRule = SnapshotNot
     updateTime = updateTime,
 )
 
-internal fun SnapshotNotifyRouteRule.toSnapshotEntity(): NotifyRouteRule = NotifyRouteRule(
+internal fun SnapshotNotifyRouteRule.toSnapshotDomain(): NotifyRouteRuleData = NotifyRouteRuleImpl(
     id = id,
     scope = scope,
     packageName = packageName,
@@ -159,3 +167,33 @@ internal fun SnapshotForwardFilterRule.toSnapshotDomain(): ForwardFilterRule = F
     enabled = enabled,
     updateTime = updateTime,
 )
+
+private fun ForwardSenderActiveSchedule.toLegacySchedule(): LegacySenderActiveSchedule =
+    LegacySenderActiveSchedule(
+        sms = sms.toLegacyRule(),
+        appNotify = appNotify.toLegacyRule(),
+        callNotify = callNotify.toLegacyRule(),
+    )
+
+private fun ForwardSenderActiveScheduleRule.toLegacyRule(): LegacySenderActiveScheduleRule =
+    LegacySenderActiveScheduleRule(
+        enabled = enabled,
+        mode = mode,
+        weekdays = weekdays,
+        ranges = ranges.map { LegacySenderActiveScheduleRange(it.start, it.end) },
+    )
+
+private fun LegacySenderActiveSchedule.toForwardSchedule(): ForwardSenderActiveSchedule =
+    ForwardSenderActiveSchedule(
+        sms = sms.toForwardRule(),
+        appNotify = appNotify.toForwardRule(),
+        callNotify = callNotify.toForwardRule(),
+    )
+
+private fun LegacySenderActiveScheduleRule.toForwardRule(): ForwardSenderActiveScheduleRule =
+    ForwardSenderActiveScheduleRule(
+        enabled = enabled,
+        mode = mode,
+        weekdays = weekdays,
+        ranges = ranges.map { ForwardSenderActiveScheduleRange(it.start, it.end) },
+    )

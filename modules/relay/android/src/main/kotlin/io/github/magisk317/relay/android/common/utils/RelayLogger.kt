@@ -7,7 +7,7 @@ import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
 import io.github.magisk317.xposed.logging.LogEvent
 import io.github.magisk317.xposed.logging.LogFormatter
 import io.github.magisk317.xposed.logging.LogLevel
-import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
+import io.github.magisk317.xposed.runtime.contract.logging.LogRoute
 
 object RelayLogger {
 
@@ -117,10 +117,14 @@ object RelayLogger {
             return
         }
 
-        runCatching { Log.println(priority, LOG_TAG, logMessage) }
+        runCatching { Log.println(priority, LOG_TAG, logMessage) }.onFailure {
+            // best-effort: nothing here can act on the failure
+        }
 
         if (LOG_TO_XPOSED) {
-            runCatching { Log.println(priority, "LSPosed-Bridge", "$LOG_TAG: $logMessage") }
+            runCatching { Log.println(priority, "LSPosed-Bridge", "$LOG_TAG: $logMessage") }.onFailure {
+                // best-effort: nothing here can act on the failure
+            }
         }
 
         val resolvedRoute = route ?: RuntimeLogStore.ROUTE_APP

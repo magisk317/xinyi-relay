@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import io.github.magisk317.xposed.logging.XLog
-import io.github.magisk317.relay.android.data.db.AppDatabase
+import io.github.magisk317.forward.db.ForwardDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -15,8 +15,8 @@ class ScheduledTaskWorker(
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         XLog.i("ScheduledTaskWorker doWork started")
-        val db = AppDatabase.getInstance(applicationContext)
-        val activeTasks = db.scheduledTaskDao().getActiveTasks()
+        val db = ForwardDatabase.build(applicationContext)
+        val activeTasks = db.forwardScheduledTaskDao().getActiveTasks()
 
         val now = System.currentTimeMillis()
         for (task in activeTasks) {

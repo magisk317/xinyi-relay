@@ -5,11 +5,13 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.AppDatabase
-import io.github.magisk317.smscode.db.entity.AppInfo
+import io.github.magisk317.forward.db.ForwardDatabase
+import io.github.magisk317.relay.platform.ipc.ForwardDatabaseBootstrapper
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toEntity
+import io.github.magisk317.relay.android.data.mapper.ForwardConfigMapper.toDomain
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
-import io.github.magisk317.relay.contract.json.RelayJson
+import io.github.magisk317.forward.contract.json.RelayJson
 import io.github.magisk317.relay.contract.model.LocalConfigMirrorPayload
 import io.github.magisk317.relay.contract.model.LocalConfigMirror
 import io.github.magisk317.relay.contract.model.LocalConfigRevision
@@ -33,8 +35,10 @@ import io.github.magisk317.relay.contract.settings.VerificationSettingsUpdate
 import io.github.magisk317.relay.data.remote.toSnapshotDomain
 import io.github.magisk317.relay.data.remote.toSnapshotEntity
 import io.github.magisk317.relay.data.remote.toSnapshot
-import io.github.magisk317.relay.engine.model.ForwardFilterRule
-import io.github.magisk317.relay.engine.service.AppConfigRepository
+import io.github.magisk317.forward.engine.model.AppInfoData
+import io.github.magisk317.forward.engine.model.AppInfoImpl
+import io.github.magisk317.forward.engine.model.ForwardFilterRule
+import io.github.magisk317.forward.engine.service.AppConfigRepository
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -50,6 +54,7 @@ class LocalConfigRepositoryImpl(
     private val settingsRepository: SettingsPreferencesRepository,
     private val configRepository: AppConfigRepository,
     private val database: AppDatabase,
+    private val forwardDatabase: ForwardDatabase,
 ) : LocalConfigRepository {
     private val appContext = context.applicationContext ?: context
     private val mutationSources = MutableSharedFlow<String>(
@@ -284,11 +289,11 @@ class LocalConfigRepositoryImpl(
                 )
             }
             configRepository.clearAllAppInfo()
-            val myAppInfos = payload.deviceAppInfos?.get(deviceIdStr).orEmpty().map { it.toSnapshotEntity().toDomain() }
+            val myAppInfos = payload.deviceAppInfos?.get(deviceIdStr).orEmpty().map { it.toSnapshotDomain() }
             myAppInfos.forEach { configRepository.upsertAppInfo(it) }
 
             configRepository.clearAllNotifyRouteRules()
-            configRepository.insertNotifyRouteRules(payload.notifyRoutes.map { it.toSnapshotEntity().toDomain() })
+            configRepository.insertNotifyRouteRules(payload.notifyRoutes.map { it.toSnapshotDomain() })
             configRepository.clearAllForwardFilterRules()
             payload.forwardFilters.forEach { configRepository.insertForwardFilterRule(it.toSnapshotDomain()) }
             configRepository.checkpoint()
@@ -305,6 +310,7 @@ class LocalConfigRepositoryImpl(
     override fun observeMutationSources(): Flow<String> = mutationSources
 
     private suspend fun buildLocalMirrorModel(): LocalConfigMirrorPayload {
+        ForwardDatabaseBootstrapper.awaitReady()
         return LocalConfigMirrorPayload(
             general = settingsRepository.getGeneralSettings(),
             verification = settingsRepository.getVerificationSettings(),
@@ -327,7 +333,7 @@ class LocalConfigRepositoryImpl(
             deviceAppInfos = run {
                 val deviceIdStr = preferenceDataSource.getString(PrefConst.KEY_REMOTE_AGENT_DEVICE_ID, "0")
                 val savedDeviceAppInfosRaw = preferenceDataSource.getString(PrefConst.KEY_REMOTE_AGENT_DEVICE_APP_INFOS, "")
-                val deviceAppInfos = if (savedDeviceAppInfosRaw.isNotBlank()) {
+                val deviceAppInfos: MutableMap<String, List<SnapshotAppInfo>> = if (savedDeviceAppInfosRaw.isNotBlank()) {
                     runCatching {
                         RelayJson.format.decodeFromString<Map<String, List<SnapshotAppInfo>>>(savedDeviceAppInfosRaw).toMutableMap()
                     }.getOrDefault(mutableMapOf())
@@ -335,23 +341,23 @@ class LocalConfigRepositoryImpl(
                     mutableMapOf()
                 }
                 deviceAppInfos[deviceIdStr] = resolveInstalledAppCatalog(
-                    configRepository.getAllAppInfo().map { it.toEntity() },
+                    configRepository.getAllAppInfo(),
                 ).map { it.toSnapshot() }
                 deviceAppInfos
             },
-            notifyRoutes = database.notifyRouteRuleDao().getAll().map { it.toSnapshot() },
-            forwardFilters = database.forwardFilterRuleDao().getAll().map { it.toDomain().toSnapshot() },
+            notifyRoutes = forwardDatabase.forwardRouteRuleDao().all().map { it.toDomain().toSnapshot() },
+            forwardFilters = forwardDatabase.forwardFilterRuleDao().all().map { it.toDomain().toSnapshot() },
         )
     }
 
-    private fun resolveInstalledAppCatalog(existingConfigs: List<AppInfo>): List<AppInfo> {
+    private fun resolveInstalledAppCatalog(existingConfigs: List<AppInfoData>): List<AppInfoData> {
         val packageManager = appContext.packageManager
         val existingByPackage = existingConfigs.associateBy { it.packageName }
         val installedApps = runCatching {
             packageManager.getInstalledApplications(PackageManager.MATCH_ALL)
         }.getOrDefault(emptyList<ApplicationInfo>())
 
-        val merged = linkedMapOf<String, AppInfo>()
+        val merged = linkedMapOf<String, AppInfoData>()
         installedApps.asSequence()
             .filter { it.packageName.isNotBlank() }
             .forEach { applicationInfo ->
@@ -360,7 +366,7 @@ class LocalConfigRepositoryImpl(
                     packageManager.getApplicationLabel(applicationInfo).toString()
                 }.getOrDefault(packageName)
                 val existing = existingByPackage[packageName]
-                merged[packageName] = AppInfo(
+                merged[packageName] = AppInfoImpl(
                     packageName = packageName,
                     label = label,
                     blocked = existing?.blocked ?: false,

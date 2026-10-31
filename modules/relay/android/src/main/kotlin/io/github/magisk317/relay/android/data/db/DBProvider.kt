@@ -12,33 +12,38 @@ import android.os.Binder
 import android.os.Bundle
 import androidx.room.withTransaction
 import io.github.magisk317.xposed.logging.XLog
-import io.github.magisk317.relay.android.data.db.dao.SmsMsgDao
-import io.github.magisk317.smscode.db.entity.AppInfo
+import io.github.magisk317.forward.db.ForwardEventDao
+import io.github.magisk317.forward.db.ForwardAppInfoEntity
+import io.github.magisk317.forward.db.ForwardDatabase
 import io.github.magisk317.smscode.db.entity.SmsCodeRule
-import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.forward.db.ForwardEventEntity
+import io.github.magisk317.relay.android.data.mapper.mergeForwardEventForInsert
 import io.github.magisk317.smscode.runtime.common.record.CodeRecordChannel
 import io.github.magisk317.smscode.runtime.common.record.CodeRecordTrimPolicy
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.android.platform.ipc.ProviderCallerPolicy
 import io.github.magisk317.relay.contract.constant.RelayPrefConst
-import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsStore
+import io.github.magisk317.xposed.runtime.state.RuntimeStateStore
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
-import io.github.magisk317.smscode.runtime.contract.ipc.RuntimeStateProviderContract
+import io.github.magisk317.xposed.runtime.RuntimeStateProviderContract
 import io.github.magisk317.smscode.runtime.contract.record.SmsMsgCursorContract
 import io.github.magisk317.smscode.runtime.common.utils.SharedRuntimeGate
 import io.github.magisk317.smscode.runtime.common.utils.StorageUtils
-import io.github.magisk317.smscode.rule.utils.CodeRecordSimilarityUtils
+import io.github.magisk317.xposed.contract.util.CodeRecordSimilarityUtils
 import kotlinx.coroutines.runBlocking
 
 class DBProvider : ContentProvider() {
     private var mDatabase: AppDatabase? = null
+    private var mForwardDatabase: ForwardDatabase? = null
     private lateinit var uriMatcher: UriMatcher
     private lateinit var authority: String
 
     override fun onCreate(): Boolean {
         context?.let {
             mDatabase = AppDatabase.getInstance(it)
+            mForwardDatabase = ForwardDatabase.build(it)
             StorageUtils.repairExternalAppDataPermissions(it)
+            ProviderCallerPolicy.updateLiveScope(readCachedXposedScope(it))
             authority = "${it.packageName}.db.provider"
             uriMatcher = UriMatcher(UriMatcher.NO_MATCH).apply {
                 addURI(authority, PATH_SMS_MSG, SMS_MSG_DIR)
@@ -63,6 +68,10 @@ class DBProvider : ContentProvider() {
         return when (method) {
             RuntimeStateProviderContract.METHOD_CLAIM_RUNTIME_GATE -> claimRuntimeGate(ctx, arg, extras)
             RuntimeStateProviderContract.METHOD_RECORD_HOOK_HEARTBEAT -> recordHookHeartbeat(ctx, extras)
+            RuntimeStateProviderContract.METHOD_RECORD_CALL_NOTIFICATION_SOURCE ->
+                recordCallNotificationSource(ctx, extras)
+            RuntimeStateProviderContract.METHOD_RECORD_HOOK_INSTALL -> recordHookInstall(ctx, extras)
+            RuntimeStateProviderContract.METHOD_RECORD_NOTIFY_EVENT -> recordNotifyEvent(ctx, extras)
             RuntimeStateProviderContract.METHOD_GET_RETENTION_DAYS -> getRetentionDays(ctx)
             else -> super.call(method, arg, extras)
         }
@@ -77,7 +86,7 @@ class DBProvider : ContentProvider() {
         }
         when (uriType) {
             SMS_MSG_DIR -> {
-                val msg = SmsMsg(
+                val msg = ForwardEventEntity(
                     sender = values?.getAsString("sender"),
                     body = values?.getAsString("body"),
                     date = values?.getAsLong("date") ?: 0L,
@@ -90,23 +99,24 @@ class DBProvider : ContentProvider() {
                     subId = values?.getAsInteger("sub_id") ?: 0,
                     contactName = values?.getAsString("contact_name").orEmpty(),
                     phoneArea = values?.getAsString("phone_area").orEmpty(),
-                    msgType = values?.getAsInteger("msg_type") ?: SmsMsg.MSG_TYPE_SMS,
+                    msgType = values?.getAsInteger("msg_type") ?: ForwardEventEntity.MSG_TYPE_SMS,
                     callType = values?.getAsInteger("call_type") ?: 0,
                     sessionKey = values?.getAsString("session_key").orEmpty(),
-                    forwardStatus = values?.getAsInteger("forward_status") ?: SmsMsg.FORWARD_STATUS_NONE,
+                    forwardStatus = values?.getAsInteger("forward_status")
+                        ?: ForwardEventEntity.FORWARD_STATUS_NONE,
                     forwardTarget = values?.getAsString("forward_target"),
                     forwardMessage = values?.getAsString("forward_message"),
                     forwardTime = values?.getAsLong("forward_time") ?: 0L,
                 )
-                val database = mDatabase ?: return null
+                val forwardDatabase = mForwardDatabase ?: return null
                 val outcome = runBlocking {
-                    database.withTransaction {
+                    forwardDatabase.withTransaction {
                         val result = insertSmsMsgOrGetExisting(
-                            dao = database.smsMsgDao(),
+                            dao = forwardDatabase.forwardEventDao(),
                             incoming = msg,
                             deduplicate = parseBooleanValue(values, KEY_DEDUPLICATE, true),
                         )
-                        trimOldRecordsIfNeeded(ctx, database.smsMsgDao(), msg)
+                        trimOldRecordsIfNeeded(ctx, forwardDatabase.forwardEventDao(), msg)
                         result
                     }
                 }
@@ -117,7 +127,7 @@ class DBProvider : ContentProvider() {
                     }
                     .build()
                 // This is also the app-owned signal used by RemoteAgentInitializer to restore
-                // RelayRecordRepository's record-upload scheduling after hook writes moved to
+                // ForwardRoomRecordRepository's record-upload scheduling after hook writes moved to
                 // the provider process. Notify accepted duplicates too, matching the old
                 // repository path which scheduled after duplicate resolution.
                 context?.contentResolver?.notifyChange(resultUri, null)
@@ -184,15 +194,15 @@ class DBProvider : ContentProvider() {
     }
 
     private fun deleteSmsMsgById(id: Long): Int = runBlocking {
-        val dao = mDatabase!!.smsMsgDao()
-        val msg = dao.getById(id) ?: return@runBlocking 0
+        val dao = mForwardDatabase!!.forwardEventDao()
+        val msg = dao.byId(id) ?: return@runBlocking 0
         dao.delete(msg)
         1
     }
 
     private suspend fun insertSmsMsgOrGetExisting(
-        dao: SmsMsgDao,
-        incoming: SmsMsg,
+        dao: ForwardEventDao,
+        incoming: ForwardEventEntity,
         deduplicate: Boolean,
     ): SmsMsgInsertOutcome {
         dao.getByFingerprint(
@@ -201,17 +211,19 @@ class DBProvider : ContentProvider() {
             date = incoming.date,
             msgType = incoming.msgType,
         )?.let { existing ->
-            dao.update(mergeSmsMsgForInsert(existing, incoming))
-            return SmsMsgInsertOutcome(id = existing.id ?: error("persisted SMS row missing id"), duplicate = true)
+            dao.update(mergeForwardEventForInsert(existing, incoming))
+            return SmsMsgInsertOutcome(id = existing.id, duplicate = true)
         }
 
         if (deduplicate) {
             findWindowDuplicate(dao, incoming)?.let { existing ->
-                return SmsMsgInsertOutcome(id = existing.id ?: error("persisted SMS row missing id"), duplicate = true)
+                return SmsMsgInsertOutcome(id = existing.id, duplicate = true)
             }
         }
 
-        val insertedId = dao.insertIfAbsent(incoming)
+        // forward_event carries no unique fingerprint index, so the conflict is resolved by
+        // re-reading inside the same transaction and merging into the row that won the race.
+        val insertedId = runCatching { dao.insert(incoming) }.getOrElse { -1L }
         if (insertedId > 0L) {
             return SmsMsgInsertOutcome(id = insertedId, duplicate = false)
         }
@@ -222,11 +234,14 @@ class DBProvider : ContentProvider() {
             date = incoming.date,
             msgType = incoming.msgType,
         ) ?: error("SMS fingerprint conflict without an existing row")
-        dao.update(mergeSmsMsgForInsert(raced, incoming))
-        return SmsMsgInsertOutcome(id = raced.id ?: error("persisted SMS row missing id"), duplicate = true)
+        dao.update(mergeForwardEventForInsert(raced, incoming))
+        return SmsMsgInsertOutcome(id = raced.id, duplicate = true)
     }
 
-    private suspend fun findWindowDuplicate(dao: SmsMsgDao, incoming: SmsMsg): SmsMsg? {
+    private suspend fun findWindowDuplicate(
+        dao: ForwardEventDao,
+        incoming: ForwardEventEntity,
+    ): ForwardEventEntity? {
         val timestamp = incoming.date.takeIf { it > 0L } ?: System.currentTimeMillis()
         val from = (timestamp - CodeRecordSimilarityUtils.DEFAULT_WINDOW_MS).coerceAtLeast(0L)
         val to = timestamp + CodeRecordSimilarityUtils.DEFAULT_WINDOW_MS
@@ -257,8 +272,10 @@ class DBProvider : ContentProvider() {
             }
         }
 
-        if (!incoming.sender.isNullOrBlank() && !incoming.body.isNullOrBlank()) {
-            dao.getByFingerprintInRange(incoming.sender, incoming.body, incoming.msgType, from, to)
+        val sender = incoming.sender
+        val body = incoming.body
+        if (!sender.isNullOrBlank() && !body.isNullOrBlank()) {
+            dao.getByFingerprintInRange(sender, body, incoming.msgType, from, to)
                 ?.let { return it }
         }
         return null
@@ -275,7 +292,7 @@ class DBProvider : ContentProvider() {
     }
 
     private fun querySmsMsgs(projection: Array<String>?, sortOrder: String?): Cursor = runBlocking {
-        val rows = mDatabase!!.smsMsgDao().getAll().let { list ->
+        val rows = mForwardDatabase!!.forwardEventDao().getAll().let { list ->
             when (sortOrder?.trim()?.lowercase()) {
                 "date asc" -> list.sortedBy { it.date }
                 "date desc", null, "" -> list.sortedByDescending { it.date }
@@ -284,8 +301,8 @@ class DBProvider : ContentProvider() {
         }
         val columns = projection ?: SmsMsgCursorContract.defaultColumns
         val cursor = MatrixCursor(columns)
-        rows.forEach { msg ->
-            cursor.addRow(buildRow(columns) { column -> valueFromSmsMsg(msg, column) })
+        rows.forEach { event ->
+            cursor.addRow(buildRow(columns) { column -> valueFromForwardEvent(event, column) })
         }
         return@runBlocking cursor
     }
@@ -294,9 +311,9 @@ class DBProvider : ContentProvider() {
         val id = uri.lastPathSegment?.toLongOrNull() ?: throw IllegalArgumentException("Invalid URI: $uri")
         val columns = projection ?: SmsMsgCursorContract.defaultColumns
         val cursor = MatrixCursor(columns)
-        val msg = mDatabase!!.smsMsgDao().getById(id)
-        if (msg != null) {
-            cursor.addRow(buildRow(columns) { column -> valueFromSmsMsg(msg, column) })
+        val event = mForwardDatabase!!.forwardEventDao().byId(id)
+        if (event != null) {
+            cursor.addRow(buildRow(columns) { column -> valueFromForwardEvent(event, column) })
         }
         return@runBlocking cursor
     }
@@ -317,7 +334,7 @@ class DBProvider : ContentProvider() {
         selection: String?,
         selectionArgs: Array<String>?,
     ): Cursor = runBlocking {
-        var rows = mDatabase!!.appInfoDao().getAll()
+        var rows = mForwardDatabase!!.forwardAppInfoDao().all()
         if (!selection.isNullOrBlank()) {
             val normalized = selection.replace("`", "").trim().lowercase()
             if (normalized == "blocked = ?" && !selectionArgs.isNullOrEmpty()) {
@@ -330,7 +347,7 @@ class DBProvider : ContentProvider() {
         }
         val columns = projection ?: arrayOf("package_name", "label", "blocked", "forwarding", "notify_template")
         val cursor = MatrixCursor(columns)
-        rows.forEach { app: AppInfo ->
+        rows.forEach { app: ForwardAppInfoEntity ->
             cursor.addRow(buildRow(columns) { column -> valueFromAppInfo(app, column) })
         }
         return@runBlocking cursor
@@ -343,7 +360,7 @@ class DBProvider : ContentProvider() {
         if (packageName.isBlank()) {
             return@runBlocking cursor
         }
-        val app = mDatabase!!.appInfoDao().getByPackageName(packageName)
+        val app = mForwardDatabase!!.forwardAppInfoDao().byPackage(packageName)
         if (app != null) {
             cursor.addRow(buildRow(columns) { column -> valueFromAppInfo(app, column) })
         }
@@ -362,16 +379,32 @@ class DBProvider : ContentProvider() {
             else -> null
         }
 
-    private fun valueFromSmsMsg(msg: SmsMsg, column: String): Any? =
-        SmsMsgCursorContract.valueFromRecord(msg, column) ?: when (column) {
-            "sim_slot" -> msg.simSlot
-            "sub_id" -> msg.subId
-            "contact_name" -> msg.contactName
-            "phone_area" -> msg.phoneArea
+    private fun valueFromForwardEvent(event: ForwardEventEntity, column: String): Any? =
+        when (column.lowercase()) {
+            "_id", "id" -> event.id
+            "sender" -> event.sender
+            "body" -> event.body
+            "date" -> event.date
+            "processed_time" -> event.processedTime
+            "company" -> event.company
+            "sms_code" -> event.smsCode
+            "package_name" -> event.packageName
+            "notify_channel_id" -> event.notifyChannelId
+            "sim_slot" -> event.simSlot
+            "sub_id" -> event.subId
+            "msg_type" -> event.msgType
+            "call_type" -> event.callType
+            "contact_name" -> event.contactName
+            "phone_area" -> event.phoneArea
+            "session_key" -> event.sessionKey
+            "forward_status" -> event.forwardStatus
+            "forward_target" -> event.forwardTarget
+            "forward_message" -> event.forwardMessage
+            "forward_time" -> event.forwardTime
             else -> null
         }
 
-    private fun valueFromAppInfo(app: AppInfo, column: String): Any? =
+    private fun valueFromAppInfo(app: ForwardAppInfoEntity, column: String): Any? =
         when (column) {
             "package_name" -> app.packageName
             "label" -> app.label
@@ -413,6 +446,19 @@ class DBProvider : ContentProvider() {
 
     private fun isCallerAllowedForMutation(ctx: Context): Boolean =
         ProviderCallerPolicy.isSelf(ctx)
+
+    private fun readCachedXposedScope(ctx: Context): List<String> {
+        val raw = runCatching {
+            runBlocking {
+                AppPreferencesDataStore.getString(
+                    ctx.applicationContext ?: ctx,
+                    RelayPrefConst.KEY_XPOSED_SCOPE_CACHE,
+                    "",
+                )
+            }
+        }.getOrDefault("")
+        return raw.split(',').map { it.trim() }.filter { it.isNotBlank() }
+    }
 
     private fun isCallerAllowedForInsert(ctx: Context, uriType: Int): Boolean =
         when (uriType) {
@@ -475,7 +521,7 @@ class DBProvider : ContentProvider() {
         if (packageName.isBlank() || processName.isBlank() || source.isBlank()) return null
 
         val ok = runCatching {
-            ActivationDiagnosticsStore.recordHookHeartbeat(
+            RuntimeStateStore.recordHookHeartbeat(
                 context = ctx.applicationContext ?: ctx,
                 packageName = packageName,
                 processName = processName,
@@ -489,6 +535,9 @@ class DBProvider : ContentProvider() {
                     ?.toRuntimeStateValue()
                     ?.takeIf(String::isNotBlank)
                     ?: RuntimeLogStore.ROUTE_SMS_HOOK,
+                moduleVersion = extras
+                    ?.getInt(RuntimeStateProviderContract.EXTRA_MODULE_VERSION, 0)
+                    ?: 0,
             )
         }.onFailure { error ->
             XLog.w(
@@ -500,8 +549,104 @@ class DBProvider : ContentProvider() {
         return Bundle().apply { putBoolean(RuntimeStateProviderContract.RESULT_OK, ok) }
     }
 
-    private fun String.toRuntimeStateValue(): String =
-        replace('\n', ' ').replace('\r', ' ').take(MAX_RUNTIME_STATE_VALUE_LENGTH)
+    private fun recordCallNotificationSource(ctx: Context, extras: Bundle?): Bundle? {
+        val packageName = extras
+            ?.getString(RuntimeStateProviderContract.EXTRA_PACKAGE_NAME)
+            ?.toRuntimeStateValue()
+            .orEmpty()
+        val channelId = extras
+            ?.getString(RuntimeStateProviderContract.EXTRA_CHANNEL_ID)
+            ?.toRuntimeStateValue()
+            .orEmpty()
+        val category = extras
+            ?.getString(RuntimeStateProviderContract.EXTRA_CATEGORY)
+            ?.toRuntimeStateValue()
+            .orEmpty()
+        if (packageName.isBlank()) return null
+
+        val ok = runCatching {
+            RuntimeStateStore.recordCallNotificationSource(
+                context = ctx.applicationContext ?: ctx,
+                packageName = packageName,
+                channelId = channelId,
+                category = category,
+            )
+        }.onFailure { error ->
+            XLog.w(
+                message = "DBProvider: call notify source failed pkg=%s err=%s",
+                packageName,
+                error.message ?: error.javaClass.simpleName,
+            )
+        }.isSuccess
+        return Bundle().apply { putBoolean(RuntimeStateProviderContract.RESULT_OK, ok) }
+    }
+
+    private fun recordHookInstall(ctx: Context, extras: Bundle?): Bundle? {
+        val hook = extras?.getString(RuntimeStateProviderContract.EXTRA_HOOK).toRuntimeStateValue()
+        val status = extras?.getString(RuntimeStateProviderContract.EXTRA_HOOK_STATUS).toRuntimeStateValue()
+        if (hook.isBlank() || status.isBlank()) return null
+        val packageName = extras
+            ?.getString(RuntimeStateProviderContract.EXTRA_PACKAGE_NAME)
+            .toRuntimeStateValue()
+        val processName = extras
+            ?.getString(RuntimeStateProviderContract.EXTRA_PROCESS_NAME)
+            .toRuntimeStateValue()
+        val detail = extras
+            ?.getString(RuntimeStateProviderContract.EXTRA_HOOK_DETAIL)
+            .toRuntimeStateValue()
+        val ok = runCatching {
+            RuntimeStateStore.recordHookInstall(
+                context = ctx.applicationContext ?: ctx,
+                hook = hook,
+                status = status,
+                packageName = packageName,
+                processName = processName,
+                detail = detail,
+            )
+        }.onFailure { error ->
+            XLog.w(
+                message = "DBProvider: hook install report failed hook=%s err=%s",
+                hook,
+                error.message ?: error.javaClass.simpleName,
+            )
+        }.isSuccess
+        return Bundle().apply { putBoolean(RuntimeStateProviderContract.RESULT_OK, ok) }
+    }
+
+    private fun recordNotifyEvent(ctx: Context, extras: Bundle?): Bundle? {
+        val packageName = extras
+            ?.getString(RuntimeStateProviderContract.EXTRA_PACKAGE_NAME)
+            .toRuntimeStateValue()
+        if (packageName.isBlank()) return null
+        val ok = runCatching {
+            RuntimeStateStore.recordNotifyEvent(
+                context = ctx.applicationContext ?: ctx,
+                source = extras
+                    ?.getString(RuntimeStateProviderContract.EXTRA_NOTIFY_SOURCE)
+                    .toRuntimeStateValue(),
+                packageName = packageName,
+                channelId = extras
+                    ?.getString(RuntimeStateProviderContract.EXTRA_CHANNEL_ID)
+                    .toRuntimeStateValue(),
+                msgType = extras
+                    ?.getString(RuntimeStateProviderContract.EXTRA_MSG_TYPE)
+                    .toRuntimeStateValue(),
+                skipReason = extras
+                    ?.getString(RuntimeStateProviderContract.EXTRA_SKIP_REASON)
+                    .toRuntimeStateValue(),
+            )
+        }.onFailure { error ->
+            XLog.w(
+                message = "DBProvider: notify event report failed pkg=%s err=%s",
+                packageName,
+                error.message ?: error.javaClass.simpleName,
+            )
+        }.isSuccess
+        return Bundle().apply { putBoolean(RuntimeStateProviderContract.RESULT_OK, ok) }
+    }
+
+    private fun String?.toRuntimeStateValue(): String =
+        this.orEmpty().replace('\n', ' ').replace('\r', ' ').take(MAX_RUNTIME_STATE_VALUE_LENGTH)
 
     private fun updateSmsMsgByUriId(uri: Uri, values: ContentValues?): Int {
         val id = uri.lastPathSegment?.toLongOrNull() ?: return 0
@@ -521,8 +666,8 @@ class DBProvider : ContentProvider() {
     }
 
     private fun updateSmsMsgById(id: Long, values: ContentValues?): Int = runBlocking {
-        val dao = mDatabase!!.smsMsgDao()
-        val existing = dao.getById(id) ?: return@runBlocking 0
+        val dao = mForwardDatabase!!.forwardEventDao()
+        val existing = dao.byId(id) ?: return@runBlocking 0
         val updated = existing.copy(
             sender = values?.getAsString("sender") ?: existing.sender,
             body = values?.getAsString("body") ?: existing.body,
@@ -575,10 +720,10 @@ class DBProvider : ContentProvider() {
     }
 
     private fun updateAppInfoByPackageName(packageName: String, values: ContentValues?): Int {
-        val dao = mDatabase!!.appInfoDao()
+        val dao = mForwardDatabase!!.forwardAppInfoDao()
         val existing = runBlocking {
-            dao.getByPackageName(packageName)
-        } ?: AppInfo(packageName = packageName)
+            dao.byPackage(packageName)
+        } ?: ForwardAppInfoEntity(packageName = packageName)
         val blocked = parseBooleanValue(values, "blocked", existing.blocked)
         val forwarding = parseBooleanValue(values, "forwarding", existing.forwarding)
         val forwardingConfigured = when {
@@ -599,7 +744,7 @@ class DBProvider : ContentProvider() {
             else -> existing.notifyTemplate
         }
         runBlocking {
-            dao.insert(
+            dao.upsert(
                 existing.copy(
                     label = label,
                     blocked = blocked,
@@ -628,8 +773,8 @@ class DBProvider : ContentProvider() {
         if (packageName.isBlank()) {
             return@runBlocking 0
         }
-        val dao = mDatabase!!.appInfoDao()
-        val app = dao.getByPackageName(packageName) ?: return@runBlocking 0
+        val dao = mForwardDatabase!!.forwardAppInfoDao()
+        val app = dao.byPackage(packageName) ?: return@runBlocking 0
         dao.delete(app)
         1
     }
@@ -647,7 +792,7 @@ class DBProvider : ContentProvider() {
         }
     }
 
-    private suspend fun trimOldRecordsIfNeeded(ctx: Context, dao: SmsMsgDao, msg: SmsMsg) {
+    private suspend fun trimOldRecordsIfNeeded(ctx: Context, dao: ForwardEventDao, msg: ForwardEventEntity) {
         val channel = channelOf(msg)
         val limit = CodeRecordTrimPolicy.resolveLimit(
             readString = { key, default -> AppPreferencesDataStore.getString(ctx, key, default) },
@@ -664,10 +809,10 @@ class DBProvider : ContentProvider() {
         if (outdated.isNotEmpty()) dao.deleteInTx(outdated)
     }
 
-    private fun channelOf(record: SmsMsg): CodeRecordChannel = when (record.msgType) {
-        SmsMsg.MSG_TYPE_APP_NOTIFY -> CodeRecordChannel.APP_NOTIFY
-        SmsMsg.MSG_TYPE_CALL_NOTIFY -> CodeRecordChannel.CALL_NOTIFY
-        SmsMsg.MSG_TYPE_SMS -> if (!record.smsCode.isNullOrBlank()) CodeRecordChannel.SMS_CODE else CodeRecordChannel.SMS_PLAIN
+    private fun channelOf(record: ForwardEventEntity): CodeRecordChannel = when (record.msgType) {
+        ForwardEventEntity.MSG_TYPE_APP_NOTIFY -> CodeRecordChannel.APP_NOTIFY
+        ForwardEventEntity.MSG_TYPE_CALL_NOTIFY -> CodeRecordChannel.CALL_NOTIFY
+        ForwardEventEntity.MSG_TYPE_SMS -> if (!record.smsCode.isNullOrBlank()) CodeRecordChannel.SMS_CODE else CodeRecordChannel.SMS_PLAIN
         else -> CodeRecordChannel.SMS_CODE
     }
 
@@ -710,84 +855,4 @@ class DBProvider : ContentProvider() {
         val id: Long,
         val duplicate: Boolean,
     )
-}
-
-fun mergeSmsMsgForInsert(existing: SmsMsg, incoming: SmsMsg): SmsMsg {
-    val incomingHasForwardState = incoming.forwardStatus != SmsMsg.FORWARD_STATUS_NONE ||
-        !incoming.forwardTarget.isNullOrBlank() ||
-        !incoming.forwardMessage.isNullOrBlank() ||
-        incoming.forwardTime > 0L
-    val preferred = preferRicherSmsMsg(existing, incoming)
-    val fallback = if (preferred === existing) incoming else existing
-    return existing.copy(
-        sender = preferred.sender ?: fallback.sender ?: existing.sender,
-        body = preferred.body ?: fallback.body ?: existing.body,
-        date = incoming.date.takeIf { it > 0L } ?: existing.date,
-        processedTime = existing.processedTime.takeIf { it > 0L }
-            ?: incoming.processedTime.takeIf { it > 0L }
-            ?: 0L,
-        company = preferred.company?.takeIf { it.isNotBlank() }
-            ?: fallback.company?.takeIf { it.isNotBlank() }
-            ?: existing.company,
-        smsCode = preferred.smsCode?.takeIf { it.isNotBlank() }
-            ?: fallback.smsCode?.takeIf { it.isNotBlank() }
-            ?: existing.smsCode,
-        packageName = preferred.packageName?.takeIf { it.isNotBlank() }
-            ?: fallback.packageName?.takeIf { it.isNotBlank() }
-            ?: existing.packageName,
-        notifyChannelId = preferred.notifyChannelId.takeIf { it.isNotBlank() }
-            ?: fallback.notifyChannelId.takeIf { it.isNotBlank() }
-            ?: existing.notifyChannelId,
-        simSlot = preferred.simSlot.takeIf { it >= 0 }
-            ?: fallback.simSlot.takeIf { it >= 0 }
-            ?: existing.simSlot,
-        subId = preferred.subId.takeIf { it > 0 }
-            ?: fallback.subId.takeIf { it > 0 }
-            ?: existing.subId,
-        contactName = preferred.contactName.takeIf { it.isNotBlank() }
-            ?: fallback.contactName.takeIf { it.isNotBlank() }
-            ?: existing.contactName,
-        phoneArea = preferred.phoneArea.takeIf { it.isNotBlank() }
-            ?: fallback.phoneArea.takeIf { it.isNotBlank() }
-            ?: existing.phoneArea,
-        msgType = incoming.msgType,
-        callType = preferred.callType.takeIf { it != 0 }
-            ?: fallback.callType.takeIf { it != 0 }
-            ?: existing.callType,
-        sessionKey = preferred.sessionKey.takeIf { it.isNotBlank() }
-            ?: fallback.sessionKey.takeIf { it.isNotBlank() }
-            ?: existing.sessionKey,
-        forwardStatus = if (incomingHasForwardState) incoming.forwardStatus else existing.forwardStatus,
-        forwardTarget = if (incomingHasForwardState) incoming.forwardTarget else existing.forwardTarget,
-        forwardMessage = if (incomingHasForwardState) incoming.forwardMessage else existing.forwardMessage,
-        forwardTime = if (incomingHasForwardState) incoming.forwardTime else existing.forwardTime,
-    )
-}
-
-private fun preferRicherSmsMsg(existing: SmsMsg, incoming: SmsMsg): SmsMsg {
-    val existingScore = scoreSmsMsg(existing)
-    val incomingScore = scoreSmsMsg(incoming)
-    return when {
-        incomingScore > existingScore -> incoming
-        incomingScore < existingScore -> existing
-        incoming.date > existing.date -> incoming
-        else -> existing
-    }
-}
-
-private fun scoreSmsMsg(record: SmsMsg): Int {
-    var score = 0
-    val pkg = record.packageName.orEmpty()
-    if (pkg.isNotBlank() && !isSystemSmsPackage(pkg)) score += 4
-    if (record.company.orEmpty().isNotBlank()) score += 2
-    if (record.simSlot >= 0) score += 2
-    if (record.sender.orEmpty().isNotBlank()) score += 1
-    if (record.contactName.isNotBlank()) score += 1
-    return score
-}
-
-private fun isSystemSmsPackage(packageName: String): Boolean {
-    return packageName == "com.android.mms" ||
-        packageName == "com.android.messaging" ||
-        packageName == "com.google.android.apps.messaging"
 }

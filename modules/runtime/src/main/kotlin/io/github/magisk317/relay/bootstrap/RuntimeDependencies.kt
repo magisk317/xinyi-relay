@@ -8,9 +8,10 @@ import io.github.magisk317.relay.contract.repository.LocalConfigRepository
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.domain.pipeline.EventPipeline
 import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
-import io.github.magisk317.relay.engine.service.AppConfigRepository
-import io.github.magisk317.relay.engine.service.MessageRecordRepository
-import io.github.magisk317.relay.engine.service.ScheduledTaskRepository
+import io.github.magisk317.forward.db.ForwardDatabase
+import io.github.magisk317.forward.engine.service.AppConfigRepository
+import io.github.magisk317.forward.engine.service.MessageRecordRepository
+import io.github.magisk317.forward.engine.service.ScheduledTaskRepository
 
 /**
  * Service-locator interface for runtime singletons.
@@ -25,6 +26,7 @@ import io.github.magisk317.relay.engine.service.ScheduledTaskRepository
 interface RuntimeDependencies {
 
     val database: AppDatabase
+    val forwardDatabase: ForwardDatabase
     val preferenceDataSource: PreferenceDataSource
     val settingsRepository: SettingsPreferencesRepository
     val relayRecordRepository: MessageRecordRepository

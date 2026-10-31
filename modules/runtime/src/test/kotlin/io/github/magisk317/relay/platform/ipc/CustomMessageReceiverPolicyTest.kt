@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import io.github.magisk317.forward.runtime.ingress.CustomMessageBroadcastContract
+import io.github.magisk317.forward.runtime.ingress.CustomMessageReceiverPolicy
 
 class CustomMessageReceiverPolicyTest {
 

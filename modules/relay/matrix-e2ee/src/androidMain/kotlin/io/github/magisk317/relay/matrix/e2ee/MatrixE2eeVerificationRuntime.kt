@@ -1,14 +1,14 @@
 package io.github.magisk317.relay.matrix.e2ee
 
 import android.content.Context
-import io.github.magisk317.relay.sender.MatrixE2eeCancelInfo
-import io.github.magisk317.relay.sender.MatrixE2eeVerification
-import io.github.magisk317.relay.sender.MatrixE2eeVerificationEmoji
-import io.github.magisk317.relay.sender.MatrixE2eeVerificationState
-import io.github.magisk317.relay.sender.MatrixE2eeVerificationStatus
-import io.github.magisk317.relay.sender.SenderSettingSanitizer
+import io.github.magisk317.forward.sender.MatrixE2eeCancelInfo
+import io.github.magisk317.forward.sender.MatrixE2eeVerification
+import io.github.magisk317.forward.sender.MatrixE2eeVerificationEmoji
+import io.github.magisk317.forward.sender.MatrixE2eeVerificationState
+import io.github.magisk317.forward.sender.MatrixE2eeVerificationStatus
+import io.github.magisk317.forward.sender.SenderSettingSanitizer
 import java.util.concurrent.atomic.AtomicBoolean
-import io.github.magisk317.relay.sender.config.MatrixSetting
+import io.github.magisk317.forward.sender.config.MatrixSetting
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -333,7 +333,10 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
         stopSync()
         stopVerificationStateListener()
         controller?.setDelegate(null)
-        runCatching { controller?.close() }
+        runCatching { controller?.close() }.onFailure {
+            // The controller is dropped on the next line; a session that is already
+            // gone has nothing left to release.
+        }
         controller = null
         delegate = null
         resetPendingRequestAcknowledgement(cancelActiveJob = true)
@@ -347,7 +350,10 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
         stopSync()
         stopVerificationStateListener()
         controller?.setDelegate(null)
-        runCatching { controller?.close() }
+        runCatching { controller?.close() }.onFailure {
+            // The controller is dropped on the next line; a session that is already
+            // gone has nothing left to release.
+        }
         controller = null
         delegate = null
         resetPendingRequestAcknowledgement(cancelActiveJob = true)
@@ -552,7 +558,10 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
         }
         stopVerificationStateListener()
         controller?.setDelegate(null)
-        runCatching { controller?.close() }
+        runCatching { controller?.close() }.onFailure {
+            // The controller is dropped on the next line; a session that is already
+            // gone has nothing left to release.
+        }
 
         val nextController = client.getSessionVerificationController()
         val nextDelegate = createDelegate()
@@ -611,16 +620,24 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
             SLog.d(TAG, "Matrix verification sync stopping: ${summarizeClientSession(client)}")
         }
         syncHandle?.let { handle ->
-            runCatching { handle.cancel() }
-            runCatching { handle.close() }
+            runCatching { handle.cancel() }.onFailure {
+                // Tearing down a subscription that already ended is the normal case.
+            }
+            runCatching { handle.close() }.onFailure {
+                // Same here: the handle is dropped immediately after this block.
+            }
         }
         syncHandle = null
     }
 
     private fun stopVerificationStateListener() {
         verificationStateHandle?.let { handle ->
-            runCatching { handle.cancel() }
-            runCatching { handle.close() }
+            runCatching { handle.cancel() }.onFailure {
+                // Tearing down a subscription that already ended is the normal case.
+            }
+            runCatching { handle.close() }.onFailure {
+                // Same here: the handle is dropped immediately after this block.
+            }
         }
         verificationStateHandle = null
     }

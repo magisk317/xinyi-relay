@@ -1,17 +1,18 @@
 package io.github.magisk317.relay.domain.recovery
 
+import io.github.magisk317.forward.runtime.ingress.CallSessionTracker
 import android.content.Context
-import io.github.magisk317.relay.contract.constant.MessageType
+import io.github.magisk317.forward.contract.constant.MessageType
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.sms.SmsCodeUtils
-import io.github.magisk317.relay.android.common.utils.CallSessionTracker
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
-import io.github.magisk317.relay.android.data.db.dao.SmsMsgDao
-import io.github.magisk317.smscode.db.entity.SmsMsg
-import io.github.magisk317.relay.engine.event.RelayEvent
+import io.github.magisk317.forward.db.ForwardDatabase
+import io.github.magisk317.forward.db.ForwardEventDao
+import io.github.magisk317.forward.db.ForwardEventEntity
+import io.github.magisk317.forward.engine.event.RelayEvent
 import io.github.magisk317.relay.bootstrap.RuntimeDependencies
-import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
+import io.github.magisk317.xposed.runtime.contract.logging.LogRoute
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.max
 import io.github.magisk317.xposed.logging.MagiskOtel
@@ -164,8 +165,8 @@ internal object RootDbCatchupEngine {
         }
 
         val writeback = preferenceValue(deps, PrefConst.KEY_ROOT_DB_CATCHUP_WRITEBACK, false)
-        val db = deps.database
-        val dao = db.smsMsgDao()
+        val forwardDb = ForwardDatabase.build(context.applicationContext ?: context)
+        val dao = forwardDb.forwardEventDao()
         val relayKeywords = deps.preferenceDataSource.getString(
             PrefConst.KEY_SMSCODE_KEYWORDS,
             PrefConst.SMSCODE_KEYWORDS_DEFAULT,
@@ -245,7 +246,7 @@ internal object RootDbCatchupEngine {
     private suspend fun handleSmsRow(
         context: Context,
         deps: RuntimeDependencies,
-        dao: SmsMsgDao,
+        dao: ForwardEventDao,
         row: SmsRow,
         writeback: Boolean,
         relayKeywords: String,
@@ -266,25 +267,25 @@ internal object RootDbCatchupEngine {
             sender = sender,
             body = body,
             date = date,
-            msgType = SmsMsg.MSG_TYPE_SMS,
+            msgType = ForwardEventEntity.MSG_TYPE_SMS,
         )?.id
 
         if (recordId == null && canRecord) {
             trimOldRecordsIfNeeded(
                 deps = deps,
                 dao = dao,
-                msgType = SmsMsg.MSG_TYPE_SMS,
+                msgType = ForwardEventEntity.MSG_TYPE_SMS,
                 isCodeSms = isCodeSms,
             )
             recordId = dao.insert(
-                SmsMsg(
+                ForwardEventEntity(
                     sender = sender,
                     body = body,
                     date = date,
                     processedTime = System.currentTimeMillis(),
                     company = "",
                     smsCode = smsCode,
-                    msgType = SmsMsg.MSG_TYPE_SMS,
+                    msgType = ForwardEventEntity.MSG_TYPE_SMS,
                     callType = 0,
                 ),
             )
@@ -305,7 +306,7 @@ internal object RootDbCatchupEngine {
     private suspend fun handleCallRow(
         context: Context,
         deps: RuntimeDependencies,
-        dao: SmsMsgDao,
+        dao: ForwardEventDao,
         row: CallRow,
         writeback: Boolean,
     ) {
@@ -321,11 +322,11 @@ internal object RootDbCatchupEngine {
         )
 
         val canRecord = deps.preferenceDataSource.getBoolean(PrefConst.KEY_ENABLE_CODE_RECORDS_CALL_NOTIFY, true)
-        if (canRecord && dao.getBySessionKey(SmsMsg.MSG_TYPE_CALL_NOTIFY, sessionKey) == null) {
+        if (canRecord && dao.getBySessionKey(ForwardEventEntity.MSG_TYPE_CALL_NOTIFY, sessionKey) == null) {
             trimOldRecordsIfNeeded(
                 deps = deps,
                 dao = dao,
-                msgType = SmsMsg.MSG_TYPE_CALL_NOTIFY,
+                msgType = ForwardEventEntity.MSG_TYPE_CALL_NOTIFY,
                 isCodeSms = false,
             )
         }
@@ -343,14 +344,15 @@ internal object RootDbCatchupEngine {
 
     private suspend fun trimOldRecordsIfNeeded(
         deps: RuntimeDependencies,
-        dao: SmsMsgDao,
+        dao: ForwardEventDao,
         msgType: Int,
         isCodeSms: Boolean,
     ) {
         val limitKey = when (msgType) {
-            SmsMsg.MSG_TYPE_CALL_NOTIFY -> PrefConst.KEY_HISTORY_LIMIT_CALL_NOTIFY
-            SmsMsg.MSG_TYPE_APP_NOTIFY -> PrefConst.KEY_HISTORY_LIMIT_APP_NOTIFY
-            SmsMsg.MSG_TYPE_SMS -> if (isCodeSms) PrefConst.KEY_HISTORY_LIMIT_CODE else PrefConst.KEY_HISTORY_LIMIT_PLAIN_SMS
+            ForwardEventEntity.MSG_TYPE_CALL_NOTIFY -> PrefConst.KEY_HISTORY_LIMIT_CALL_NOTIFY
+            ForwardEventEntity.MSG_TYPE_APP_NOTIFY -> PrefConst.KEY_HISTORY_LIMIT_APP_NOTIFY
+            ForwardEventEntity.MSG_TYPE_SMS ->
+                if (isCodeSms) PrefConst.KEY_HISTORY_LIMIT_CODE else PrefConst.KEY_HISTORY_LIMIT_PLAIN_SMS
             else -> PrefConst.KEY_HISTORY_LIMIT
         }
         val limit = deps.preferenceDataSource
@@ -363,10 +365,10 @@ internal object RootDbCatchupEngine {
             .asSequence()
             .filter { record ->
                 when (msgType) {
-                    SmsMsg.MSG_TYPE_APP_NOTIFY -> record.msgType == SmsMsg.MSG_TYPE_APP_NOTIFY
-                    SmsMsg.MSG_TYPE_CALL_NOTIFY -> record.msgType == SmsMsg.MSG_TYPE_CALL_NOTIFY
-                    SmsMsg.MSG_TYPE_SMS -> {
-                        record.msgType == SmsMsg.MSG_TYPE_SMS &&
+                    ForwardEventEntity.MSG_TYPE_APP_NOTIFY -> record.msgType == ForwardEventEntity.MSG_TYPE_APP_NOTIFY
+                    ForwardEventEntity.MSG_TYPE_CALL_NOTIFY -> record.msgType == ForwardEventEntity.MSG_TYPE_CALL_NOTIFY
+                    ForwardEventEntity.MSG_TYPE_SMS -> {
+                        record.msgType == ForwardEventEntity.MSG_TYPE_SMS &&
                             if (isCodeSms) {
                                 !record.smsCode.isNullOrBlank()
                             } else {

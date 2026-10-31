@@ -9,6 +9,7 @@ import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.android.prefs.PrefsReader
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
 import io.github.magisk317.xposed.logging.MagiskOtel
+import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastPayload
 
 data class ForwardBroadcastAck(
     val resultCode: Int,
@@ -30,7 +31,7 @@ object ForwardBroadcastDispatcher {
         orderedAck: ((ForwardBroadcastAck) -> Unit)? = null,
     ) {
         val startedAt = System.nanoTime()
-        val intent = payload.toIntent(
+        val intent = payload.toHostIntent(
             context = context,
             token = token.takeIf { !it.isNullOrBlank() },
         )

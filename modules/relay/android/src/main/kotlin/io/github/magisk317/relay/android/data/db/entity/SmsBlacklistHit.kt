@@ -4,7 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
-import io.github.magisk317.relay.engine.model.ReadSmsBlacklistHitData
+import io.github.magisk317.forward.engine.model.ReadSmsBlacklistHitData
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 

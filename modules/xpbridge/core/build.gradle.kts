@@ -14,8 +14,10 @@ android {
 }
 
 dependencies {
+    implementation(project(":magisk-xposed-kit:runtime"))
     implementation(project(":magisk-xposed-kit:logging"))
     implementation(project(":magisk-xposed-kit"))
+    implementation(project(":magisk-xposed-kit:capability"))
     api(project(":xpbridge:android:api"))
     api(project(":relay:contract"))
     implementation(project(":smscode-core:runtime"))

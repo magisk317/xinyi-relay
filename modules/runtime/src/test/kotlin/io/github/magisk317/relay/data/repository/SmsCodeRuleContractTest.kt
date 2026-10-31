@@ -1,8 +1,8 @@
 package io.github.magisk317.relay.data.repository
 
 import io.github.magisk317.relay.android.data.db.dao.SmsCodeRuleDao
-import io.github.magisk317.relay.engine.model.SmsCodeRuleData
-import io.github.magisk317.relay.engine.service.AppConfigRepository
+import io.github.magisk317.forward.engine.model.AppCodeRuleData
+import io.github.magisk317.forward.engine.service.AppConfigRepository
 import io.github.magisk317.smscode.rule.model.SmsCodeRuleSpec
 import io.github.magisk317.smscode.rule.repository.SmsCodeRuleRecord
 import io.github.magisk317.smscode.rule.repository.SmsCodeRuleRepository
@@ -28,7 +28,7 @@ class SmsCodeRuleContractTest {
         company: String? = "Acme",
         keyword: String = "CODE",
         regex: String = "\\d{6}",
-    ): SmsCodeRuleData = object : SmsCodeRuleData {
+    ): AppCodeRuleData = object : AppCodeRuleData {
         override val id: Long = id
         override val company: String? = company
         override val codeKeyword: String = keyword
@@ -55,12 +55,13 @@ class SmsCodeRuleContractTest {
         val repo = ConfigRepository(
             context = mockk(relaxed = true),
             db = mockk(relaxed = true),
+            forwardDb = mockk(relaxed = true),
             smsCodeRuleDao = dao,
-            appInfoDao = mockk(relaxed = true),
-            notifyRouteRuleDao = mockk(relaxed = true),
+            forwardAppInfoDao = mockk(relaxed = true),
+            forwardRouteRuleDao = mockk(relaxed = true),
             forwardFilterRuleDao = mockk(relaxed = true),
-            ruleDao = mockk(relaxed = true),
-            senderDao = mockk(relaxed = true),
+            forwardRuleDao = mockk(relaxed = true),
+            forwardSenderDao = mockk(relaxed = true),
         )
         // The screens inject AppConfigRepository; the contract must be the same object
         // so both views read and write one set of rules.

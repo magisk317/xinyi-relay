@@ -48,11 +48,16 @@ val magiskIsCiBuild: Boolean = (providers.gradleProperty("isCiBuild").orNull
 }
 
 dependencies {
+    implementation(project(":magisk-xposed-kit:runtime"))
+    implementation(project(":magisk-xposed-kit:contract"))
     implementation(project(":magisk-xposed-kit:logging"))
+    implementation(project(":magisk-xposed-kit:runtime"))
     implementation(libs.androidx.work.runtime.ktx)
     implementation(project(":relay:contract"))
-    implementation(project(":relay:engine"))
-    implementation(project(":relay:net"))
+    implementation(project(":magisk-forward-core:engine"))
+    implementation(project(":magisk-forward-core:runtime"))
+    implementation(project(":magisk-forward-core:db"))
+    implementation(project(":magisk-forward-core:net"))
     implementation(project(":relay:android"))
     implementation(project(":xpbridge:android:api"))
     implementation(project(":smscode-core:domain"))

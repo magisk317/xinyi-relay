@@ -1,10 +1,18 @@
 package io.github.magisk317.relay.android.data.datasource
 
 import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceChangeSet
+import io.github.magisk317.smscode.runtime.contract.prefs.PrefRead
 import kotlinx.coroutines.flow.Flow
 
 interface PreferenceDataSource {
     suspend fun getBoolean(key: String, defaultValue: Boolean): Boolean
+
+    /**
+     * 三态读取，沿用共享 core 的 [PrefRead] 词汇：[PrefRead.Miss] 表示这个键从未写过，调用方必须按
+     * 自己的规则回退（例如「检测CI构建」未设置时回落到构建来源）；[PrefRead.Unavailable] 表示读不到。
+     * 两者都不许被一个凭空默认值毒化——这正是 [getBoolean] 无法表达的差别。
+     */
+    suspend fun readBoolean(key: String): PrefRead<Boolean>
     suspend fun setBoolean(key: String, value: Boolean)
 
     suspend fun getString(key: String, defaultValue: String): String

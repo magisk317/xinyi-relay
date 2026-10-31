@@ -1,5 +1,7 @@
 package io.github.magisk317.relay.contract.constant
 
+import io.github.magisk317.relay.contract.constant.RelayPrefConst
+
 enum class PrefValueType {
     BOOLEAN,
     INT,
@@ -41,6 +43,7 @@ object PrefRestoreTypeRegistry {
         RelayPrefConst.KEY_ENABLE_ANALYTICS,
         RelayPrefConst.KEY_AUTO_UPDATE_ON_START,
         RelayPrefConst.KEY_AUTO_UPDATE_WIFI_ONLY,
+        RelayPrefConst.KEY_TRACK_CI_BUILDS,
         RelayPrefConst.KEY_LOW_BATTERY_REMINDER_ENABLE,
         RelayPrefConst.KEY_FULL_BATTERY_REMINDER_ENABLE,
         RelayPrefConst.KEY_CALL_ALERT_LOCAL_ENABLED,

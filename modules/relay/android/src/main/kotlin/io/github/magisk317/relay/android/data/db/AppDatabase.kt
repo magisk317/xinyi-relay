@@ -6,58 +6,38 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import io.github.magisk317.smscode.db.entity.ForwardFilterRule
 import io.github.magisk317.relay.android.data.db.dao.RuleDao
 import io.github.magisk317.relay.android.data.db.dao.SenderDao
-import io.github.magisk317.smscode.db.ext.ConvertersDate
-import io.github.magisk317.smscode.db.ext.ConvertersSenderList
-import io.github.magisk317.smscode.db.entity.Rule
-import io.github.magisk317.smscode.db.entity.Sender
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacyConvertersDate as ConvertersDate
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacyConvertersSenderList as ConvertersSenderList
 import io.github.magisk317.relay.android.data.db.dao.AppInfoDao
 import io.github.magisk317.relay.android.data.db.dao.AutoInputEventDao
 import io.github.magisk317.relay.android.data.db.dao.ForwardFilterRuleDao
 import io.github.magisk317.relay.android.data.db.dao.NotifyRouteRuleDao
-import io.github.magisk317.relay.android.data.db.dao.SenderDispatchLogDao
 import io.github.magisk317.relay.android.data.db.dao.SmsBlacklistHitDao
 import io.github.magisk317.relay.android.data.db.dao.SmsCodeRuleDao
 import io.github.magisk317.relay.android.data.db.dao.SmsMsgDao
-import io.github.magisk317.smscode.db.entity.AppInfo
 import io.github.magisk317.smscode.db.entity.AutoInputEvent
-import io.github.magisk317.smscode.db.entity.NotifyRouteRule
 import io.github.magisk317.smscode.db.entity.SmsCodeRule
-import io.github.magisk317.smscode.db.entity.SmsMsg
 import io.github.magisk317.relay.android.data.db.entity.SenderDispatchLog
 import io.github.magisk317.xposed.logging.XLog
-import io.github.magisk317.relay.android.data.db.entity.ScheduledTaskEntity
 import io.github.magisk317.relay.android.data.db.entity.SmsBlacklistHit
 
+// v34 dropped the legacy import-source tables (sms_msg, app_info, Sender,
+// Rule, forward_filter_rule, notify_route_rule, sender_dispatch_log,
+// scheduled_task): ForwardDatabaseBootstrapper drains them into forward.db
+// through raw SQLite and drops them after a fully successful import.
 @Database(entities = [
     SmsCodeRule::class,
-    SmsMsg::class,
     SmsBlacklistHit::class,
-    AppInfo::class,
-    AutoInputEvent::class,
-    SenderDispatchLog::class,
-    NotifyRouteRule::class,
-    ForwardFilterRule::class,
-    Sender::class,
-    Rule::class,
-    ScheduledTaskEntity::class
-], version = 33, exportSchema = true)
+    AutoInputEvent::class
+], version = 34, exportSchema = true)
 @TypeConverters(ConvertersDate::class, ConvertersSenderList::class)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun smsCodeRuleDao(): SmsCodeRuleDao
-    abstract fun smsMsgDao(): SmsMsgDao
     abstract fun smsBlacklistHitDao(): SmsBlacklistHitDao
-    abstract fun appInfoDao(): AppInfoDao
     abstract fun autoInputEventDao(): AutoInputEventDao
-    abstract fun senderDispatchLogDao(): SenderDispatchLogDao
-    abstract fun notifyRouteRuleDao(): NotifyRouteRuleDao
-    abstract fun forwardFilterRuleDao(): ForwardFilterRuleDao
-    abstract fun ruleDao(): RuleDao
-    abstract fun senderDao(): SenderDao
-    abstract fun scheduledTaskDao(): io.github.magisk317.relay.android.data.db.dao.ScheduledTaskDao
 
     companion object {
         internal const val DATABASE_NAME = "relay_room.db"
@@ -897,6 +877,17 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        // v34 removes the legacy entity types; the physical tables are dropped by
+        // ForwardDatabaseBootstrapper after a successful import (raw SQL). An
+        // empty migration keeps the version bookkeeping correct; devices whose
+        // import has not run yet keep the tables as tolerated extras until the
+        // bootstrapper drains and drops them.
+        private val MIGRATION_33_34 = object : androidx.room.migration.Migration(33, 34) {
+            override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                XLog.w(message = "Relay schema v33->v34: legacy entity types removed")
+            }
+        }
+
         private val MIGRATION_32_33 = object : androidx.room.migration.Migration(32, 33) {
             override fun migrate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                 recreateSmsMsgTable(db, "32_33")
@@ -1112,6 +1103,7 @@ abstract class AppDatabase : RoomDatabase() {
                     MIGRATION_30_31,
                     MIGRATION_31_32,
                     MIGRATION_32_33,
+                    MIGRATION_33_34,
                 )
                 .enableMultiInstanceInvalidation()
                 .build().also { instance = it }
@@ -1185,7 +1177,9 @@ abstract class AppDatabase : RoomDatabase() {
         @JvmStatic
         fun closeInstance() {
             synchronized(this) {
-                runCatching { instance?.close() }
+                runCatching { instance?.close() }.onFailure { error ->
+                    XLog.w("closeInstance: close failed: ${error.message}", error)
+                }
                 instance = null
             }
         }

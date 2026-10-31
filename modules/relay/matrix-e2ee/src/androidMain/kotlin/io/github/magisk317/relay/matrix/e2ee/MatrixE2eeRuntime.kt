@@ -1,12 +1,12 @@
 package io.github.magisk317.relay.matrix.e2ee
 
-import io.github.magisk317.relay.contract.model.ProxyType
+import io.github.magisk317.forward.contract.model.ProxyType
 import android.content.Context
-import io.github.magisk317.relay.engine.model.MsgInfo
-import io.github.magisk317.relay.sender.MatrixE2eeAvailabilityProvider
-import io.github.magisk317.relay.sender.MatrixE2eeSender
-import io.github.magisk317.relay.sender.SenderSettingSanitizer
-import io.github.magisk317.relay.sender.config.MatrixSetting
+import io.github.magisk317.forward.engine.model.MsgInfo
+import io.github.magisk317.forward.sender.MatrixE2eeAvailabilityProvider
+import io.github.magisk317.forward.sender.MatrixE2eeSender
+import io.github.magisk317.forward.sender.SenderSettingSanitizer
+import io.github.magisk317.forward.sender.config.MatrixSetting
 import java.io.File
 import java.util.Collections
 import java.util.concurrent.atomic.AtomicBoolean

@@ -2,10 +2,10 @@ package io.github.magisk317.relay.xpbridge
 
 import android.content.Context
 import io.github.magisk317.relay.contract.constant.NotificationConst
-import io.github.magisk317.relay.contract.notification.NoopRelayNotificationPlatformBridge
-import io.github.magisk317.relay.contract.notification.RelayNotificationPlatformBridge
-import io.github.magisk317.smscode.runtime.contract.notification.NotificationDeliveryDiagnostics
-import io.github.magisk317.smscode.runtime.contract.notification.NotificationPlatformBridge
+import io.github.magisk317.forward.contract.notification.NoopRelayNotificationPlatformBridge
+import io.github.magisk317.forward.contract.notification.RelayNotificationPlatformBridge
+import io.github.magisk317.xposed.runtime.contract.notification.NotificationDeliveryDiagnostics
+import io.github.magisk317.xposed.runtime.contract.notification.NotificationPlatformBridge
 
 object XpNotificationBridge : NotificationPlatformBridge {
     const val CHANNEL_ID_RELAY_NOTIFICATION: String = NotificationConst.CHANNEL_ID_RELAY_NOTIFICATION

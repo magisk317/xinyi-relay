@@ -75,8 +75,13 @@ android {
 }
 
 dependencies {
+    implementation(project(":magisk-xposed-kit:runtime"))
+    implementation(project(":magisk-xposed-kit:contract"))
     implementation(libs.mobile.entitlement.android)
+    implementation(project(":magisk-forward-core:db"))
     implementation(project(":magisk-xposed-kit:logging"))
+    implementation(project(":magisk-forward-core:runtime"))
+    implementation(project(":magisk-xposed-kit:runtime"))
     implementation(project(":magisk-xposed-kit:entitlement"))
     // The kit is only needed by the flavor-specific Xposed runtime sources, so it is
     // attached to each distribution flavor instead of to every compilation unit.
@@ -84,8 +89,8 @@ dependencies {
         add("${flavor}Implementation", project(":magisk-xposed-kit"))
     }
     implementation(project(":relay:contract"))
-    implementation(project(":relay:engine:api"))
-    implementation(project(":relay:sender"))
+    implementation(project(":magisk-forward-core:engine:api"))
+    implementation(project(":magisk-forward-core:sender"))
     implementation(project(":smscode-core:domain"))
     implementation(project(":smscode-core:verification"))
     implementation(project(":smscode-core:db"))

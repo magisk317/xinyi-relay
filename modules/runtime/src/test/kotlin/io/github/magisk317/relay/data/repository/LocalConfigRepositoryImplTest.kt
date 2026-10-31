@@ -1,12 +1,13 @@
 package io.github.magisk317.relay.data.repository
 
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
+import io.github.magisk317.smscode.runtime.contract.prefs.PrefRead
 import io.github.magisk317.relay.android.data.datasource.PreferenceWriteScope
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.relay.contract.repository.LocalConfigMirrorRejectedException
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
-import io.github.magisk317.relay.engine.service.AppConfigRepository
+import io.github.magisk317.forward.engine.service.AppConfigRepository
 import io.github.magisk317.relay.testing.relaxedContext
 import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceChange
 import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceChangeSet
@@ -126,6 +127,7 @@ class LocalConfigRepositoryImplTest {
             settingsRepository = mockk<SettingsPreferencesRepository>(relaxed = true),
             configRepository = mockk<AppConfigRepository>(relaxed = true),
             database = mockk<AppDatabase>(relaxed = true),
+            forwardDatabase = mockk(relaxed = true),
         )
     }
 }
@@ -137,6 +139,9 @@ private class FakePreferenceDataSource(
     private val floats: MutableMap<String, Float> = mutableMapOf(),
 ) : PreferenceDataSource {
     override suspend fun getBoolean(key: String, defaultValue: Boolean): Boolean = booleans[key] ?: defaultValue
+
+    override suspend fun readBoolean(key: String): PrefRead<Boolean> =
+        booleans[key]?.let { PrefRead.Hit(it, "fake-prefs") } ?: PrefRead.Miss
 
     override suspend fun setBoolean(key: String, value: Boolean) {
         booleans[key] = value

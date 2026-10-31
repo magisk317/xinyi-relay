@@ -1,9 +1,9 @@
 package io.github.magisk317.relay.matrix.e2ee
 
-import io.github.magisk317.relay.engine.model.MsgInfo
-import io.github.magisk317.relay.sender.MatrixE2eeHostProvider
-import io.github.magisk317.relay.sender.MatrixE2eeHttpResponse
-import io.github.magisk317.relay.sender.config.MatrixSetting
+import io.github.magisk317.forward.engine.model.MsgInfo
+import io.github.magisk317.forward.sender.MatrixE2eeHostProvider
+import io.github.magisk317.forward.sender.MatrixE2eeHttpResponse
+import io.github.magisk317.forward.sender.config.MatrixSetting
 
 internal object MatrixUtils {
     suspend fun getAuthToken(setting: MatrixSetting): String =

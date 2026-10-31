@@ -3,8 +3,8 @@ package io.github.magisk317.relay.android.diagnostics
 import android.content.Context
 import io.github.magisk317.relay.android.BuildConfig
 import io.github.magisk317.relay.contract.constant.RelayPrefConst
-import io.github.magisk317.smscode.runtime.contract.diagnostics.ActivationDiagnosticsSnapshot
-import io.github.magisk317.smscode.runtime.contract.diagnostics.ActivationStatusInputs
+import io.github.magisk317.xposed.runtime.state.RuntimeDiagnosticsSnapshot
+import io.github.magisk317.xposed.runtime.state.RuntimeStatusInputs
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeDiagnosticsConfig
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeDiagnosticsInstaller
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
@@ -49,8 +49,8 @@ object RuntimeDiagnosticsBridge {
 
     private fun resolveActivationStatus(
         context: Context,
-        snapshot: ActivationDiagnosticsSnapshot,
-        inputs: ActivationStatusInputs,
+        snapshot: RuntimeDiagnosticsSnapshot,
+        inputs: RuntimeStatusInputs,
     ): Boolean {
         return inputs.runtimeConnected || inputs.hasHookHeartbeat
     }
@@ -64,7 +64,10 @@ object RuntimeDiagnosticsBridge {
             value.contains(".xp.LibXposedEntry") -> RuntimeLogStore.ROUTE_SMS_HOOK
             value.contains(".xp.hook.notification.") ||
                 value.contains(".core.hook.notification.") ||
-                value.contains(".xposed.hook.notification.") -> RuntimeLogStore.ROUTE_NMS_HOOK
+                value.contains(".xposed.hook.notification.") ||
+                value.contains(".xposed.capture.") ||
+                value.contains(".xp.notification.") -> RuntimeLogStore.ROUTE_NMS_HOOK
+            value.contains(".forward.capture.") -> RuntimeLogStore.ROUTE_FORWARD
             value.contains(".xp.hook.system.") ||
                 value.contains(".core.hook.system.") ||
                 value.contains(".xposed.hook.system.") -> RuntimeLogStore.ROUTE_SYSTEM_INPUT

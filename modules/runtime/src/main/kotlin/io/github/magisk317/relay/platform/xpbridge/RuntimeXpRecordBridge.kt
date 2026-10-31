@@ -3,7 +3,8 @@ package io.github.magisk317.relay.platform.xpbridge
 import android.content.ContentValues
 import android.content.Context
 import io.github.magisk317.relay.android.data.db.DBProvider
-import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySmsMsg as SmsMsg
+import io.github.magisk317.forward.db.ForwardEventEntity
 import io.github.magisk317.relay.contract.xpbridge.XpRecordRuntimeBridge
 import io.github.magisk317.relay.contract.xpbridge.XpSmsBlacklistHitRecord
 import io.github.magisk317.relay.contract.xpbridge.XpSmsRecord
@@ -191,6 +192,31 @@ object RuntimeXpRecordBridge : XpRecordRuntimeBridge {
     override fun exportCodeRecordToFile(context: Context, smsMsg: XpSmsRecord): Boolean {
         // Hook-side persistence is provider-only. External files are not an IPC transport.
         return false
+    }
+
+    private fun toXpSmsRecord(event: ForwardEventEntity): XpSmsRecord {
+        return XpSmsRecord(
+            id = event.id,
+            sender = event.sender,
+            body = event.body,
+            date = event.date,
+            processedTime = event.processedTime,
+            company = event.company,
+            smsCode = event.smsCode,
+            packageName = event.packageName,
+            notifyChannelId = event.notifyChannelId,
+            simSlot = event.simSlot,
+            subId = event.subId,
+            contactName = event.contactName,
+            phoneArea = event.phoneArea,
+            sessionKey = event.sessionKey,
+            forwardStatus = event.forwardStatus,
+            forwardTarget = event.forwardTarget,
+            forwardMessage = event.forwardMessage,
+            forwardTime = event.forwardTime,
+            msgType = event.msgType,
+            callType = event.callType,
+        )
     }
 
     private fun toXpSmsRecord(smsMsg: SmsMsg): XpSmsRecord {

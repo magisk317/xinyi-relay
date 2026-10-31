@@ -8,8 +8,8 @@ import io.github.magisk317.relay.contract.xpbridge.XpPrefsRuntimeBridge
 import io.github.magisk317.relay.xpbridge.bridge.NoopXpRuntimeBridge as NoopCoreXpRuntimeBridge
 import io.github.magisk317.relay.xpbridge.bridge.XpCapabilities as CoreXpCapabilities
 import io.github.magisk317.relay.xpbridge.bridge.XpRuntimeBridge as CoreXpRuntimeBridge
-import io.github.magisk317.smscode.xposed.prefs.CorePrefs
-import io.github.magisk317.smscode.xposed.prefs.CorePrefsAccess
+import io.github.magisk317.xposed.capability.prefs.CorePrefs
+import io.github.magisk317.xposed.capability.prefs.CorePrefsAccess
 import io.github.magisk317.relay.contract.prefs.XpCapabilities as RuntimeXpCapabilities
 import io.github.magisk317.relay.contract.prefs.XpRuntimeBridge as RuntimeXpRuntimeBridge
 import io.github.magisk317.smscode.runtime.contract.prefs.PrefRead

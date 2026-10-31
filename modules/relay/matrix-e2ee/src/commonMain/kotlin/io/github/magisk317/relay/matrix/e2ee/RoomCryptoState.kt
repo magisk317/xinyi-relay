@@ -2,7 +2,7 @@ package io.github.magisk317.relay.matrix.e2ee
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 
-import io.github.magisk317.relay.net.RelayHttpClients
+import io.github.magisk317.forward.net.RelayHttpClients
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext

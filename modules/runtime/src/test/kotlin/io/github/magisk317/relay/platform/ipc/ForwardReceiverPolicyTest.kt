@@ -1,10 +1,12 @@
 package io.github.magisk317.relay.platform.ipc
 
-import io.github.magisk317.relay.contract.constant.MessageType
+import io.github.magisk317.forward.contract.constant.MessageType
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastContract
+import io.github.magisk317.forward.runtime.ingress.ForwardReceiverPolicy
 
 class ForwardReceiverPolicyTest {
     @Test

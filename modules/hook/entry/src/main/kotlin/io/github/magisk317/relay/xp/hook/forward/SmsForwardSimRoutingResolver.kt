@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.xp.hook.forward
 
 import android.content.Intent
-import io.github.magisk317.smscode.runtime.contract.sim.SmsRoutingMetadata
+import io.github.magisk317.xposed.contract.sim.SmsRoutingMetadata
 import io.github.magisk317.smscode.xposed.hook.telephony.SmsRoutingProbeResolver
 
 /**

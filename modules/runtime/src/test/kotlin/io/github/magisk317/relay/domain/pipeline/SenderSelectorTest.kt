@@ -1,12 +1,12 @@
-package io.github.magisk317.relay.engine.pipeline
+package io.github.magisk317.forward.engine.pipeline
 
-import io.github.magisk317.relay.contract.constant.MessageType
-import io.github.magisk317.relay.engine.event.RelayEvent
-import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.engine.sender.SenderActiveSchedule
-import io.github.magisk317.relay.engine.sender.SenderActiveScheduleConst
-import io.github.magisk317.relay.engine.sender.SenderActiveScheduleRange
-import io.github.magisk317.relay.engine.sender.SenderActiveScheduleRule
+import io.github.magisk317.forward.contract.constant.MessageType
+import io.github.magisk317.forward.engine.event.RelayEvent
+import io.github.magisk317.forward.engine.model.Sender
+import io.github.magisk317.forward.engine.sender.SenderActiveSchedule
+import io.github.magisk317.forward.engine.sender.SenderActiveScheduleConst
+import io.github.magisk317.forward.engine.sender.SenderActiveScheduleRange
+import io.github.magisk317.forward.engine.sender.SenderActiveScheduleRule
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import kotlinx.datetime.LocalDateTime

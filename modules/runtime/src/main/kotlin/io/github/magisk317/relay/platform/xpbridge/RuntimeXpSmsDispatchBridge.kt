@@ -2,18 +2,18 @@ package io.github.magisk317.relay.platform.xpbridge
 
 import android.content.Context
 import android.content.Intent
-import io.github.magisk317.smscode.db.entity.SmsMsg
-import io.github.magisk317.relay.contract.constant.MessageType
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySmsMsg as SmsMsg
+import io.github.magisk317.forward.contract.constant.MessageType
 import io.github.magisk317.relay.contract.xpbridge.XpForwardPayload
 import io.github.magisk317.relay.contract.xpbridge.XpMessageType
 import io.github.magisk317.relay.contract.xpbridge.XpPreparedSmsHookDispatch
 import io.github.magisk317.relay.xpbridge.android.api.XpSmsDispatchRuntimeBridge
 import io.github.magisk317.relay.contract.xpbridge.XpSmsHookDispatchResult
 import io.github.magisk317.relay.contract.xpbridge.XpSmsRecord
-import io.github.magisk317.relay.platform.ipc.ForwardBroadcastContract
-import io.github.magisk317.relay.platform.ipc.ForwardBroadcastPayload
 import io.github.magisk317.relay.platform.ipc.PreparedSmsHookDispatch
 import io.github.magisk317.relay.platform.ipc.SmsHookDispatchCoordinator
+import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastPayload
+import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastContract
 
 object RuntimeXpSmsDispatchBridge : XpSmsDispatchRuntimeBridge {
     override fun ensureIncomingEventId(intent: Intent): String {

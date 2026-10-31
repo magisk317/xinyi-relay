@@ -2,9 +2,12 @@ package io.github.magisk317.relay.platform.ipc
 
 import android.content.Intent
 import io.github.magisk317.xposed.logging.XLog
-import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySmsMsg as SmsMsg
 import java.util.UUID
 import kotlin.math.abs
+import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastPayload
+import io.github.magisk317.forward.runtime.ingress.MmsNotificationPduParser
+import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastContract
 
 object ForwardPayloadFactory {
     private const val EXTRA_MMS_FROM = "from"

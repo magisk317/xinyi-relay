@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.contract.repository
 
-import io.github.magisk317.relay.contract.model.ForwardCommonConfig
+import io.github.magisk317.forward.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.contract.settings.*
 
 interface SettingsPreferencesRepository {

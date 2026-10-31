@@ -1,4 +1,5 @@
 package io.github.magisk317.relay.contract.xpbridge
+import io.github.magisk317.relay.contract.constant.RelayPrefConst
 
 import android.content.Context
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst

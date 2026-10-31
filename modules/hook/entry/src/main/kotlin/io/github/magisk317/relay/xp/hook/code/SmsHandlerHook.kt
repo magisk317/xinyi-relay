@@ -7,7 +7,7 @@ import android.os.Build
 import android.provider.Telephony
 import io.github.magisk317.relay.hookentry.BuildConfig
 import io.github.magisk317.relay.xp.HookTargetDiagnostics
-import io.github.magisk317.smscode.xposed.utils.ModuleActivationStore
+import io.github.magisk317.xposed.capability.utils.ModuleActivationStore
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
 import io.github.magisk317.relay.xpbridge.XpPrefs
@@ -15,12 +15,13 @@ import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
 import io.github.magisk317.smscode.runtime.verification.SmsDispatchChainBlockDeduplicator
 import io.github.magisk317.smscode.runtime.verification.SmsDispatchIntentDeduplicator
 import io.github.magisk317.smscode.runtime.verification.SmsIntentHookSupport
-import io.github.magisk317.smscode.runtime.common.sim.SmsRoutingIntentExtras
+import io.github.magisk317.xposed.runtime.contract.sim.SmsRoutingIntentExtras
 import io.github.magisk317.smscode.runtime.verification.PendingSmsReplayQueue
 import io.github.magisk317.smscode.xposed.hook.telephony.InboundSmsHookClaim
 import io.github.magisk317.smscode.xposed.hook.telephony.InboundSmsHookInstaller
 import io.github.magisk317.smscode.xposed.hook.telephony.InboundSmsBlocker
 import io.github.magisk317.relay.xp.hook.PhoneHookTargetPackages
+import io.github.magisk317.relay.xp.hook.helper.XinyiHookHostCapabilities
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeSession
 import io.github.magisk317.xposed.logging.XLog
@@ -34,7 +35,7 @@ import io.github.magisk317.xposed.MethodHook
 import io.github.magisk317.xposed.LoadParam
 import io.github.magisk317.xposed.MethodHookParam
 import io.github.magisk317.xposed.logging.MagiskOtel
-import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
+import io.github.magisk317.xposed.runtime.contract.logging.LogRoute
 import java.lang.reflect.Method
 import java.util.Collections
 import java.util.concurrent.Executors
@@ -122,6 +123,27 @@ class SmsHandlerHook : BaseHook() {
             printDeviceInfo()
             try {
                 hookSmsHandler(lpparam)
+                val probe = HookTargetDiagnostics.probeInboundSmsClasses(lpparam.classLoader)
+                XinyiHookHostCapabilities.recordHookInstall(
+                    context = null,
+                    hook = "sms_handler",
+                    status = when {
+                        !probe.handlerClassFound -> "class_missing"
+                        !probe.handlerDispatchIntentFound -> "method_missing"
+                        else -> "installed"
+                    },
+                    packageName = lpparam.packageName,
+                    processName = lpparam.processName.ifBlank { lpparam.packageName },
+                    detail = buildString {
+                        append("handler=")
+                        append(probe.handlerClassFound)
+                        append(" dispatch=")
+                        append(probe.handlerDispatchIntentFound)
+                        append(" controller=")
+                        append(probe.dispatchersControllerClassFound)
+                    },
+                    verboseLogging = false,
+                )
                 emitHandler(
                     result = "ok",
                     reason = "installed",
@@ -129,6 +151,15 @@ class SmsHandlerHook : BaseHook() {
                 )
             } catch (e: Throwable) {
                 XLog.e(message = "Failed to hook SmsHandler", e)
+                XinyiHookHostCapabilities.recordHookInstall(
+                    context = null,
+                    hook = "sms_handler",
+                    status = "error",
+                    packageName = lpparam.packageName,
+                    processName = lpparam.processName.ifBlank { lpparam.packageName },
+                    detail = e.javaClass.simpleName,
+                    verboseLogging = false,
+                )
                 emitHandler(
                     result = "error",
                     reason = "install_failed",

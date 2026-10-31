@@ -4,7 +4,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.media.AudioManager
 import io.github.magisk317.relay.contract.constant.DeviceActionConst
-import io.github.magisk317.relay.contract.json.RelayJson
+import io.github.magisk317.forward.contract.json.RelayJson
 import io.github.magisk317.relay.contract.remote.DeviceActionCommandResponse
 import io.mockk.every
 import io.mockk.mockk

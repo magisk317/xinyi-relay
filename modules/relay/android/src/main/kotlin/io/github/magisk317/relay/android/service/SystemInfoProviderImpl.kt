@@ -11,10 +11,10 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.BatteryManager
 import android.os.Build
-import io.github.magisk317.relay.engine.model.BatterySnapshot
-import io.github.magisk317.relay.engine.model.NetworkSnapshot
-import io.github.magisk317.relay.engine.model.SystemEnvironment
-import io.github.magisk317.relay.engine.service.SystemInfoProvider
+import io.github.magisk317.forward.engine.model.BatterySnapshot
+import io.github.magisk317.forward.engine.model.NetworkSnapshot
+import io.github.magisk317.forward.engine.model.SystemEnvironment
+import io.github.magisk317.forward.engine.service.SystemInfoProvider
 import java.net.NetworkInterface
 
 class SystemInfoProviderImpl(private val context: Context) : SystemInfoProvider {

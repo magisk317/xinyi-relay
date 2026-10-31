@@ -16,12 +16,13 @@ import io.github.magisk317.relay.xp.hook.code.ParsedCodeSmsForwarder
 import io.github.magisk317.relay.xp.hook.code.action.impl.OperateSmsAction
 import io.github.magisk317.relay.xp.hook.SmsHookDispatchGate
 import io.github.magisk317.relay.xp.hook.PhoneHookTargetPackages
+import io.github.magisk317.relay.xp.hook.helper.XinyiHookHostCapabilities
 import io.github.magisk317.relay.xp.hook.SmsHookRuntimeSession
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
-import io.github.magisk317.smscode.rule.utils.RecentEventDeduplicator
-import io.github.magisk317.smscode.rule.utils.SmsForwardDedupKeyFactory
-import io.github.magisk317.smscode.rule.utils.SmsForwardDedupSpec
+import io.github.magisk317.xposed.contract.dedup.RecentEventDeduplicator
+import io.github.magisk317.xposed.contract.dedup.CapturedEventDedupKeyFactory
+import io.github.magisk317.xposed.contract.dedup.CapturedEventDedupSpec
 import io.github.magisk317.smscode.runtime.verification.SmsIntentHookSupport
 import io.github.magisk317.xposed.HookHelpers
 import io.github.magisk317.xposed.BaseHook
@@ -31,7 +32,7 @@ import io.github.magisk317.xposed.LoadParam
 import io.github.magisk317.xposed.MethodHook
 import io.github.magisk317.xposed.MethodHookParam
 import io.github.magisk317.xposed.logging.MagiskOtel
-import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
+import io.github.magisk317.xposed.runtime.contract.logging.LogRoute
 import io.github.magisk317.xposed.logging.XLog
 import kotlinx.coroutines.runBlocking
 import java.lang.reflect.Method
@@ -87,6 +88,25 @@ class SmsForwardHook : BaseHook() {
         try {
             hookConstructor(classLoader)
             hookDispatchIntent(classLoader)
+            val handlerClass = runCatching { HookHelpers.findClass(SMS_HANDLER_CLASS, classLoader) }.getOrNull()
+            val methodFound = handlerClass?.declaredMethods?.any { it.name == DISPATCH_INTENT_METHOD } == true
+            XinyiHookHostCapabilities.recordHookInstall(
+                context = null,
+                hook = "sms_forward",
+                status = when {
+                    handlerClass == null -> "class_missing"
+                    !methodFound -> "method_missing"
+                    else -> "installed"
+                },
+                packageName = lpparam.packageName,
+                processName = lpparam.processName.ifBlank { lpparam.packageName },
+                detail = when {
+                    handlerClass == null -> SMS_HANDLER_CLASS
+                    !methodFound -> DISPATCH_INTENT_METHOD
+                    else -> "installed"
+                },
+                verboseLogging = false,
+            )
             emitRelay(
                 result = "ok",
                 reason = "installed",
@@ -94,6 +114,15 @@ class SmsForwardHook : BaseHook() {
             )
         } catch (t: Throwable) {
             XLog.e(message = "SmsForwardHook init failed", t)
+            XinyiHookHostCapabilities.recordHookInstall(
+                context = null,
+                hook = "sms_forward",
+                status = "error",
+                packageName = lpparam.packageName,
+                processName = lpparam.processName.ifBlank { lpparam.packageName },
+                detail = t.javaClass.simpleName,
+                verboseLogging = false,
+            )
             emitRelay(
                 result = "error",
                 reason = "install_failed",
@@ -578,8 +607,8 @@ class SmsForwardHook : BaseHook() {
         body: String?,
         timestamp: Long,
     ): String {
-        return SmsForwardDedupKeyFactory.build(
-            SmsForwardDedupSpec(
+        return CapturedEventDedupKeyFactory.build(
+            CapturedEventDedupSpec(
                 eventId = "",
                 sender = sender,
                 body = body,

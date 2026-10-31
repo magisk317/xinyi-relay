@@ -1,9 +1,10 @@
 package io.github.magisk317.relay.data.repository
 
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
+import io.github.magisk317.smscode.runtime.contract.prefs.PrefRead
 import io.github.magisk317.relay.android.data.datasource.PreferenceWriteScope
 import io.github.magisk317.relay.contract.constant.RelayPrefConst
-import io.github.magisk317.relay.contract.json.RelayJson
+import io.github.magisk317.forward.contract.json.RelayJson
 import io.github.magisk317.relay.contract.model.LocalConfigMirror
 import io.github.magisk317.relay.contract.model.LocalConfigRevision
 import io.github.magisk317.relay.contract.model.LocalDirtyState
@@ -801,6 +802,9 @@ private class FakeRemotePreferenceDataSource(
     private val floats: MutableMap<String, Float> = mutableMapOf(),
 ) : PreferenceDataSource {
     override suspend fun getBoolean(key: String, defaultValue: Boolean): Boolean = booleans[key] ?: defaultValue
+
+    override suspend fun readBoolean(key: String): PrefRead<Boolean> =
+        booleans[key]?.let { PrefRead.Hit(it, "fake-prefs") } ?: PrefRead.Miss
 
     override suspend fun setBoolean(key: String, value: Boolean) {
         booleans[key] = value
