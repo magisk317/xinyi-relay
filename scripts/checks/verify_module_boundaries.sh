@@ -14,9 +14,11 @@ RUNTIME_BUILD="$ROOT_DIR/modules/runtime/build.gradle.kts"
 RUNTIME_SRC="$ROOT_DIR/modules/runtime/src"
 RELAY_ANDROID_BUILD="$ROOT_DIR/modules/relay/android/build.gradle.kts"
 RELAY_CONTRACT_SRC="$ROOT_DIR/modules/relay/contract/src"
+RELAY_CONTRACT_BUILD="$ROOT_DIR/modules/relay/contract/build.gradle.kts"
+FORWARD_ENGINE_API_BUILD="$ROOT_DIR/forward/core/engine/api/build.gradle.kts"
 RELAY_MATRIX_E2EE_BUILD="$ROOT_DIR/modules/relay/matrix-e2ee/build.gradle.kts"
-RELAY_SENDER_BUILD="$ROOT_DIR/modules/relay/sender/build.gradle.kts"
-RELAY_SENDER_SRC="$ROOT_DIR/modules/relay/sender/src"
+FORWARD_SENDER_BUILD="$ROOT_DIR/forward/core/sender/build.gradle.kts"
+FORWARD_SENDER_SRC="$ROOT_DIR/forward/core/sender/src"
 MATRIX_FEATURE_BUILD="$ROOT_DIR/features/matrix-e2ee/build.gradle.kts"
 MATRIX_FEATURE_SRC="$ROOT_DIR/features/matrix-e2ee/src"
 MATRIX_PLUGIN_BUILD="$ROOT_DIR/features/matrix-e2ee-plugin/build.gradle.kts"
@@ -65,8 +67,8 @@ check_mobile_feature_dependencies() {
       violations+=("$feature_path must not depend on :mobile:ui; navigation contracts stay in the shell module")
     fi
 
-    if regex_quiet 'project\(":relay:sender"\)' "$feature_build"; then
-      violations+=("$feature_path must depend on :relay:sender:api instead of the :relay:sender implementation module")
+    if regex_quiet 'project\(":magisk-forward-core:sender"\)' "$feature_build"; then
+      violations+=("$feature_path must depend on :magisk-forward-core:sender:api instead of the :magisk-forward-core:sender implementation module")
     fi
 
     local feature_deps
@@ -82,6 +84,10 @@ check_mobile_feature_dependencies() {
   done < <(find "$MOBILE_FEATURE_DIR" -mindepth 2 -maxdepth 2 -name build.gradle.kts -print0)
 }
 
+forbid_pattern "$RELAY_CONTRACT_BUILD" 'api\(project\(":smscode-core:' \
+  ":relay:contract must not expose smscode domain modules through api; the cross-platform contract API stays domain-pure and consumers declare their own deps"
+forbid_pattern "$FORWARD_ENGINE_API_BUILD" 'api\(project\(":smscode-core:' \
+  ":magisk-forward-core:engine:api must not expose smscode domain modules through api; consumers declare their own deps"
 require_pattern "$APP_BUILD" 'implementation\(project\(":mobile:core"\)\)' \
   "app must depend directly on :mobile:core"
 require_pattern "$APP_BUILD" 'implementation\(project\(":relay:android"\)\)' \
@@ -114,8 +120,8 @@ require_pattern "$MOBILE_CORE_BUILD" 'implementation\(project\(":runtime"\)\)' \
   "mobile:core must depend on :runtime as implementation"
 forbid_pattern "$MOBILE_CORE_BUILD" 'api\(project\(":runtime"\)\)' \
   "mobile:core must not expose :runtime transitively"
-require_pattern "$MOBILE_CORE_BUILD" 'implementation\(project\(":relay:engine:api"\)\)' \
-  "mobile:core must depend on :relay:engine:api for engine contracts"
+require_pattern "$MOBILE_CORE_BUILD" 'implementation\(project\(":magisk-forward-core:engine:api"\)\)' \
+  "mobile:core must depend on :magisk-forward-core:engine:api for engine contracts"
 forbid_pattern "$MOBILE_CORE_BUILD" 'implementation\(project\(":smscode-core:hook"\)\)' \
   "mobile:core must not package :smscode-core:hook for every flavor; keep it on Xposed-capable flavors only"
 forbid_pattern "$MOBILE_CORE_BUILD" 'api\(project\(":smscode-core:hook"\)\)' \
@@ -156,13 +162,13 @@ forbid_pattern "$MOBILE_UI_BUILD" 'project\(":xpbridge:core"\)' \
 forbid_pattern "$MOBILE_UI_BUILD" 'project\(":runtime"\)' \
   "mobile/ui must not depend on :runtime directly"
 forbid_pattern "$MOBILE_UI_BUILD" 'project\(":relay:engine"\)' \
-  "mobile/ui must depend on :relay:engine:api, not :relay:engine implementation"
-require_pattern "$MOBILE_UI_BUILD" 'implementation\(project\(":relay:engine:api"\)\)' \
-  "mobile/ui must depend on :relay:engine:api for engine contracts"
-forbid_pattern "$MOBILE_UI_BUILD" 'project\(":relay:sender"\)' \
-  "mobile/ui must depend on :relay:sender:api, not :relay:sender implementation"
-require_pattern "$MOBILE_UI_BUILD" 'implementation\(project\(":relay:sender:api"\)\)' \
-  "mobile/ui must depend on :relay:sender:api for sender configuration contracts"
+  "mobile/ui must depend on :magisk-forward-core:engine:api, not :relay:engine implementation"
+require_pattern "$MOBILE_UI_BUILD" 'implementation\(project\(":magisk-forward-core:engine:api"\)\)' \
+  "mobile/ui must depend on :magisk-forward-core:engine:api for engine contracts"
+forbid_pattern "$MOBILE_UI_BUILD" 'project\(":magisk-forward-core:sender"\)' \
+  "mobile/ui must depend on :magisk-forward-core:sender:api, not :magisk-forward-core:sender implementation"
+require_pattern "$MOBILE_UI_BUILD" 'implementation\(project\(":magisk-forward-core:sender:api"\)\)' \
+  "mobile/ui must depend on :magisk-forward-core:sender:api for sender configuration contracts"
 forbid_pattern "$MOBILE_UI_BUILD" 'project\(":smscode-core:verification"\)' \
   "mobile/ui must not depend on :smscode-core:verification directly"
 forbid_pattern "$MOBILE_UI_SRC" '^\s*import\s+io\.github\.magisk317\.relay\.sender\.(BarkUtils|DingtalkGroupRobotUtils|DingtalkInnerRobotUtils|EmailUtils|FeishuAppUtils|FeishuUtils|GotifyUtils|NtfyUtils|PushplusUtils|ServerchanUtils|PushdeerUtils|SmsUtils|SocketUtils|TelegramUtils|UrlSchemeUtils|WebhookUtils|WeworkAgentUtils|WeworkRobotUtils|DefaultSenderDispatcher|SenderRuntimeInstaller)' \
@@ -174,8 +180,20 @@ forbid_pattern "$MOBILE_FEATURE_DIR" '^\s*import\s+io\.github\.magisk317\.relay\
   "mobile feature modules must not import mobile/ui navigation contracts; receive callbacks from :mobile:ui instead"
 forbid_pattern "$MOBILE_FEATURE_DIR" '^\s*import\s+androidx\.navigation\.' \
   "mobile feature modules must not own navigation graphs or controllers; route composition stays in :mobile:ui"
+forbid_pattern "$MOBILE_FEATURE_DIR" '^\s*import\s+io\.github\.magisk317\.relay\.android\.data\.mapper\.' \
+  "mobile feature modules must not import platform DB mappers; repositories expose domain DTOs"
+forbid_pattern "$MOBILE_FEATURE_DIR" '^\s*import\s+io\.github\.magisk317\.relay\.android\.data\.db\.legacy\.entity\.' \
+  "mobile feature modules must not import legacy DB entities; repositories expose domain DTOs"
 forbid_pattern "$VERSION_CATALOG" '(^haze\s*=|^haze-|dev\.chrisbanes\.haze)' \
   "version catalog must not keep haze/blur aliases after the lightweight shell migration"
+# Entities are the shared smscode domain model (SmsMsg implements
+# runtime.contract.record.SmsMsgRecord), so UI modules may hold entity types -
+# but the Room API itself must stay behind the repositories.
+for ui_src in "$MOBILE_UI_SRC" "$MOBILE_FEATURE_DIR"/*/src; do
+  forbid_pattern "$ui_src" '^\s*import\s+androidx\.room\.' \
+    "mobile UI must not import androidx.room; persistence API stays behind AppConfigRepository"
+done
+
 for source_dir in "${MOBILE_SOURCE_DIRS[@]}"; do
   forbid_pattern "$source_dir" '^\s*import\s+dev\.chrisbanes\.haze\.' \
     "mobile source must not import Haze; use static surfaces/scrims in the lightweight shell"
@@ -184,42 +202,42 @@ for source_dir in "${MOBILE_SOURCE_DIRS[@]}"; do
 done
 
 forbid_pattern "$RELAY_ANDROID_BUILD" 'project\(":relay:engine"\)' \
-  "relay/android must depend on :relay:engine:api, not :relay:engine implementation"
-require_pattern "$RELAY_ANDROID_BUILD" 'implementation\(project\(":relay:engine:api"\)\)' \
-  "relay/android must depend on :relay:engine:api for engine contracts"
-require_pattern "$RELAY_ANDROID_BUILD" 'implementation\(project\(":relay:sender"\)\)' \
+  "relay/android must depend on :magisk-forward-core:engine:api, not :relay:engine implementation"
+require_pattern "$RELAY_ANDROID_BUILD" 'implementation\(project\(":magisk-forward-core:engine:api"\)\)' \
+  "relay/android must depend on :magisk-forward-core:engine:api for engine contracts"
+require_pattern "$RELAY_ANDROID_BUILD" 'implementation\(project\(":magisk-forward-core:sender"\)\)' \
   "relay/android may bridge relay/sender but must not expose it transitively"
-forbid_pattern "$RELAY_ANDROID_BUILD" 'api\(project\(":relay:sender"\)\)' \
+forbid_pattern "$RELAY_ANDROID_BUILD" 'api\(project\(":magisk-forward-core:sender"\)\)' \
   "relay/android must not expose relay/sender transitively"
 forbid_pattern "$RELAY_ANDROID_BUILD" 'implementation\(project\(":magisk-xposed-kit"\)\)' \
   "relay/android must not package :magisk-xposed-kit for every flavor"
 require_pattern "$RELAY_ANDROID_BUILD" 'add\("\$\{flavor\}Implementation", project\(":magisk-xposed-kit"\)\)' \
   "relay/android must package :magisk-xposed-kit only through Xposed flavor-specific dependencies"
-forbid_pattern "$RELAY_SENDER_BUILD" 'project\(":relay:engine"\)' \
+forbid_pattern "$FORWARD_SENDER_BUILD" 'project\(":relay:engine"\)' \
   "relay/sender must not depend on :relay:engine implementation directly"
-require_pattern "$RELAY_SENDER_BUILD" 'implementation\(project\(":relay:engine:api"\)\)' \
-  "relay/sender must depend on :relay:engine:api for engine contracts"
-require_pattern "$RELAY_SENDER_BUILD" 'implementation\(project\(":relay:net"\)\)' \
-  "relay/sender must depend on :relay:net for shared HTTP helpers"
+require_pattern "$FORWARD_SENDER_BUILD" 'implementation\(project\(":magisk-forward-core:engine:api"\)\)' \
+  "relay/sender must depend on :magisk-forward-core:engine:api for engine contracts"
+require_pattern "$FORWARD_SENDER_BUILD" 'implementation\(project\(":magisk-forward-core:net"\)\)' \
+  "relay/sender must depend on :magisk-forward-core:net for shared HTTP helpers"
 require_pattern "$MATRIX_FEATURE_BUILD" 'implementation\(project\(":relay:matrix-e2ee"\)\)' \
   "the Matrix dynamic feature must consume the product-owned Matrix E2EE implementation"
 # The GitHub flavor carries no E2EE code: the implementation arrives at runtime
 # from the matrix-e2ee-plugin APK, so relay/sender must not depend on it.
-forbid_pattern "$RELAY_SENDER_BUILD" 'project\(":relay:matrix-e2ee"\)' \
+forbid_pattern "$FORWARD_SENDER_BUILD" 'project\(":relay:matrix-e2ee"\)' \
   "relay/sender must not depend on :relay:matrix-e2ee; the plugin APK carries the implementation"
 require_pattern "$MATRIX_PLUGIN_BUILD" 'implementation\(project\(":relay:matrix-e2ee"\)\)' \
   "the Matrix E2EE plugin APK must consume the product-owned Matrix E2EE implementation"
-require_pattern "$MATRIX_PLUGIN_BUILD" 'compileOnly\(project\(":relay:sender:api"\)\)' \
-  "the Matrix E2EE plugin APK must compile against :relay:sender:api only (compileOnly, providers stay in the host dex)"
-forbid_pattern "$MATRIX_PLUGIN_BUILD" 'implementation\(project\(":relay:sender"\)\)|project\(":app"\)|project\(":features:matrix_e2ee"\)' \
+require_pattern "$MATRIX_PLUGIN_BUILD" 'compileOnly\(project\(":magisk-forward-core:sender:api"\)\)' \
+  "the Matrix E2EE plugin APK must compile against :magisk-forward-core:sender:api only (compileOnly, providers stay in the host dex)"
+forbid_pattern "$MATRIX_PLUGIN_BUILD" 'implementation\(project\(":magisk-forward-core:sender"\)\)|project\(":app"\)|project\(":features:matrix_e2ee"\)' \
   "the Matrix E2EE plugin APK must stay independent from the app, the sender implementation module, and the dynamic feature"
 forbid_pattern "$MATRIX_PLUGIN_BUILD" 'libs\.play\.feature\.delivery' \
   "the Matrix E2EE plugin APK must not depend on Play Feature Delivery"
-forbid_pattern "$RELAY_MATRIX_E2EE_BUILD" 'project\(":relay:sender"\)' \
+forbid_pattern "$RELAY_MATRIX_E2EE_BUILD" 'project\(":magisk-forward-core:sender"\)' \
   "relay/matrix-e2ee must use sender host ports and must not depend on relay/sender implementation"
 forbid_pattern "$RELAY_MATRIX_E2EE_BUILD" 'project\(":app"\)|project\(":features:matrix_e2ee"\)' \
   "relay/matrix-e2ee must remain independent from app and dynamic-feature entrypoints"
-forbid_pattern "$RELAY_SENDER_SRC" '^\s*import\s+org\.matrix\.rustcomponents\.sdk\.' \
+forbid_pattern "$FORWARD_SENDER_SRC" '^\s*import\s+org\.matrix\.rustcomponents\.sdk\.' \
   "relay/sender entrypoints must not reintroduce Matrix SDK implementation code"
 forbid_pattern "$MATRIX_FEATURE_SRC" '^\s*import\s+org\.matrix\.rustcomponents\.sdk\.' \
   "the Matrix dynamic feature must remain a thin bridge to relay/matrix-e2ee"
@@ -227,7 +245,7 @@ forbid_pattern "$MATRIX_PLUGIN_SRC" '^\s*import\s+org\.matrix\.rustcomponents\.s
   "the Matrix E2EE plugin entry must remain a thin bridge to relay/matrix-e2ee"
 forbid_pattern "$MATRIX_PLUGIN_SRC" '\b(MatrixE2eeUtils|MatrixUtils|SenderRuntimeInstaller|SmsUtils|DefaultSenderDispatcher)\b' \
   "the Matrix E2EE plugin entry must use sender api contracts, not sender implementation classes"
-forbid_pattern "$RELAY_SENDER_BUILD" 'libs\.matrix\.sdk\.android|rustls-platform-verifier' \
+forbid_pattern "$FORWARD_SENDER_BUILD" 'libs\.matrix\.sdk\.android|rustls-platform-verifier' \
   "relay/sender must not declare Matrix SDK dependencies outside relay/matrix-e2ee"
 forbid_pattern "$MATRIX_FEATURE_BUILD" 'libs\.matrix\.sdk\.android|rustls-platform-verifier' \
   "the Matrix dynamic feature must not duplicate relay/matrix-e2ee SDK dependencies"
@@ -236,8 +254,8 @@ require_pattern "$RUNTIME_BUILD" 'implementation\(project\(":smscode-core:domain
   "runtime must depend on :smscode-core:domain"
 forbid_pattern "$RUNTIME_BUILD" 'project\(":smscode-core:core"\)' \
   "runtime must stop depending on :smscode-core:core"
-forbid_pattern "$RUNTIME_BUILD" 'project\(":relay:sender"\)' \
-  "runtime must not depend on :relay:sender directly"
+forbid_pattern "$RUNTIME_BUILD" 'project\(":magisk-forward-core:sender"\)' \
+  "runtime must not depend on :magisk-forward-core:sender directly"
 forbid_pattern "$RUNTIME_SRC" '^\s*import\s+io\.github\.magisk317\.relay\.sender\.' \
   "runtime must use relay/engine:api SenderDispatcher services instead of importing relay/sender implementation packages"
 forbid_pattern "$RUNTIME_SRC" '\b(RemoteSyncRepository|RemoteConfigSnapshot|pushConfigSnapshot|pullConfigSnapshot|ConfigSnapshotPushResult)\b' \
