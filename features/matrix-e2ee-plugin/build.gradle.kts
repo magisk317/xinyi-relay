@@ -137,7 +137,7 @@ dependencies {
     // The plugin dex references the sender API contracts (provider objects) but
     // must NOT package them: the host app already carries those classes and
     // parent-first delegation resolves them at load time.
-    compileOnly(project(":relay:sender:api"))
+    compileOnly(project(":magisk-forward-core:sender:api"))
 
     implementation(project(":relay:matrix-e2ee"))
     implementation(libs.matrix.sdk.android)

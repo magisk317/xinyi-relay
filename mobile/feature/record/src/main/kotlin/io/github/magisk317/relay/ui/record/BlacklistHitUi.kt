@@ -16,7 +16,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.mobile.core.R
-import io.github.magisk317.relay.engine.model.ReadSmsBlacklistHitData
+import io.github.magisk317.forward.engine.model.ReadSmsBlacklistHitData
 import io.github.magisk317.relay.ui.common.AppIconBitmapImage
 import io.github.magisk317.uikit.surface.WorkspaceListItem
 import io.github.magisk317.uikit.surface.WorkspaceListItemDefaults

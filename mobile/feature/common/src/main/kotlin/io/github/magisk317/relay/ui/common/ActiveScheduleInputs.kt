@@ -16,7 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.mobile.core.R
-import io.github.magisk317.relay.engine.sender.SenderActiveScheduleConst
+import io.github.magisk317.forward.engine.sender.SenderActiveScheduleConst
 import io.github.magisk317.uikit.surface.AppAlertDialog
 import java.time.DayOfWeek
 import java.time.format.TextStyle

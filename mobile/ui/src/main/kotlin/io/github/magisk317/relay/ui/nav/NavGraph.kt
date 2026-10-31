@@ -25,8 +25,6 @@ object SettingsRoute
 @Serializable
 object ThemeSettingsRoute
 
-@Serializable
-object FaqRoute
 
 @Serializable
 object InterceptRoute
@@ -72,6 +70,9 @@ data class RemoteAgentRoute(val bindCode: String = "", val baseUrl: String = "")
 
 @Serializable
 object DeviceControlRoute
+
+@Serializable
+object DiagnosticsRoute
 
 @Serializable
 data class RelayConfigRoute(val origin: String = ROUTE_ORIGIN_ADVANCED)

@@ -2,6 +2,7 @@ package io.github.magisk317.relay.di
 
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.AppDatabase
+import io.github.magisk317.forward.db.ForwardDatabase
 import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.contract.backup.AutoBackupTrigger
 import io.github.magisk317.relay.contract.repository.ConfigSyncCoordinator
@@ -9,9 +10,9 @@ import io.github.magisk317.relay.contract.repository.LocalConfigRepository
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.domain.pipeline.EventPipeline
 import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
-import io.github.magisk317.relay.engine.service.AppConfigRepository
-import io.github.magisk317.relay.engine.service.MessageRecordRepository
-import io.github.magisk317.relay.engine.service.ScheduledTaskRepository
+import io.github.magisk317.forward.engine.service.AppConfigRepository
+import io.github.magisk317.forward.engine.service.MessageRecordRepository
+import io.github.magisk317.forward.engine.service.ScheduledTaskRepository
 import org.koin.core.Koin
 import org.koin.core.qualifier.named
 
@@ -24,6 +25,7 @@ import org.koin.core.qualifier.named
  */
 class RuntimeDependenciesImpl(private val koin: Koin) : RuntimeDependencies {
     override val database: AppDatabase get() = koin.get()
+    override val forwardDatabase: ForwardDatabase get() = koin.get()
     override val preferenceDataSource: PreferenceDataSource get() = koin.get()
     override val settingsRepository: SettingsPreferencesRepository get() = koin.get()
     override val relayRecordRepository: MessageRecordRepository get() = koin.get()

@@ -30,8 +30,8 @@ import io.github.magisk317.relay.contract.settings.ForwardTypeGateUpdate
 import io.github.magisk317.relay.contract.settings.MessageTypeGateSnapshot
 import io.github.magisk317.relay.contract.settings.MessageTypeGateUpdate
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
-import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.engine.model.Sender
+import io.github.magisk317.forward.engine.sender.SenderType
+import io.github.magisk317.forward.engine.model.Sender
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch

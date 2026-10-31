@@ -11,8 +11,8 @@ import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.relay.domain.recovery.RootDbCatchupScheduler
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
-import io.github.magisk317.relay.security.IpcTokenGate
-import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
+import io.github.magisk317.forward.security.IpcTokenGate
+import io.github.magisk317.xposed.runtime.contract.logging.LogRoute
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

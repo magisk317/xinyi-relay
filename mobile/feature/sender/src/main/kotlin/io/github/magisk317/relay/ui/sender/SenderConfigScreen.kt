@@ -19,8 +19,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.mobilefeature.sender.BuildConfig
 import io.github.magisk317.relay.mobile.core.R
-import io.github.magisk317.relay.engine.sender.SenderActiveSchedule
-import io.github.magisk317.relay.engine.sender.SenderType
+import io.github.magisk317.forward.engine.sender.SenderActiveSchedule
+import io.github.magisk317.forward.engine.sender.SenderType
 import io.github.magisk317.relay.ui.sender.forms.*
 import io.github.magisk317.uikit.surface.AppCircularProgressIndicator
 import io.github.magisk317.uikit.surface.AppTextButton

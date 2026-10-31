@@ -2,6 +2,7 @@ package io.github.magisk317.relay.ui.home.settings
 
 import io.github.magisk317.relay.ui.common.StateSwitchItem
 import io.github.magisk317.relay.ui.common.ActionSwitchItem
+import io.github.magisk317.relay.ui.common.SwitchItem
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,7 +19,10 @@ import io.github.magisk317.relay.contract.settings.GeneralSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.RelaySettingsSnapshot
 import io.github.magisk317.relay.contract.settings.VerificationSettingsSnapshot
 import io.github.magisk317.relay.mobile.core.R
+import io.github.magisk317.uikit.R as UiKitR
+import io.github.magisk317.uikit.update.R as UiKitUpdateR
 import io.github.magisk317.relay.contract.constant.RelayAppConst
+import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.relay.mobilefeature.settings.BuildConfig
 import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsCallbacks
 import io.github.magisk317.uikit.preference.RuntimeLogDiagnosticsItem
@@ -60,20 +64,20 @@ internal fun SettingsGeneralSection(
             accordionMode = true,
             moduleEnabled = general.moduleEnabled,
             onModuleEnabledChange = onModuleEnabledChange,
-            moduleTitle = stringResource(id = R.string.pref_enable_title),
-            moduleSummary = stringResource(id = R.string.pref_enable_summary),
+            moduleTitle = stringResource(id = UiKitR.string.pref_enable_title),
+            moduleSummary = stringResource(id = UiKitR.string.pref_enable_summary),
             themeMode = null,
             onLanguageSelected = onLanguageSelected,
         ) {
             StateSwitchItem(
                 title = stringResource(id = R.string.pref_settings_display_mode_title),
-                summary = stringResource(id = R.string.pref_settings_display_mode_summary),
+                summary = stringResource(id = UiKitR.string.pref_settings_display_mode_summary),
                 checked = general.accordionMode,
                 onCheckedChange = onAccordionModeChange,
             )
             StateSwitchItem(
-                title = stringResource(id = R.string.pref_show_launcher_icon_title),
-                summary = stringResource(id = R.string.pref_show_launcher_icon_summary),
+                title = stringResource(id = UiKitR.string.pref_show_launcher_icon_title),
+                summary = stringResource(id = UiKitR.string.pref_show_launcher_icon_summary),
                 checked = launcherIconVisible,
                 onCheckedChange = onLauncherIconVisibleChange,
             )
@@ -148,12 +152,12 @@ internal fun SettingsBackupRestoreSection(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             AppPrimaryButton(
-                text = stringResource(id = R.string.pref_backup_title),
+                text = stringResource(id = UiKitR.string.pref_backup_title),
                 onClick = onBackupClick,
                 modifier = Modifier.weight(1f),
             )
             AppPrimaryButton(
-                text = stringResource(id = R.string.pref_restore_title),
+                text = stringResource(id = UiKitR.string.pref_restore_title),
                 onClick = onRestoreClick,
                 modifier = Modifier.weight(1f),
             )
@@ -169,6 +173,7 @@ internal fun SettingsDiagnosticsSection(
     onRuntimeLogTitleClick: () -> Unit,
     onRuntimeLogRetentionClick: () -> Unit,
     onClearLog: () -> Unit,
+    onOpenDiagnostics: () -> Unit,
     onAnalyticsEnabledChange: (Boolean) -> Unit,
 ) {
     val updateController = koinInject<AppUpdateController>()
@@ -179,11 +184,16 @@ internal fun SettingsDiagnosticsSection(
         onExpandedChange = onExpandedChange,
         accordionMode = true,
     ) {
+        AppArrowItem(
+            title = stringResource(id = R.string.diagnostics_title),
+            summary = stringResource(id = R.string.diagnostics_summary),
+            onClick = onOpenDiagnostics,
+        )
         RuntimeLogDiagnosticsItems(
             labels = RuntimeLogDiagnosticsLabels(
-                shareLogTitle = stringResource(id = R.string.pref_share_log_title),
-                shareLogSummary = stringResource(id = R.string.pref_share_log_summary),
-                retentionTitle = stringResource(id = R.string.pref_runtime_log_retention_days_title),
+                shareLogTitle = stringResource(id = UiKitR.string.pref_share_log_title),
+                shareLogSummary = stringResource(id = UiKitR.string.pref_share_log_summary),
+                retentionTitle = stringResource(id = UiKitR.string.pref_runtime_log_retention_days_title),
                 retentionSummary = stringResource(
                     id = R.string.pref_runtime_log_retention_days_summary,
                     diagnostics.runtimeLogRetentionDays,
@@ -220,6 +230,30 @@ internal fun SettingsDiagnosticsSection(
             summary = stringResource(id = R.string.check_update_summary),
         ) {
             updateController.check(userInitiated = true)
+        }
+        // Unset falls back to how this build was produced; writing the switch pins the track
+        // explicitly. `defaultValue` renders that fallback so the row shows the effective state.
+        SwitchItem(
+            title = stringResource(id = R.string.settings_track_ci_builds_title),
+            summary = stringResource(id = R.string.settings_track_ci_builds_summary),
+            key = RelayPrefConst.KEY_TRACK_CI_BUILDS,
+            defaultValue = BuildConfig.DEBUG || BuildConfig.IS_CI_BUILD,
+        )
+        // A CI build checks unconditionally, so the two release switches would be rows that do
+        // nothing: they only exist where the rule they feed actually applies.
+        if (!BuildConfig.DEBUG && !BuildConfig.IS_CI_BUILD) {
+            SwitchItem(
+                title = stringResource(id = UiKitUpdateR.string.uikit_update_auto_check_on_start),
+                summary = stringResource(id = R.string.settings_auto_check_on_start_summary),
+                key = RelayPrefConst.KEY_AUTO_UPDATE_ON_START,
+                defaultValue = true,
+            )
+            SwitchItem(
+                title = stringResource(id = UiKitUpdateR.string.uikit_update_auto_check_wifi_only),
+                summary = stringResource(id = R.string.settings_auto_check_wifi_only_summary),
+                key = RelayPrefConst.KEY_AUTO_UPDATE_WIFI_ONLY,
+                defaultValue = false,
+            )
         }
 
     }

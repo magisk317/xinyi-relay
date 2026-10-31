@@ -37,6 +37,9 @@ data class PermissionRequirement(
 
     companion object {
         const val SPECIAL_KEY_PREFIX = "special:"
+
+        /** The battery-optimization exemption requirement; excluded from the early prompt. */
+        const val BATTERY_OPTIMIZATION_KEY = "$SPECIAL_KEY_PREFIX" + "battery_optimization"
     }
 }
 

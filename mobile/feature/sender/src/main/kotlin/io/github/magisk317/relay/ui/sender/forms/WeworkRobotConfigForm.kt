@@ -2,7 +2,7 @@ package io.github.magisk317.relay.ui.sender.forms
 
 import androidx.compose.runtime.Composable
 import io.github.magisk317.relay.mobile.core.R
-import io.github.magisk317.relay.engine.sender.SenderType
+import io.github.magisk317.forward.engine.sender.SenderType
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 
 private val WeworkRobotVisibleFields = listOf(

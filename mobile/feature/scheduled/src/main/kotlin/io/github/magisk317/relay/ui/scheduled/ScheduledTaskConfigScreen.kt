@@ -17,8 +17,8 @@ import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
-import io.github.magisk317.relay.engine.model.ScheduledTask
-import io.github.magisk317.relay.engine.schedule.CronUtils
+import io.github.magisk317.forward.engine.model.ScheduledTask
+import io.github.magisk317.forward.engine.schedule.CronUtils
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.common.ActiveScheduleTimeValueButton

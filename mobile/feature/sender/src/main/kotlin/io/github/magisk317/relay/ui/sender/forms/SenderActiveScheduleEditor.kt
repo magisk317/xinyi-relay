@@ -21,11 +21,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.mobile.core.R
-import io.github.magisk317.relay.engine.sender.SenderActiveSchedule
-import io.github.magisk317.relay.engine.sender.SenderActiveScheduleConst
-import io.github.magisk317.relay.engine.sender.SenderActiveScheduleEvaluator
-import io.github.magisk317.relay.engine.sender.SenderActiveScheduleRange
-import io.github.magisk317.relay.engine.sender.SenderActiveScheduleRule
+import io.github.magisk317.forward.engine.sender.SenderActiveSchedule
+import io.github.magisk317.forward.engine.sender.SenderActiveScheduleConst
+import io.github.magisk317.forward.engine.sender.SenderActiveScheduleEvaluator
+import io.github.magisk317.forward.engine.sender.SenderActiveScheduleRange
+import io.github.magisk317.forward.engine.sender.SenderActiveScheduleRule
 import io.github.magisk317.relay.ui.common.ActiveScheduleTimeValueButton
 import io.github.magisk317.relay.ui.common.ActiveScheduleWeekdayRow
 import io.github.magisk317.relay.ui.common.CenteredChipText

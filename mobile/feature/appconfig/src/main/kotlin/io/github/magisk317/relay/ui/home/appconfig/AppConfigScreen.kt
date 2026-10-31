@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.mobile.core.R
-import io.github.magisk317.smscode.db.entity.AppInfo
+import io.github.magisk317.forward.engine.model.AppInfoData
 import io.github.magisk317.relay.ui.common.AppIconBitmapImage
 import io.github.magisk317.uikit.foundation.LoadingIndicatorTokens
 import io.github.magisk317.uikit.foundation.PolygonMorphLoadingIndicator
@@ -68,6 +68,9 @@ import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.text.AppTextRole
 import io.github.magisk317.uikit.theme.AppColorRole
 import io.github.magisk317.uikit.theme.appColor
+import androidx.compose.material.icons.filled.Settings
+import io.github.magisk317.uikit.surface.AppConfigScreenMaterial
+import io.github.magisk317.uikit.surface.AppConfigScreenMiuix
 
 private const val APP_LIST_PREFETCH_DISTANCE = 12
 private const val BENCHMARK_APPS_LIST = "xinyi_benchmark_apps_list"
@@ -77,7 +80,7 @@ private val APP_CONFIG_ICON_SIZE = 40.dp
 @Composable
 fun AppConfigScreen(
     onBack: (() -> Unit)? = null,
-    onAppClick: ((AppInfo) -> Unit)? = null,
+    onAppClick: ((AppInfoData) -> Unit)? = null,
     refreshTrigger: Int = 0,
     viewModel: AppConfigViewModel = koinViewModel(),
     scrollChromeState: ScrollChromeState? = null,
@@ -314,22 +317,32 @@ fun AppConfigScreen(
     ) {
         when (currentUiKitStyle()) {
             UiKitStyle.Miuix -> AppConfigScreenMiuix(
+                title = stringResource(R.string.app_config_settings),
+                searchPlaceholder = stringResource(R.string.action_search),
+                backContentDescription = stringResource(R.string.action_back),
                 onBack = onBack,
                 onOpenSettings = { showSettingsMenu = true },
+                actionIcon = Icons.Default.Settings,
                 scrollChromeState = scrollChromeState,
                 searchState = searchState,
                 listState = listState,
                 bottomPadding = effectiveBottomPadding,
+                actionsAfterSearch = true,
                 body = appConfigBody,
             )
 
             UiKitStyle.Expressive -> AppConfigScreenMaterial(
+                title = stringResource(R.string.app_config_settings),
+                searchPlaceholder = stringResource(R.string.action_search),
+                backContentDescription = stringResource(R.string.action_back),
                 onBack = onBack,
                 onOpenSettings = { showSettingsMenu = true },
+                actionIcon = Icons.Default.Settings,
                 scrollChromeState = scrollChromeState,
                 searchState = searchState,
                 listState = listState,
                 bottomPadding = effectiveBottomPadding,
+                actionsAfterSearch = true,
                 body = appConfigBody,
             )
         }
@@ -389,7 +402,7 @@ fun AppConfigScreen(
 
 @Composable
 fun AppConfigItem(
-    app: AppInfo,
+    app: AppInfoData,
     appBoundSenderCount: Int,
     appIcon: Bitmap?,
     onClick: () -> Unit,

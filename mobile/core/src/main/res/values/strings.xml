@@ -23,19 +23,9 @@
     <!-- general end -->
 
     <!-- preferences general -->
-    <string name="pref_general_title">General</string>
-    <string name="pref_enable_title">Main switch</string>
-    <string name="pref_enable_summary">Module active</string>
     <string name="pref_settings_display_mode_title">Collapsible groups</string>
-    <string name="pref_settings_display_mode_summary">On: collapsible groups; Off: show all settings</string>
     <string name="pref_create_shortcut_title">Create Desktop Shortcut</string>
     <string name="pref_create_shortcut_summary">Pin a shortcut to the launcher for quick access</string>
-    <string name="pref_show_launcher_icon_title">Show launcher icon</string>
-    <string name="pref_show_launcher_icon_summary">Show app icon on the home screen for quick access</string>
-    <string name="pref_show_launcher_icon_failed">Failed to switch launcher icon visibility</string>
-    <string name="pref_choose_theme_title">Theme</string>
-    <string name="pref_choose_theme_summary">Follow System, Light, Dark or Pure Black</string>
-    <string name="pref_ui_kit_style_title">UI style</string>
     <string name="pref_ui_kit_style_summary">Switch between Material and Miuix styles</string>
     <string name="ui_kit_style_expressive">Expressive</string>
     <string name="ui_kit_style_miuix">Miuix</string>
@@ -77,8 +67,6 @@
     <string name="accent_green">Green</string>
     <string name="accent_orange">Orange</string>
     <string name="accent_rose">Rose</string>
-    <string name="pref_language_title">Language</string>
-    <string name="pref_language_summary">Select language</string>
     <string name="language_follow_system">System Default/跟随系统</string>
     <string name="language_en">English</string>
     <string name="language_zh_cn">简体中文</string>
@@ -89,61 +77,26 @@
 
     <!-- preferences sms code -->
     <string name="pref_sms_code_title">SMS Code</string>
-    <string name="pref_show_toast_title">Show toast hint</string>
-    <string name="pref_show_toast_summary">Show a toast hint when an SMS code is extracted</string>
-    <string name="pref_copy_to_clipboard_title">Copy to clipboard</string>
-    <string name="pref_copy_to_clipboard_summary">Copy code to clipboard if it\'s extracted</string>
-    <string name="pref_block_sms_title">Block code SMS</string>
-    <string name="pref_block_sms_summary">Warning! Code SMS will be blocked if extract succeed, message app won\'t receive it</string>
     <string name="pref_deduplicate_sms_title">Filter duplicate SMS</string>
     <string name="pref_deduplicate_sms_summary">Filter out duplicate code SMS</string>
     <string name="pref_forwarding_title">Forwarding</string>
     <string name="pref_enable_forward_title">Enable forwarding</string>
     <string name="pref_enable_forward_summary">Enable code forwarding. Tap channel name to configure details.</string>
-    <string name="pref_sim_slot1_remark_title">SIM1 remark</string>
-    <string name="pref_sim_slot2_remark_title">SIM2 remark</string>
     <string name="pref_sim_slot_remark_summary">Customize {{CARD_SLOT}} value in template</string>
     <string name="pref_sim_slot_remark_not_set">Not set</string>
     <!-- preferences sms code end -->
 
     <!-- preferences auto-input -->
     <string name="pref_category_auto_input_title">Auto Input</string>
-    <string name="pref_enable_auto_input_code_title">Auto input SMS code</string>
-    <string name="pref_enable_auto_input_code_summary">Try to input SMS code automatically</string>
-    <string name="pref_auto_input_accessibility_service_title">Accessibility service status</string>
-    <string name="pref_auto_input_accessibility_service_summary">Helps find the active verification field and fill the code directly.</string>
     <string name="pref_auto_input_accessibility_service_summary_unavailable">The system is not listing this accessibility service. If the app was sideloaded, allow restricted settings from App info first, then reopen Accessibility.</string>
-    <string name="pref_auto_input_accessibility_service_status_enabled">Enabled</string>
-    <string name="pref_auto_input_accessibility_service_status_disabled">Not enabled</string>
-    <string name="pref_auto_input_accessibility_service_open_failed">Unable to open Accessibility settings</string>
     <string name="pref_auto_input_accessibility_service_restricted_hint">This service is not currently listed by the system. Open App info first and allow restricted settings if needed.</string>
     <string name="accessibility_auto_input_service_label">Auto input assistant</string>
     <string name="accessibility_auto_input_service_description">Auto input assistant: find the active verification code input box and fill it before falling back to simulated key input.</string>
-    <string name="pref_enable_auto_enter_code_title">Auto-Enter/Submit</string>
-    <string name="pref_enable_auto_enter_code_summary">Automatically trigger Enter after filling the code</string>
-    <string name="pref_auto_input_code_delay_title">Auto input delay</string>
-    <string name="pref_auto_input_code_delay_summary">Delay %sms</string>
-    <string name="pref_auto_input_code_interval_title">Auto input interval</string>
-    <string name="pref_auto_input_code_interval_summary">Interval %sms</string>
     <!-- preferences auto-input end -->
 
     <!-- preference code notification -->
     <string name="pref_notification_title">Notification</string>
-    <string name="pref_show_code_notification_title">Show status bar notification</string>
-    <string name="pref_show_code_notification_summary">Show a status bar notification when an SMS code is extracted (shown as Phone Services when background is unavailable)</string>
-    <string name="pref_code_notification_owner_title">Notification owner</string>
-    <string name="pref_code_notification_owner_summary">Current: %1$s. App owner shows your module name; Phone Services may be steadier in some scenarios, but it will be shown as Phone Services.</string>
-    <string name="pref_code_notification_owner_app">App</string>
-    <string name="pref_code_notification_owner_phone">Phone Services</string>
-    <string name="pref_code_notification_owner_unselected">Not selected</string>
-    <string name="pref_code_notification_owner_permission_denied">Notification permission is still not granted. The App owner selection was not applied.</string>
-    <string name="pref_code_notification_owner_permission_settings_hint">App-owned notifications require notification permission. Please enable it in the system notification settings.</string>
-    <string name="pref_code_notification_owner_app_option">App: displayed as this app, but app force-stop may affect follow-up behavior</string>
-    <string name="pref_code_notification_owner_phone_option">Phone Services: steadier in some scenarios, but displayed as Phone Services</string>
-    <string name="pref_auto_cancel_notification_title">Auto cancel notification</string>
-    <string name="pref_auto_cancel_notification_summary">Auto cancel SMS code notification</string>
     <!-- notification retention time -->
-    <string name="pref_notification_retention_time_title">Notification retention time</string>
     <string name="notification_retention_time_5_secs_entry">5 s</string>
     <string name="notification_retention_time_10_secs_entry">10 s</string>
     <string name="notification_retention_time_30_secs_entry">30 s</string>
@@ -155,7 +108,6 @@
     <!-- preference code records -->
     <string name="pref_entry_code_records_title">SMS code records</string>
     <string name="pref_entry_code_records_summary">Total %d records</string>
-    <string name="pref_code_records_title">SMS Code Records</string>
     <string name="relay_records">Code Records</string>
     <string name="edit_relay_records">Edit Code Records</string>
     <string name="prompt_sms_code_copied">SMS Code copied: %s</string>
@@ -208,14 +160,11 @@
     <string name="delete_notification_action">Delete Notification</string>
     <string name="prompt_sms_copied">SMS copied</string>
     <string name="prompt_notification_copied">Notification copied</string>
-    <string name="pref_enable_code_records_title">Reserve SMS code records</string>
     <string name="pref_enable_plain_sms_records_title">Reserve plain SMS records</string>
     <string name="pref_enable_app_notify_records_title">Reserve app notification records</string>
     <string name="pref_enable_call_notify_records_title">Reserve call notification records</string>
     <string name="pref_enable_sms_blacklist_hit_records_title">Reserve intercept records</string>
     <string name="selected_count">%d selected</string>
-    <string name="pref_history_limit_title">History record limit</string>
-    <string name="pref_history_limit_title_with_target">History record limit (%1$s)</string>
     <string name="record_settings_title_with_target">Record settings (%1$s)</string>
     <string name="record_settings_target_code">Code records</string>
     <string name="record_settings_target_plain">Plain SMS records</string>
@@ -243,6 +192,7 @@
     <string name="record_clear_dialog_message">Are you sure you want to clear %1$s?</string>
     <string name="record_settings_clear_current_tab">Clear current tab records</string>
     <string name="record_export_dialog_title">Export records</string>
+    <string name="record_chart_entry_title">Statistics chart</string>
     <string name="record_export_current_tab_option">Export current tab (%1$s)</string>
     <string name="record_export_all_tabs_option">Export all</string>
     <string name="title_notification_rules">Notification Forwarding</string>
@@ -356,18 +306,7 @@
 
     <!-- preference others -->
     <string name="pref_others_title">Others</string>
-    <string name="pref_share_log_title">Save logs</string>
-    <string name="pref_share_log_summary">Save log bundle for debugging</string>
-    <string name="pref_log_sanitization_title">Sanitize logs</string>
-    <string name="pref_log_sanitization_summary">Hide sensitive information in logs</string>
-    <string name="pref_runtime_log_retention_days_title">Runtime log retention</string>
     <string name="pref_runtime_log_retention_days_summary">Daily rotation, keep the last %1$d days</string>
-    <string name="pref_runtime_log_retention_days_hint">Retention in days, minimum 1. Default is 2.</string>
-    <string name="pref_runtime_log_retention_days_error">Please enter an integer greater than or equal to 1.</string>
-    <string name="pref_auto_update_on_start_title">Auto update on launch</string>
-    <string name="pref_auto_update_on_start_summary">Run update strategy once when app starts</string>
-    <string name="pref_auto_update_wifi_only_title">Wi-Fi only for auto update</string>
-    <string name="pref_auto_update_wifi_only_summary">Only run startup update check on Wi-Fi</string>
     <string name="scheduled_reminder_entry_title">Special alerts</string>
     <string name="scheduled_reminder_entry_summary">Battery, call and keyword alerts</string>
     <string name="scheduled_task_entry_title">Scheduled tasks</string>
@@ -375,8 +314,6 @@
     <string name="settings_group_verification_features">Verification features</string>
     <string name="settings_group_features">Feature settings</string>
     <string name="settings_group_features_summary">Verification and message relay controls</string>
-    <string name="settings_group_advanced">Advanced options</string>
-    <string name="settings_group_advanced_summary">Verification, relay, keep-alive, schedule, remote agent, and interception entries</string>
     <string name="pref_verification_features_title">Verification features</string>
     <string name="pref_verification_features_summary">Control code recognition, notifications, copy, and auto-fill in one place</string>
     <string name="pref_verification_settings_title">Verification settings</string>
@@ -623,17 +560,11 @@
     <string name="pref_about_title">About</string>
     <string name="pref_version_title">Version</string>
     <string name="pref_version_summary"><![CDATA[Current version: %1$s (%2$d)]]></string>
-    <string name="pref_join_telegram_group_title">Telegram</string>
-    <string name="pref_join_telegram_group_summary">Tap to join</string>
-    <string name="pref_source_code_title">Source code</string>
     <string name="browser_install_or_enable_prompt">Please install or enable browser first</string>
-    <string name="pref_source_code_summary">Welcome to star</string>
-    <string name="pref_donate_by_alipay_title">Donation Appreciation</string>
     <string name="alipay_install_prompt">Please install Alipay</string>
     <string name="alipay_enable_prompt">Please enable Alipay</string>
     <string name="wechat_install_prompt">Please install Wechat</string>
     <string name="wechat_enable_prompt">Please enable Wechat</string>
-    <string name="pref_privacy_policy_title">Privacy Policy</string>
     <!-- preference about end -->
 
     <!-- auto-input block settings -->
@@ -701,8 +632,6 @@
     <string name="rule_code_type">SMS code type</string>
     <string name="rule_code_length">SMS code length</string>
     <string name="rule_code_regex_hint">SMS code regular expression</string>
-    <string name="pref_code_rules_title">SMS code match rules</string>
-    <string name="pref_code_rules_summary">Custom code match rules for specific SMS</string>
     <string name="quick_choose">Quick Choose</string>
     <string name="sms_code_type_digit_entry">Digit Only [0\-9]</string>
     <string name="sms_code_type_letter_entry">Letter Only [a\-zA\-Z]</string>
@@ -778,7 +707,6 @@
     <!-- code parsing notification end -->
 
     <!-- faq -->
-    <string name="action_home_faq_title">FAQ</string>
     <string name="simplified_question">Q:\u00A0</string>
     <string name="simplified_answer">A:\u00A0</string>
     <!-- faq end -->
@@ -802,22 +730,14 @@
     <!-- check update -->
     <string name="check_update_title">Check for updates</string>
     <string name="check_update_summary">Tap to check updates</string>
+    <string name="settings_track_ci_builds_title">Detect CI builds</string>
+    <string name="settings_auto_check_on_start_summary">Check for updates when the app starts. Off means only the manual check runs.</string>
+    <string name="settings_auto_check_wifi_only_summary">Restrict the automatic check to Wi-Fi. Cellular never starts a check on its own.</string>
+    <string name="settings_track_ci_builds_summary">Also probe beta-branch CI builds (a mandatory-update prompt is possible). Off follows official releases only; a CI build then waits for the next release to catch up.</string>
     <!-- check update end -->
 
 
     <!-- faq -->
-    <string-array name="question_list">
-        <item>Module inactive after being updated.</item>
-        <item>Which Rom is this module suitable for?</item>
-        <item>Why can\'t it mark SMS as read or delete SMS?</item>
-        <item>What\'s the original intention of this App?</item>
-    </string-array>
-    <string-array name="answer_list">
-        <item>Re-check this module in module list, and re-launch this app, and reboot system if it\'s necessary</item>
-        <item>It\'s suitable for AOSP Rom, may not be suitable for other third-party heavily customized Rom.</item>
-        <item>If the system default SMS app uses its own SMS database instead of the system\'s, it will not take effect for marking SMS as read or deleting SMS. If this happens, it may not work well on your device.</item>
-        <item>Don\'t be evil. Green Android.</item>
-    </string-array>
     <!-- faq end -->
 
     <!-- privacy policy start -->
@@ -964,10 +884,6 @@
     <!-- backup and restore -->
     <string name="pref_backup_restore_title">Backup &amp; Restore</string>
     <string name="settings_group_backup_restore_summary">Export or restore settings, rules, and records</string>
-    <string name="pref_backup_title">Backup</string>
-    <string name="pref_backup_summary">Export settings, rules and records</string>
-    <string name="pref_restore_title">Restore</string>
-    <string name="pref_restore_summary">Restore data from backup file</string>
     <string name="dialog_backup_source_title">Select Backup Source</string>
     <string name="dialog_restore_source_title">Select Restore Source</string>
     <string name="backup_source_local">Local</string>
@@ -1015,14 +931,12 @@
     <string name="status_working_enhanced">Enhanced mode (Working)</string>
     <string name="status_not_active">Inactive</string>
     <string name="status_tip">Please enable in manager and reboot device</string>
-    <string name="battery_optimization_active_hint">Battery optimization is active. Please exempt this app for reliable background operation.</string>
     <string name="feature_requires_xposed">⚠ Requires Xposed/LSPosed framework</string>
     <string name="feature_requires_root">⚠ Requires Root access</string>
     <string name="framework_incompatibility_title">Framework incompatibility detected</string>
     <string name="framework_incompatibility_known_framework_message">Detected that the current framework is %1$s. This framework has had many compatibility problems and may cause crashes, broken hooks, or missing features. Please switch to the official LSPosed framework as soon as possible; you can obtain it yourself or get the appropriate build from the community group.</string>
     <string name="framework_incompatibility_hooker_annotation_message">Current framework is incompatible and hook registration failed. Please download the latest IT build, or scroll to the bottom and join the community to get it.</string>
     <string name="home_card_status_title">Status</string>
-    <string name="home_card_chart_title">Stats</string>
     <string name="home_card_appinfo_title">App Info</string>
     <string name="home_card_deviceinfo_title">Device Info</string>
     <string name="home_card_links_title">Community</string>
@@ -1452,17 +1366,6 @@
     <string name="matrix_e2ee_verification_status_unsupported_auth">Matrix E2EE verification requires username and password login.</string>
     <string name="sender_type_yunhu">YunHu</string>
     <string name="sender_type_unknown">Unknown channel</string>
-    <string name="overview_runtime_diagnostics_shown">Runtime diagnostics shown</string>
-    <string name="overview_runtime_diagnostics_hidden">Runtime diagnostics hidden</string>
-    <string name="overview_runtime_connected">Connected</string>
-    <string name="overview_runtime_disconnected">Disconnected</string>
-    <string name="overview_runtime_last_connected">Last connected</string>
-    <string name="overview_runtime_unknown">unknown</string>
-    <string name="overview_runtime_none">&lt;none&gt;</string>
-    <string name="overview_runtime_not_available">N/A</string>
-    <string name="overview_runtime_service_label">Xposed Service</string>
-    <string name="overview_runtime_recent_hook_process">Recent hook process</string>
-    <string name="overview_runtime_recent_hook_time">Recent hook time</string>
     <!-- translation audit end -->
 
     <!-- donate -->
@@ -1594,4 +1497,123 @@
     <string name="setup_special_permissions">System permissions</string>
     <string name="setup_permission_request">Grant</string>
     <string name="setup_root_hint">After granting Root, the items below can be granted in one tap; or keep granting them manually.</string>
+    <string name="diagnostics_title">Runtime diagnostics</string>
+    <string name="diagnostics_summary">Hook processes, scope and call-notification sources</string>
+    <string name="diagnostics_refresh">Refresh</string>
+    <string name="diagnostics_section_runtime">Runtime</string>
+    <string name="diagnostics_framework">Framework</string>
+    <string name="diagnostics_module_version">Module version</string>
+    <string name="diagnostics_boot_time">Booted at</string>
+    <string name="diagnostics_install_time">Installed at</string>
+    <string name="diagnostics_update_time">Updated at</string>
+    <string name="diagnostics_verdict">Verdict</string>
+    <string name="diagnostics_verdict_ok">Healthy</string>
+    <string name="diagnostics_verdict_installed_after_boot">Reboot required: installed or updated after this boot; system_server does not hot-reload the module</string>
+    <string name="diagnostics_verdict_system_not_loaded">Reboot required: system_server has not reported this boot, so notification hooks are absent</string>
+    <string name="diagnostics_verdict_scope_missing">System scope not selected: notification forwarding will not run</string>
+    <string name="diagnostics_section_processes">Hooked processes</string>
+    <string name="diagnostics_processes_empty">No process has reported yet</string>
+    <string name="diagnostics_process_stale">Before this boot</string>
+    <string name="diagnostics_process_version">v%d</string>
+    <string name="diagnostics_process_system">System (system_server)</string>
+    <string name="diagnostics_process_phone">Phone</string>
+    <string name="diagnostics_process_provider">SMS provider</string>
+    <string name="diagnostics_process_mms">MMS</string>
+    <string name="diagnostics_process_self">This app</string>
+    <string name="diagnostics_process_other">Other</string>
+    <string name="diagnostics_section_scope">Scope</string>
+    <string name="diagnostics_scope_live">Granted</string>
+    <string name="diagnostics_scope_unknown">Unknown (framework service not connected)</string>
+    <string name="diagnostics_scope_recommended">Recommended</string>
+    <string name="diagnostics_scope_missing">Missing</string>
+    <string name="diagnostics_scope_none">None</string>
+    <string name="diagnostics_scope_request">Request missing scope</string>
+    <string name="diagnostics_scope_approved">Scope expanded</string>
+    <string name="diagnostics_scope_no_missing">Nothing to add</string>
+    <string name="diagnostics_scope_rejected">Request rejected: %s</string>
+    <string name="diagnostics_scope_failed">Request failed: %s</string>
+    <string name="diagnostics_scope_unavailable">Framework service is not connected</string>
+    <string name="diagnostics_section_call">Call notification source</string>
+    <string name="diagnostics_call_default_dialer">Default dialer</string>
+    <string name="diagnostics_call_dial_intent">DIAL intent</string>
+    <string name="diagnostics_call_incall">InCallService</string>
+    <string name="diagnostics_call_known">Recognized sources</string>
+    <string name="diagnostics_call_matched">matched</string>
+    <string name="diagnostics_call_unmatched">not matched</string>
+    <string name="diagnostics_call_last_seen">Last observed publisher</string>
+    <string name="diagnostics_call_last_seen_value">%1$s (channel %2$s)</string>
+    <string name="diagnostics_call_last_seen_none">Not captured yet</string>
+    <string name="diagnostics_copy">Copy diagnostics</string>
+    <string name="diagnostics_copy_done">Diagnostics copied</string>
+    <string name="diagnostics_unknown">unknown</string>
+    <string name="diagnostics_loading">Collecting…</string>
+    <string name="diagnostics_process_not_reported">Not reported this boot</string>
+    <string name="diagnostics_service_label">Service</string>
+    <string name="diagnostics_service_connected">Connected</string>
+    <string name="diagnostics_service_disconnected">Disconnected</string>
+    <string name="diagnostics_service_value">%1$s · bound %2$s</string>
+    <string name="diagnostics_last_hook">Last hook</string>
+    <string name="diagnostics_last_hook_value">%1$s/%2$s · %3$s · %4$s</string>
+    <string name="diagnostics_section_hooks">Hook installation</string>
+    <string name="diagnostics_hooks_empty">Not reported yet</string>
+    <string name="diagnostics_hook_sms_handler">SMS handler</string>
+    <string name="diagnostics_hook_sms_forward">SMS forward</string>
+    <string name="diagnostics_hook_sms_provider">SMS provider</string>
+    <string name="diagnostics_hook_mms">MMS</string>
+    <string name="diagnostics_hook_nms">Notification hook</string>
+    <string name="diagnostics_hook_keepalive">Keep-alive</string>
+    <string name="diagnostics_hook_status_installed">Installed</string>
+    <string name="diagnostics_hook_status_class_missing">Class missing</string>
+    <string name="diagnostics_hook_status_method_missing">Method missing</string>
+    <string name="diagnostics_hook_status_no_entrypoints">No entrypoints</string>
+    <string name="diagnostics_hook_status_error">Failed</string>
+    <string name="diagnostics_hook_value">%1$s · %2$s · %3$s</string>
+    <string name="diagnostics_section_permissions">Permissions</string>
+    <string name="diagnostics_perm_nls">Notification listener</string>
+    <string name="diagnostics_perm_a11y">Accessibility</string>
+    <string name="diagnostics_perm_post_notifications">Post notifications</string>
+    <string name="diagnostics_perm_battery">Battery exemption</string>
+    <string name="diagnostics_state_enabled">Enabled</string>
+    <string name="diagnostics_state_disabled">Disabled</string>
+    <string name="diagnostics_granted">Granted</string>
+    <string name="diagnostics_denied">Denied</string>
+    <string name="diagnostics_section_sms">SMS and forwarding</string>
+    <string name="diagnostics_sms_records">Records</string>
+    <string name="diagnostics_sms_last">Last SMS</string>
+    <string name="diagnostics_sms_last_value">%1$s · SIM %2$d</string>
+    <string name="diagnostics_forward_24h">Forwarded in 24h</string>
+    <string name="diagnostics_forward_24h_value">total %1$d · ok %2$d · failed %3$d</string>
+    <string name="diagnostics_last_forward">Last forward</string>
+    <string name="diagnostics_last_forward_value">%1$s · %2$s</string>
+    <string name="diagnostics_result_success">OK</string>
+    <string name="diagnostics_result_failure">Failed</string>
+    <string name="diagnostics_section_notify">Notifications</string>
+    <string name="diagnostics_notify_last">Last notification</string>
+    <string name="diagnostics_notify_none">Not captured yet</string>
+    <string name="diagnostics_notify_value">%1$s · %2$s · channel %3$s · %4$s</string>
+    <string name="diagnostics_source_nms">NMS</string>
+    <string name="diagnostics_source_nls">NLS</string>
+    <string name="diagnostics_result_accepted">accepted</string>
+    <string name="diagnostics_section_autoinput">Autofill</string>
+    <string name="diagnostics_auto_24h">Attempts in 24h</string>
+    <string name="diagnostics_auto_24h_value">total %1$d · ok %2$d · failed %3$d</string>
+    <string name="diagnostics_auto_last">Last attempt</string>
+    <string name="diagnostics_auto_last_value">%1$s · %2$s</string>
+    <string name="diagnostics_section_remote">Remote and config</string>
+    <string name="diagnostics_remote_state">Sync state</string>
+    <string name="diagnostics_remote_base">Backend URL</string>
+    <string name="diagnostics_remote_base_configured">Configured</string>
+    <string name="diagnostics_remote_base_missing">Not configured</string>
+    <string name="diagnostics_remote_heartbeat">Last heartbeat</string>
+    <string name="diagnostics_remote_pull">Last pull</string>
+    <string name="diagnostics_remote_push">Last push</string>
+    <string name="diagnostics_remote_revision">Config revision</string>
+    <string name="diagnostics_remote_revision_value">%1$s · pending %2$s</string>
+    <string name="diagnostics_section_data">Data</string>
+    <string name="diagnostics_data_db">Database size</string>
+    <string name="diagnostics_data_root">Root catch-up</string>
+    <string name="diagnostics_data_root_on">on · every %1$s min · writeback %2$s</string>
+    <string name="diagnostics_data_root_off">Off</string>
+    <string name="diagnostics_yes">yes</string>
+    <string name="diagnostics_no">no</string>
 </resources>

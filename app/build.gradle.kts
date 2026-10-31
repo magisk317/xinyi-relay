@@ -161,6 +161,7 @@ tasks.matching { it.name.endsWith("GoogleServices") }.configureEach {
 }
 
 dependencies {
+    implementation(project(":magisk-xposed-kit:runtime"))
     implementation(libs.mobile.entitlement.android)
     implementation(project(":policy"))
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
@@ -173,9 +174,10 @@ dependencies {
     implementation(project(":magisk-ui-kit"))
     implementation(project(":relay:android"))
     implementation(project(":magisk-xposed-kit:logging"))
+    implementation(project(":magisk-xposed-kit:capability"))
     implementation(project(":smscode-core:runtime"))
     implementation(project(":smscode-core:verification"))
-    implementation(project(":relay:engine"))
+    implementation(project(":magisk-forward-core:engine"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.material.icons.core)
@@ -200,6 +202,9 @@ dependencies {
         add("${flavor}Implementation", project(":hook:entry"))
         add("${flavor}Implementation", project(":xpbridge:core"))
         add("${flavor}Implementation", libs.libxposed.service)
+        // The Xposed service bridge (src/xposed) consumes the runtime scope API;
+        // other flavors keep their runtime classpath strictly behind mobile:core.
+        add("${flavor}Implementation", project(":runtime"))
     }
 
     testImplementation(libs.junit.jupiter)

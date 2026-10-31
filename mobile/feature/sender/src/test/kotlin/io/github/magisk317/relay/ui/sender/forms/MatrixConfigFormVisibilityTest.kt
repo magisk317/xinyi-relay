@@ -1,8 +1,8 @@
 package io.github.magisk317.relay.ui.sender.forms
 
-import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.sender.SenderSettingDraft
-import io.github.magisk317.relay.sender.SenderSettingDrafts
+import io.github.magisk317.forward.engine.sender.SenderType
+import io.github.magisk317.forward.sender.SenderSettingDraft
+import io.github.magisk317.forward.sender.SenderSettingDrafts
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue

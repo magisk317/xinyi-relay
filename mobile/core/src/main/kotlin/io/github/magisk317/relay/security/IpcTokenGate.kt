@@ -1,6 +1,6 @@
-package io.github.magisk317.relay.security
+package io.github.magisk317.forward.security
 
-import io.github.magisk317.smscode.runtime.contract.ipc.IpcTokenMatcher
+import io.github.magisk317.xposed.runtime.ipc.IpcTokenMatcher
 
 object IpcTokenGate {
     fun isAccepted(

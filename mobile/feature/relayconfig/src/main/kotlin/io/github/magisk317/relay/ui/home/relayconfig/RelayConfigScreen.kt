@@ -56,7 +56,7 @@ fun RelayConfigScreen(
     val scope = rememberCoroutineScope()
     val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
     val snackbarHostState = remember { AppSnackbarHostState() }
-    val notifySaved = {
+    val notifySaved: () -> Unit = {
         scope.launch {
             snackbarHostState.showLatestSnackbar(savedSnackbarText)
         }
@@ -79,24 +79,20 @@ fun RelayConfigScreen(
             verticalArrangement = Arrangement.spacedBy(Const.SPACING_SMALL.dp),
         ) {
             Spacer(modifier = Modifier.height(Const.PADDING_SMALL.dp))
-            StateSwitchItem(
-                title = stringResource(id = R.string.pref_relay_features_title),
-                summary = stringResource(id = R.string.pref_relay_features_summary),
-                checked = current.relayFeaturesEnabled,
-                modifier = Modifier.padding(horizontal = Const.PADDING_SMALL.dp),
-            ) { enabled ->
-                scope.launch {
-                    relay = repository.updateRelaySettings(RelaySettingsUpdate(relayFeaturesEnabled = enabled))
-                    notifySaved()
+            // One group holds the switch and the entries it gates, so the gutter comes from the
+            // card and no row carries its own horizontal padding.
+            SectionCard {
+                StateSwitchItem(
+                    title = stringResource(id = R.string.pref_relay_features_title),
+                    summary = stringResource(id = R.string.pref_relay_features_summary),
+                    checked = current.relayFeaturesEnabled,
+                ) { enabled ->
+                    scope.launch {
+                        relay = repository.updateRelaySettings(RelaySettingsUpdate(relayFeaturesEnabled = enabled))
+                        notifySaved()
+                    }
                 }
-            }
-            if (current.relayFeaturesEnabled) {
-                SectionCard(
-                    title = stringResource(id = R.string.pref_relay_config_title),
-                    accordionMode = false,
-                    sectionExpanded = true,
-                    onExpandedChange = {},
-                ) {
+                if (current.relayFeaturesEnabled) {
                     AppArrowItem(
                         title = stringResource(id = R.string.tab_senders),
                         summary = stringResource(id = R.string.pref_enable_forward_summary),

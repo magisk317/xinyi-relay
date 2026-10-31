@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.ui.home.overview
+package io.github.magisk317.relay.ui.analytics
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
@@ -18,18 +17,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.magisk317.forward.engine.model.SenderDispatchStat
 import io.github.magisk317.relay.mobile.core.R
-import io.github.magisk317.relay.engine.model.SenderDispatchStat
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
-import io.github.magisk317.uikit.surface.SummarySectionCard
 import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.text.AppTextRole
 import io.github.magisk317.uikit.theme.AppColorRole
 import io.github.magisk317.uikit.theme.appColor
 
-internal data class HomeAnalyticsSnapshot(
+data class AnalyticsSnapshot(
     val totalMessages: Long,
     val codeDetected: Long,
     val autoInputAttempt: Long,
@@ -41,7 +39,7 @@ internal data class HomeAnalyticsSnapshot(
     val senderStats: List<SenderDispatchStat>,
 )
 
-internal enum class HomeChartType(val id: String) {
+enum class AnalyticsChartType(val id: String) {
     FORWARD("forward"),
     EVENTS("events"),
     SENDER("sender"),
@@ -54,11 +52,11 @@ internal enum class HomeChartType(val id: String) {
     }
 
     companion object {
-        fun fromId(id: String?): HomeChartType? = values().firstOrNull { it.id == id }
+        fun fromId(id: String?): AnalyticsChartType? = entries.firstOrNull { it.id == id }
     }
 }
 
-internal enum class HomeChartWindow(val id: String, val days: Int?) {
+enum class AnalyticsChartWindow(val id: String, val days: Int?) {
     ALL("all", null),
     LAST_7_DAYS("7d", 7),
     LAST_30_DAYS("30d", 30),
@@ -76,46 +74,23 @@ internal enum class HomeChartWindow(val id: String, val days: Int?) {
     }
 
     companion object {
-        fun fromId(id: String?): HomeChartWindow? = values().firstOrNull { it.id == id }
+        fun fromId(id: String?): AnalyticsChartWindow? = entries.firstOrNull { it.id == id }
     }
 }
 
-private data class PieSlice(
+private data class ChartSlice(
     val label: String,
     val value: Long,
     val color: Color,
 )
 
 @Composable
-internal fun HomeChartCard(
-    chartType: HomeChartType,
-    chartWindow: HomeChartWindow,
-    data: HomeAnalyticsSnapshot?,
-    onChartTypeChange: (HomeChartType) -> Unit,
-    onChartWindowChange: (HomeChartWindow) -> Unit,
-) {
-    SummarySectionCard(modifier = Modifier.fillMaxWidth()) {
-        HomeChartBody(
-            chartType = chartType,
-            chartWindow = chartWindow,
-            data = data,
-            onChartTypeChange = onChartTypeChange,
-            onChartWindowChange = onChartWindowChange,
-            showTitle = true,
-            modifier = Modifier.padding(horizontal = 16.dp),
-        )
-    }
-}
-
-@Composable
-private fun HomeChartBody(
-    chartType: HomeChartType,
-    chartWindow: HomeChartWindow,
-    data: HomeAnalyticsSnapshot?,
-    onChartTypeChange: (HomeChartType) -> Unit,
-    onChartWindowChange: (HomeChartWindow) -> Unit,
-    showTitle: Boolean,
-    modifier: Modifier = Modifier,
+fun AnalyticsChartPanel(
+    chartType: AnalyticsChartType,
+    chartWindow: AnalyticsChartWindow,
+    data: AnalyticsSnapshot?,
+    onChartTypeChange: (AnalyticsChartType) -> Unit,
+    onChartWindowChange: (AnalyticsChartWindow) -> Unit,
 ) {
     val context = LocalContext.current
     val colors = listOf(
@@ -128,16 +103,9 @@ private fun HomeChartBody(
     )
 
     Column(
-        modifier = modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        if (showTitle) {
-            AppText(
-                text = stringResource(id = R.string.home_card_chart_title),
-                role = AppTextRole.Subtitle,
-            )
-        }
-
         data?.let {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 StatLine(label = stringResource(id = R.string.home_event_total_messages), value = data.totalMessages)
@@ -151,7 +119,7 @@ private fun HomeChartBody(
         }
 
         SingleChoiceSegmentedSelector(
-            options = HomeChartType.values().map { type ->
+            options = AnalyticsChartType.entries.map { type ->
                 SegmentedOption(type, stringResource(id = type.labelRes()))
             },
             selected = chartType,
@@ -159,60 +127,62 @@ private fun HomeChartBody(
         )
 
         SingleChoiceSegmentedSelector(
-            options = HomeChartWindow.values().map { window ->
+            options = AnalyticsChartWindow.entries.map { window ->
                 SegmentedOption(window, stringResource(id = window.labelRes()))
             },
             selected = chartWindow,
             onSelect = onChartWindowChange,
         )
 
-        PieChart(
+        ChartPie(
             slices = when (chartType) {
-                HomeChartType.FORWARD -> listOf(
-                    PieSlice(
+                AnalyticsChartType.FORWARD -> listOf(
+                    ChartSlice(
                         label = stringResource(id = R.string.home_event_forward_success),
                         value = data?.forwardSuccess ?: 0L,
                         color = colors[0],
                     ),
-                    PieSlice(
+                    ChartSlice(
                         label = stringResource(id = R.string.home_event_forward_failed),
                         value = data?.forwardFailed ?: 0L,
                         color = colors[3],
                     ),
                 )
-                HomeChartType.EVENTS -> listOf(
-                    PieSlice(
+
+                AnalyticsChartType.EVENTS -> listOf(
+                    ChartSlice(
                         label = stringResource(id = R.string.home_event_code_detected),
                         value = data?.codeDetected ?: 0L,
                         color = colors[0],
                     ),
-                    PieSlice(
+                    ChartSlice(
                         label = stringResource(id = R.string.home_event_auto_input_success),
                         value = data?.autoInputSuccess ?: 0L,
                         color = colors[1],
                     ),
-                    PieSlice(
+                    ChartSlice(
                         label = stringResource(id = R.string.home_event_auto_input_failed),
                         value = data?.autoInputFailed ?: 0L,
                         color = colors[3],
                     ),
-                    PieSlice(
+                    ChartSlice(
                         label = stringResource(id = R.string.home_event_forward_success),
                         value = data?.forwardSuccess ?: 0L,
                         color = colors[2],
                     ),
-                    PieSlice(
+                    ChartSlice(
                         label = stringResource(id = R.string.home_event_forward_failed),
                         value = data?.forwardFailed ?: 0L,
                         color = colors[4],
                     ),
                 )
-                HomeChartType.SENDER -> {
+
+                AnalyticsChartType.SENDER -> {
                     if (data == null) {
                         emptyList()
                     } else {
                         data.senderStats.mapIndexed { index, row ->
-                            PieSlice(
+                            ChartSlice(
                                 label = getSenderTypeName(context, row.senderType),
                                 value = row.sent,
                                 color = colors[index % colors.size],
@@ -227,8 +197,8 @@ private fun HomeChartBody(
 }
 
 @Composable
-private fun PieChart(
-    slices: List<PieSlice>,
+private fun ChartPie(
+    slices: List<ChartSlice>,
     emptyText: String,
 ) {
     val total = slices.sumOf { it.value }

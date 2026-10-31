@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.di
 
 import io.github.magisk317.relay.mobileui.BuildConfig
-import io.github.magisk317.relay.security.CiUpdateGateVault
+import io.github.magisk317.forward.security.CiUpdateGateVault
 import io.github.magisk317.relay.ui.backup.CloudBackupViewModel
 import io.github.magisk317.relay.ui.record.CodeRecordViewModel
 import io.github.magisk317.relay.ui.rule.RuleViewModel
@@ -13,9 +13,13 @@ import io.github.magisk317.relay.ui.sender.SenderViewModel
 import io.github.magisk317.uikit.update.AppUpdateChecker
 import io.github.magisk317.uikit.update.AppUpdateController
 import io.github.magisk317.uikit.update.AppUpdateDownloader
-import io.github.magisk317.uikit.update.GitLabCiArtifactUpdateSource
-import io.github.magisk317.uikit.update.GitLabReleaseUpdateSource
-import io.github.magisk317.uikit.update.GitHubReleaseUpdateSource
+import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
+import io.github.magisk317.relay.contract.constant.RelayPrefConst
+import io.github.magisk317.smscode.runtime.contract.prefs.PrefRead
+import io.github.magisk317.uikit.update.AppUpdateSourceSpec
+import io.github.magisk317.uikit.update.AppUpdateSources
+import io.github.magisk317.uikit.update.startupFacts
+import io.github.magisk317.uikit.update.CiStagingSpec
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
@@ -42,42 +46,33 @@ val uiModule = module {
 
         val isPlayFlavor = BuildConfig.HAS_BILLING
 
-        val sources = when {
-            // Play flavor: version is owned by Play, no CI source
-            isPlayFlavor -> listOf(
-                GitLabReleaseUpdateSource("magisk3171/xinyi-relay"),
-                GitHubReleaseUpdateSource(
-                    repository = "magisk317/xinyi-relay",
-                    gitlabProjectPath = "magisk3171/xinyi-relay",
-                ),
-            )
-
-            isCiOrDebug -> listOf(
-                GitLabCiArtifactUpdateSource(
-                    projectPath = "magisk3171/xinyi-relay",
-                    branch = "beta",
-                    jobName = "android:build",
-                    artifactPath = "ci-dist/app-ci.apk",
-                    // Staged manifest gates the download on its sha256 and carries the
-                    // allocated versionCode, which is what the up-to-date check compares.
-                    manifestFilePath = "ci-dist/app-ci-manifest.json",
-                    currentCommitHash = BuildConfig.COMMIT_HASH,
-                ),
-                GitLabReleaseUpdateSource("magisk3171/xinyi-relay"),
-            )
-
-            else -> listOf(
-                GitLabReleaseUpdateSource("magisk3171/xinyi-relay"),
-                GitHubReleaseUpdateSource(
-                    repository = "magisk317/xinyi-relay",
-                    gitlabProjectPath = "magisk3171/xinyi-relay",
-                ),
-            )
-        }
+        // One shape for every consumer app: the channel (settings switch, else how the build was
+        // produced) is re-read on each check, and a Play flavor never probes the CI track because
+        // the store owns that version axis. See ui-kit's AppUpdateSources for the chain shape.
+        val spec = AppUpdateSourceSpec(
+            gitlabProjectPath = "magisk3171/xinyi-relay",
+            githubRepository = "magisk317/xinyi-relay",
+            ci = CiStagingSpec(
+                artifactPath = "ci-dist/io.github.magisk317.xinyi.relay/{versionName}/app-ci.apk",
+                versionSidecarPath = "ci-dist/io.github.magisk317.xinyi.relay/version.txt",
+                manifestPath = "ci-dist/io.github.magisk317.xinyi.relay/{versionName}/app-ci-manifest.json",
+            ),
+            isPlayFlavor = { isPlayFlavor },
+            buildProvenance = { isCiOrDebug },
+            currentCommitHash = { BuildConfig.COMMIT_HASH },
+            // Miss / Unavailable stay null so AppUpdateSources falls back to buildProvenance;
+            // only an explicit switch value outranks how the build was produced.
+            trackCiOverride = {
+                when (val read = get<PreferenceDataSource>().readBoolean(RelayPrefConst.KEY_TRACK_CI_BUILDS)) {
+                    is PrefRead.Hit -> read.value
+                    else -> null
+                }
+            },
+        )
 
         val checker = AppUpdateChecker(
             context = context,
-            sources = sources,
+            sources = AppUpdateSources.routed(spec),
             allowForceUpdate = !BuildConfig.SKIP_FORCE_UPDATE,
         )
         val downloader = AppUpdateDownloader(context)
@@ -86,15 +81,28 @@ val uiModule = module {
             checker = checker,
             downloader = downloader,
             fileProviderAuthority = "${context.packageName}.files",
-            onForceUpdateDetected = if (isCiOrDebug) {
-                {
-                    // Gate logic: once a CI mandatory update is detected, seal the
-                    // activation state and revoke privileges to block outdated builds.
-                    CiUpdateGateVault.sealAndRevoke(context)
+            // Seal the activation on the way into an install. An upgrade is the one
+            // moment the next build may not be able to re-activate itself, and that
+            // risk is the same on every track, so this is not gated on provenance.
+            onBackupBeforeInstall = { CiUpdateGateVault.backup(context) },
+            // 规则在 kit，值在本仓：未设置即 kit 默认（开/不限 Wi-Fi），商店包整条通道交给商店。
+            startupCheckFacts = {
+                val dataSource = get<PreferenceDataSource>()
+                val onStart = when (val read = dataSource.readBoolean(RelayPrefConst.KEY_AUTO_UPDATE_ON_START)) {
+                    is PrefRead.Hit -> read.value
+                    else -> true
                 }
-            } else {
-                // Release only surfaces a dialog on forced updates, never self-destructs
-                {}
+                val wifiOnly = when (val read = dataSource.readBoolean(RelayPrefConst.KEY_AUTO_UPDATE_WIFI_ONLY)) {
+                    is PrefRead.Hit -> read.value
+                    else -> false
+                }
+                startupFacts(
+                    context = context,
+                    trackCi = isCiOrDebug,
+                    autoUpdateOnStart = onStart,
+                    wifiOnly = wifiOnly,
+                    playOwnsChannel = BuildConfig.HAS_BILLING,
+                )
             },
         )
     }

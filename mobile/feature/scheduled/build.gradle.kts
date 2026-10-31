@@ -19,12 +19,14 @@ android {
 }
 
 dependencies {
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
     implementation(project(":magisk-xposed-kit:logging"))
     implementation(project(":relay:android"))
     implementation(project(":relay:contract"))
-    implementation(project(":relay:engine:api"))
+    implementation(project(":magisk-forward-core:engine:api"))
     implementation(project(":mobile:core"))
-    implementation(project(":relay:sender:api"))
+    implementation(project(":magisk-forward-core:sender:api"))
     implementation(project(":runtime"))
     implementation(project(":mobile:feature:common"))
     implementation(project(":magisk-ui-kit"))

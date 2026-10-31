@@ -12,8 +12,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.mobile.core.R
+import io.github.magisk317.uikit.R as UiKitR
 import io.github.magisk317.relay.mobilefeature.settings.BuildConfig
-import io.github.magisk317.relay.ui.theme.ThemeAccent
+import io.github.magisk317.uikit.theme.ThemeAccent
 import io.github.magisk317.uikit.preference.SectionCard
 import io.github.magisk317.uikit.preference.SettingsChoiceRow
 import io.github.magisk317.uikit.preference.StateSwitchItem
@@ -107,7 +108,7 @@ fun ThemeSettingsPage(
                 onExpandedChange = {},
             ) {
                 SettingsChoiceRow(
-                    title = stringResource(id = R.string.pref_choose_theme_title),
+                    title = stringResource(id = UiKitR.string.pref_choose_theme_title),
                     summary = themeOptions[selectedThemeIndex],
                     options = themeOptions,
                     selectedIndex = selectedThemeIndex,
@@ -118,7 +119,7 @@ fun ThemeSettingsPage(
                 )
                 if (BuildConfig.ENABLE_UI_KIT_STYLE_SWITCH) {
                     SettingsChoiceRow(
-                        title = stringResource(id = R.string.pref_ui_kit_style_title),
+                        title = stringResource(id = UiKitR.string.pref_ui_kit_style_title),
                         summary = uiKitStyleOptions[selectedUiKitStyleIndex],
                         options = uiKitStyleOptions,
                         selectedIndex = selectedUiKitStyleIndex,

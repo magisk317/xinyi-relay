@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.backup.webdav
 
-import io.github.magisk317.relay.security.AndroidKeystoreKeyProvider
-import io.github.magisk317.relay.security.AesGcmEnvelopeCipher
+import io.github.magisk317.forward.security.AndroidKeystoreKeyProvider
+import io.github.magisk317.forward.security.AesGcmEnvelopeCipher
 import javax.crypto.SecretKey
 
 internal interface WebDavConfigCipher {
