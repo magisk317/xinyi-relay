@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.ui.record
+package io.github.magisk317.relay.data.record
 
 import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySmsMsg as SmsMsg
 import io.github.magisk317.smscode.runtime.contract.record.SmsMsgRecordData

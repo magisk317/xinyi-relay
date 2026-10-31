@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.ui.record
+package io.github.magisk317.relay.data.record
 
 import android.content.Context
 import io.github.magisk317.xposed.logging.XLog

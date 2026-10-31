@@ -2,7 +2,7 @@ package io.github.magisk317.relay.app
 
 import android.app.Application
 import android.content.Context
-import io.github.magisk317.relay.ui.record.CodeRecordRestoreManager
+import io.github.magisk317.relay.data.record.CodeRecordRestoreManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import io.github.magisk317.xposed.logging.XLog

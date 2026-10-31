@@ -72,7 +72,6 @@ androidComponents {
 }
 
 dependencies {
-    implementation(project(":app"))
     implementation(project(":magisk-forward-core:sender:api"))
     implementation(project(":magisk-forward-core:sender"))
     implementation(project(":relay:matrix-e2ee"))
