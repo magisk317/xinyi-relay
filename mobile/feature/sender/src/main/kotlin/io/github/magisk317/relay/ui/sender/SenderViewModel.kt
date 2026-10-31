@@ -3,23 +3,22 @@ package io.github.magisk317.relay.ui.sender
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.magisk317.relay.engine.model.ForwardFilterRule
-import io.github.magisk317.relay.contract.model.ForwardCommonConfig
-import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.smscode.db.entity.NotifyRouteRule
-import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
+import io.github.magisk317.forward.engine.model.ForwardFilterRule
+import io.github.magisk317.forward.contract.model.ForwardCommonConfig
+import io.github.magisk317.forward.engine.model.Sender
+import io.github.magisk317.forward.engine.model.NotifyRouteRuleImpl
 import io.github.magisk317.relay.android.common.utils.DeviceIdentityUtils
 import io.github.magisk317.relay.app.sender.SenderTestService
-import io.github.magisk317.relay.engine.filter.ForwardFilterConst
-import io.github.magisk317.relay.engine.model.MsgInfo
-import io.github.magisk317.relay.sender.SenderSettingSanitizer
-import io.github.magisk317.relay.sender.sanitizeSenderLenient
-import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.sender.SenderValidationResult
-import io.github.magisk317.relay.sender.SenderValidator
-import io.github.magisk317.relay.engine.routing.NotifyRouteScope
+import io.github.magisk317.forward.engine.filter.ForwardFilterConst
+import io.github.magisk317.forward.engine.model.MsgInfo
+import io.github.magisk317.forward.sender.SenderSettingSanitizer
+import io.github.magisk317.forward.sender.sanitizeSenderLenient
+import io.github.magisk317.forward.engine.sender.SenderType
+import io.github.magisk317.forward.sender.SenderValidationResult
+import io.github.magisk317.forward.sender.SenderValidator
+import io.github.magisk317.forward.engine.routing.NotifyRouteScope
 import io.github.magisk317.relay.mobilefeature.sender.BuildConfig
-import io.github.magisk317.relay.engine.service.AppConfigRepository
+import io.github.magisk317.forward.engine.service.AppConfigRepository
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.SimRemarkSettingsSnapshot
 import io.github.magisk317.relay.contract.settings.SimRemarkSettingsUpdate
@@ -361,24 +360,24 @@ class SenderViewModel(
             if (normalizedAllow.isNotEmpty()) {
                 configRepository.insertNotifyRouteRules(
                     normalizedAllow.map { packageName ->
-                        NotifyRouteRule(
+                        NotifyRouteRuleImpl(
                             scope = NotifyRouteScope.SENDER_ALLOW_APP,
                             packageName = packageName,
                             senderId = senderId,
                             updateTime = updateTime,
-                        ).toDomain()
+                        )
                     },
                 )
             }
             if (normalizedDeny.isNotEmpty()) {
                 configRepository.insertNotifyRouteRules(
                     normalizedDeny.map { packageName ->
-                        NotifyRouteRule(
+                        NotifyRouteRuleImpl(
                             scope = NotifyRouteScope.SENDER_DENY_APP,
                             packageName = packageName,
                             senderId = senderId,
                             updateTime = updateTime,
-                        ).toDomain()
+                        )
                     },
                 )
             }

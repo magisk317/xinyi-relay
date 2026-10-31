@@ -28,6 +28,7 @@ import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.mobile.core.R
+import io.github.magisk317.uikit.R as UiKitR
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
 import io.github.magisk317.uikit.foundation.LocalSnackbarHostState
@@ -149,7 +150,7 @@ fun PrivacyPolicyDialog(
             dismissOnBackPress = dismissOnBackPress,
             dismissOnClickOutside = dismissOnClickOutside,
         ),
-        title = { AppText(text = stringResource(id = R.string.pref_privacy_policy_title)) },
+        title = { AppText(text = stringResource(id = UiKitR.string.pref_privacy_policy_title)) },
         text = { AppText(text = stringResource(id = R.string.privacy_policy_confirm_message)) },
         confirmButton = {
             io.github.magisk317.uikit.surface.AppTextButton(

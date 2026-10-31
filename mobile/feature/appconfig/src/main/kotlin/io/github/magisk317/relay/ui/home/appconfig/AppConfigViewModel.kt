@@ -8,23 +8,20 @@ import android.graphics.Bitmap
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.magisk317.relay.engine.model.ForwardFilterRule
-import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.engine.filter.ForwardFilterConst
-import io.github.magisk317.relay.sender.SenderSettingSanitizer
-import io.github.magisk317.relay.sender.sanitizeSenderLenient
+import io.github.magisk317.forward.engine.model.AppInfoData
+import io.github.magisk317.forward.engine.model.AppInfoImpl
+import io.github.magisk317.forward.engine.model.ForwardFilterRule
+import io.github.magisk317.forward.engine.model.Sender
+import io.github.magisk317.forward.engine.filter.ForwardFilterConst
+import io.github.magisk317.forward.sender.SenderSettingSanitizer
+import io.github.magisk317.forward.sender.sanitizeSenderLenient
 import io.github.magisk317.xposed.logging.XLog
-import io.github.magisk317.smscode.db.entity.NotifyRouteRule
-import io.github.magisk317.smscode.db.entity.AppInfo
-import io.github.magisk317.smscode.db.entity.SmsMsg
-import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toEntity
-import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toSmsMsgEntity
-import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
-import io.github.magisk317.relay.engine.service.AppConfigRepository
-import io.github.magisk317.relay.engine.service.MessageRecordRepository
-import io.github.magisk317.relay.engine.routing.NotifyRouteScope
-import io.github.magisk317.relay.android.data.store.EntityStoreManager
-import io.github.magisk317.relay.android.data.store.EntityType
+import io.github.magisk317.forward.engine.model.NotifyRouteRuleImpl
+import io.github.magisk317.forward.engine.model.ReadRecordData
+import io.github.magisk317.forward.engine.service.AppConfigRepository
+import io.github.magisk317.forward.engine.service.MessageRecordRepository
+import io.github.magisk317.forward.engine.routing.NotifyRouteScope
+import io.github.magisk317.relay.data.appconfig.AppConfigEntityMirror
 import io.github.magisk317.uikit.shell.AppInfoHelper as UiKitAppInfoHelper
 import io.github.magisk317.relay.ui.common.AppIconCache
 import kotlinx.collections.immutable.ImmutableList
@@ -57,7 +54,7 @@ private const val APP_NOTIFY_LOG_LIMIT = 20
 
 @Immutable
 data class AppConfigUiState(
-    val apps: ImmutableList<AppInfo> = persistentListOf(),
+    val apps: ImmutableList<AppInfoData> = persistentListOf(),
     val isLoading: Boolean = false,
     val hasMoreApps: Boolean = false,
     val hideSystemApps: Boolean = true,
@@ -72,6 +69,7 @@ class AppConfigViewModel(
     application: Application,
     private val configRepository: AppConfigRepository,
     private val recordRepository: MessageRecordRepository,
+    private val entityMirror: AppConfigEntityMirror,
 ) : AndroidViewModel(application) {
 
     private val _queryState = MutableStateFlow(AppConfigQueryState())
@@ -156,7 +154,7 @@ class AppConfigViewModel(
                 awaitPendingPersistence()
                 val configs = withContext(Dispatchers.IO) {
                     persistMutex.withLock {
-                        configRepository.getAllAppInfo().map { it.toEntity() }
+                        configRepository.getAllAppInfo()
                     }
                 }
                 currentCoroutineContext().ensureActive()
@@ -428,11 +426,11 @@ class AppConfigViewModel(
         }
     }
 
-    fun setBlocked(item: AppInfo, blocked: Boolean) {
+    fun setBlocked(item: AppInfoData, blocked: Boolean) {
         setBlocked(item.packageName, blocked)
     }
 
-    fun setForwarding(item: AppInfo, forwarding: Boolean) {
+    fun setForwarding(item: AppInfoData, forwarding: Boolean) {
         setForwarding(item.packageName, forwarding)
     }
 
@@ -448,23 +446,22 @@ class AppConfigViewModel(
         updateApp(packageName) { it.copy(notifyTemplate = notifyTemplate) }
     }
 
-    fun getAppByPackageName(packageName: String): AppInfo? {
+    fun getAppByPackageName(packageName: String): AppInfoData? {
         return _queryState.value.sourceApps.firstOrNull { it.packageName == packageName }
     }
 
-    fun appNotifyLogsFlow(packageName: String): kotlinx.coroutines.flow.Flow<List<SmsMsg>> {
+    fun appNotifyLogsFlow(packageName: String): Flow<List<ReadRecordData>> {
         return recordRepository.observeLogsForPackage(packageName, APP_NOTIFY_LOG_LIMIT)
-            .map { list -> list.map { it.toSmsMsgEntity() } }
     }
 
-    fun appNotifyBoundSenderIdsFlow(packageName: String): kotlinx.coroutines.flow.Flow<Set<Long>> {
+    fun appNotifyBoundSenderIdsFlow(packageName: String): Flow<Set<Long>> {
         return configRepository.observeNotifySenderIds(
             scope = NotifyRouteScope.APP_ALLOW_SENDER,
             packageName = packageName,
         )
     }
 
-    fun senderDenyingPackageIdsFlow(packageName: String): kotlinx.coroutines.flow.Flow<Set<Long>> {
+    fun senderDenyingPackageIdsFlow(packageName: String): Flow<Set<Long>> {
         return configRepository.observeNotifySenderIds(
             scope = NotifyRouteScope.SENDER_DENY_APP,
             packageName = packageName,
@@ -486,12 +483,12 @@ class AppConfigViewModel(
                     val updateTime = System.currentTimeMillis()
                     configRepository.insertNotifyRouteRules(
                         senderIds.map { senderId ->
-                            NotifyRouteRule(
+                            NotifyRouteRuleImpl(
                                 scope = NotifyRouteScope.APP_ALLOW_SENDER,
                                 packageName = normalizedPackageName,
                                 senderId = senderId,
                                 updateTime = updateTime,
-                            ).toDomain()
+                            )
                         },
                     )
                 }
@@ -568,9 +565,9 @@ class AppConfigViewModel(
         }
     }
 
-    private fun updateApp(packageName: String, updater: (AppInfo) -> AppInfo) {
+    private fun updateApp(packageName: String, updater: (AppInfoData) -> AppInfoData) {
         val mutation = localMutations.record(packageName)
-        var updatedTarget: AppInfo? = null
+        var updatedTarget: AppInfoData? = null
         _queryState.update { state ->
             updatedTarget = null
             val updatedApps = state.sourceApps.map { app ->
@@ -591,29 +588,17 @@ class AppConfigViewModel(
         updatedTarget?.let { persistAppConfig(packageName, it, mutation) }
     }
 
-    private fun persistAppConfig(packageName: String, target: AppInfo, mutation: Long) {
+    private fun persistAppConfig(packageName: String, target: AppInfoData, mutation: Long) {
         val job = viewModelScope.launch(start = CoroutineStart.LAZY) {
             try {
                 withContext(Dispatchers.IO) {
                     persistMutex.withLock {
                         if (!localMutations.isLatest(packageName, mutation)) return@withLock
-                        // The package sequence makes stale writers no-ops. Build the shared mirror
-                        // from the committed repository snapshot so another package's optimistic
-                        // in-memory edit cannot leak into the hook file after a failed write.
-                        if (appInfoHasEffectiveConfig(target)) {
-                            configRepository.upsertAppInfo(target.toDomain())
-                        } else {
-                            configRepository.removeAppInfosByPackage(listOf(target.packageName))
-                        }
-                        val changedConfigs = configRepository.getAllAppInfo()
-                            .map { it.toEntity() }
-                            .filter(::appInfoHasEffectiveConfig)
-                        EntityStoreManager.storeEntitiesToFile(
-                            getApplication(),
-                            EntityType.APP_CONFIG,
-                            changedConfigs,
-                            AppInfo::class.java,
-                        )
+                        // The package sequence makes stale writers no-ops. Rebuild the shared
+                        // mirror from the committed repository snapshot so another package's
+                        // optimistic in-memory edit cannot leak into the hook file after a
+                        // failed write.
+                        entityMirror.upsertAndSync(target)
                     }
                 }
             } catch (cancelled: CancellationException) {
@@ -640,17 +625,10 @@ class AppConfigViewModel(
         val context = getApplication<Application>()
         val pm = getApplication<Application>().packageManager
         val configs = persistMutex.withLock {
-            val latestConfigs = configRepository.getAllAppInfo().map { it.toEntity() }
             currentCoroutineContext().ensureActive()
             // The entity mirror and interactive writes share one writer boundary. Whichever
             // operation acquires the mutex last always publishes the newest repository snapshot.
-            EntityStoreManager.storeEntitiesToFile(
-                context,
-                EntityType.APP_CONFIG,
-                latestConfigs.filter(::appInfoHasEffectiveConfig),
-                AppInfo::class.java,
-            )
-            latestConfigs
+            entityMirror.syncEntityMirror()
         }
 
         val configMap = configs.associateBy { it.packageName }
@@ -661,7 +639,10 @@ class AppConfigViewModel(
             .map { applicationInfo ->
                 scanJob?.ensureActive()
                 val uiKitAppInfo = UiKitAppInfoHelper.getAppInfo(pm, applicationInfo)
-                val appInfoBase = AppInfo(uiKitAppInfo.packageName, uiKitAppInfo.label)
+                val appInfoBase = AppInfoImpl(
+                    packageName = uiKitAppInfo.packageName,
+                    label = uiKitAppInfo.label,
+                )
                 val isSystemApp = (applicationInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 ||
                     (applicationInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
                 if (isSystemApp) {
@@ -688,25 +669,45 @@ class AppConfigViewModel(
     }
 }
 
+/**
+ * Entity-free copy helper: [AppInfoData] is a read-only contract, so edits go through an
+ * [AppInfoImpl] reconstruction that keeps the original fields unless overridden.
+ */
+internal fun AppInfoData.copy(
+    packageName: String = this.packageName,
+    label: String? = this.label,
+    blocked: Boolean = this.blocked,
+    forwarding: Boolean = this.forwarding,
+    forwardingConfigured: Boolean = this.forwardingConfigured,
+    notifyTemplate: String = this.notifyTemplate,
+): AppInfoImpl = AppInfoImpl(
+    packageName = packageName,
+    label = label,
+    blocked = blocked,
+    forwarding = forwarding,
+    forwardingConfigured = forwardingConfigured,
+    notifyTemplate = notifyTemplate,
+)
+
 private fun applyPersistedAppConfigs(
-    apps: ImmutableList<AppInfo>,
-    configs: List<AppInfo>,
-): ImmutableList<AppInfo> {
-    val configByPackage = configs.associateBy(AppInfo::packageName)
+    apps: ImmutableList<AppInfoData>,
+    configs: List<AppInfoData>,
+): ImmutableList<AppInfoData> {
+    val configByPackage = configs.associateBy(AppInfoData::packageName)
     return apps.map { app -> app.withAppConfig(configByPackage[app.packageName]) }.toImmutableList()
 }
 
 private fun preserveCurrentAppConfigs(
-    refreshedApps: ImmutableList<AppInfo>,
-    currentApps: ImmutableList<AppInfo>,
-): ImmutableList<AppInfo> {
-    val currentByPackage = currentApps.associateBy(AppInfo::packageName)
+    refreshedApps: ImmutableList<AppInfoData>,
+    currentApps: ImmutableList<AppInfoData>,
+): ImmutableList<AppInfoData> {
+    val currentByPackage = currentApps.associateBy(AppInfoData::packageName)
     return refreshedApps.map { app ->
         currentByPackage[app.packageName]?.let { current -> app.withAppConfig(current) } ?: app
     }.toImmutableList()
 }
 
-private fun AppInfo.withAppConfig(config: AppInfo?): AppInfo = copy(
+private fun AppInfoData.withAppConfig(config: AppInfoData?): AppInfoData = copy(
     blocked = config?.blocked ?: false,
     forwarding = config?.forwarding ?: false,
     forwardingConfigured = config?.forwardingConfigured ?: false,
@@ -714,6 +715,6 @@ private fun AppInfo.withAppConfig(config: AppInfo?): AppInfo = copy(
 )
 
 private data class LoadedAppCatalog(
-    val apps: ImmutableList<AppInfo>,
+    val apps: ImmutableList<AppInfoData>,
     val systemPackages: Set<String>,
 )

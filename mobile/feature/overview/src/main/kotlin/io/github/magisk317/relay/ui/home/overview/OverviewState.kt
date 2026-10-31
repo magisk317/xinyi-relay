@@ -1,7 +1,6 @@
 package io.github.magisk317.relay.ui.home.overview
 
 internal const val CARD_STATUS = "status"
-internal const val CARD_CHART = "chart"
 internal const val CARD_APP_INFO = "app_info"
 internal const val CARD_DEVICE_INFO = "device_info"
 internal const val CARD_LINKS = "links"
@@ -11,7 +10,6 @@ internal val DEFAULT_OVERVIEW_CARD_ORDER: List<String> = listOf(
     CARD_APP_INFO,
     CARD_DEVICE_INFO,
     CARD_LINKS,
-    CARD_CHART,
 )
 
 internal val DEFAULT_OVERVIEW_ENABLED_CARD_IDS: Set<String> = setOf(
@@ -19,20 +17,15 @@ internal val DEFAULT_OVERVIEW_ENABLED_CARD_IDS: Set<String> = setOf(
     CARD_APP_INFO,
     CARD_DEVICE_INFO,
     CARD_LINKS,
-    CARD_CHART,
 )
 
 internal data class OverviewUiState(
     val cardOrder: List<String> = DEFAULT_OVERVIEW_CARD_ORDER,
     val enabledCardIds: Set<String> = DEFAULT_OVERVIEW_ENABLED_CARD_IDS,
-    val chartType: HomeChartType = HomeChartType.EVENTS,
-    val chartWindow: HomeChartWindow = HomeChartWindow.ALL,
     val editMode: Boolean = false,
     val showAddCardSheet: Boolean = false,
-    val showStatusDiagnostics: Boolean = false,
     val draggingCardId: String? = null,
     val dragOffsetY: Float = 0f,
-    val batteryOptimizationExempted: Boolean = true,
     val runtimeSnapshot: OverviewRuntimeUiState = OverviewRuntimeUiState(),
 )
 
@@ -42,7 +35,6 @@ internal data class OverviewRuntimeUiState(
     val hasRootAccess: Boolean = false,
     val appVersionName: String = "",
     val appVersionCode: String = "",
-    val chartSnapshot: HomeAnalyticsSnapshot? = null,
 )
 
 internal fun parseCardList(value: String): List<String> =
@@ -73,8 +65,4 @@ internal fun moveCardByVisible(order: List<String>, visible: List<String>, cardI
     val insertIndex = mutable.indexOf(targetId).let { if (direction > 0) it + 1 else it }
     mutable.add(insertIndex, cardId)
     return mutable
-}
-
-internal sealed interface OverviewEvent {
-    data class StatusDiagnosticsVisibilityChanged(val visible: Boolean) : OverviewEvent
 }

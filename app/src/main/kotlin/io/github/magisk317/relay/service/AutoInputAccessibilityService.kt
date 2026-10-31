@@ -19,7 +19,7 @@ import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.relay.receiver.AutoInputActions
-import io.github.magisk317.smscode.runtime.contract.autoinput.AutoInputFallbackPolicy
+import io.github.magisk317.xposed.runtime.contract.autoinput.AutoInputFallbackPolicy
 import io.github.magisk317.smscode.runtime.verification.AutoInputAccessibilityNodeHelper
 import io.github.magisk317.smscode.runtime.verification.AutoInputAccessibilityNodeHelper.Result as AutoInputResult
 import io.github.magisk317.smscode.runtime.verification.AutoInputAccessibilityRequestHandler
@@ -53,6 +53,10 @@ class AutoInputAccessibilityService : AccessibilityService() {
                     XLog.w("Accessibility heartbeat: main process not alive, waking up")
                     wakeMainProcess()
                 }
+            }.onFailure { error ->
+                // The heartbeat must keep ticking even when one iteration throws; the failure is
+                // reported instead of being swallowed together with the Result.
+                XLog.w(message = "Accessibility heartbeat iteration failed: ${error.message}", error)
             }
             heartbeatHandler.postDelayed(this, HEARTBEAT_INTERVAL_MS)
         }
@@ -129,6 +133,11 @@ class AutoInputAccessibilityService : AccessibilityService() {
     private fun unregisterAutoInputReceiver() {
         if (!receiverRegistered) return
         runCatching { unregisterReceiver(autoInputReceiver) }
+            .onFailure { error ->
+                // Unregistering a receiver that the system already dropped is not fatal, but it is
+                // worth a line of log: the flag below is cleared either way.
+                XLog.w(message = "unregistering the auto-input receiver failed: ${error.message}", error)
+            }
         receiverRegistered = false
     }
 

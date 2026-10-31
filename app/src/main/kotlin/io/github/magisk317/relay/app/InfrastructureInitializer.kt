@@ -7,7 +7,7 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.feature.mode.XposedRuntimeState
-import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsStore
+import io.github.magisk317.xposed.runtime.state.RuntimeStateStore
 import io.github.magisk317.relay.android.otel.MagiskOtelBootstrap
 import io.github.magisk317.xposed.logging.MagiskOtel
 import java.util.concurrent.atomic.AtomicBoolean
@@ -64,7 +64,7 @@ class InfrastructureInitializer : AppInitializer {
             while (System.currentTimeMillis() < deadline) {
                 XposedRuntimeState.refresh(application)
                 if (XposedRuntimeState.xposedActive.value ||
-                    ActivationDiagnosticsStore.isModuleActivated(application)
+                    RuntimeStateStore.isModuleActivated(application)
                 ) {
                     break
                 }
@@ -76,7 +76,7 @@ class InfrastructureInitializer : AppInitializer {
                 message = "Xposed runtime settle complete: active=%s reason=%s activated=%s",
                 xposedActive,
                 reason,
-                ActivationDiagnosticsStore.isModuleActivated(application),
+                RuntimeStateStore.isModuleActivated(application),
             )
         }
 

@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.uikit.surface.AppFloatingActionButton
+import io.github.magisk317.uikit.surface.AppRefreshIcon
 
 /**
  * Expressive/Material chrome for the rule screen of the same name:
@@ -52,6 +53,7 @@ internal fun SmsCodeRuleListScreenMaterial(
     onSourceSettingsClick: () -> Unit,
     onRefresh: () -> Unit,
     refreshEnabled: Boolean,
+    refreshing: Boolean = false,
     onAddClick: () -> Unit,
     fabContentDescription: String,
     listState: LazyListState,
@@ -86,8 +88,8 @@ internal fun SmsCodeRuleListScreenMaterial(
                             )
                         }
                         AppIconButton(onClick = onRefresh, enabled = refreshEnabled) {
-                            AppIcon(
-                                imageVector = Icons.Filled.Refresh,
+                            AppRefreshIcon(
+                                refreshing = refreshing,
                                 contentDescription = stringResource(R.string.action_refresh),
                             )
                         }

@@ -4,7 +4,7 @@ import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeCrashLogs
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.uikit.entitlement.MobileGate
 import io.github.magisk317.relay.android.prefs.RelayPreferenceHooks
-import io.github.magisk317.relay.security.CiUpdateGateVault
+import io.github.magisk317.forward.security.CiUpdateGateVault
 import io.github.magisk317.xposed.logging.MagiskLogPolicy
 import android.app.Application
 import android.app.Activity
@@ -81,19 +81,15 @@ class SmsCodeApplication : Application() {
         koin.get<InfrastructureInitializer>().init(this)
         val initializers = koin.getAll<AppInitializer>().filterNot { it is InfrastructureInitializer }
         initializers.forEach { it.init(this) }
-        val isCiOrDebug = BuildConfig.DEBUG ||
-            BuildConfig.VERSION_NAME.contains("-202") ||
-            BuildConfig.VERSION_NAME.contains("-test") ||
-            BuildConfig.VERSION_NAME.contains("-ci")
         if (BuildConfig.ENABLE_MOBILE_ENTITLEMENT) {
             // entitlement stays initialized on every distribution flavor
             MobileEntitlementCoordinator.initialize(this, applicationScope)
             registerEntitlementForegroundRefresh()
         }
-        // vault restore is limited to CI/debug builds: release never unseals automatically
-        if (isCiOrDebug) {
-            CiUpdateGateVault.restoreIfEligible(this)
-        }
+        // A backup is only ever spent on a build that actually moved and that comes
+        // up without an activation, so release reads it too: nothing here can take
+        // an activation away, and a lost one would otherwise need the server again.
+        CiUpdateGateVault.restoreIfEligible(this)
     }
 
 
@@ -138,6 +134,12 @@ class SmsCodeApplication : Application() {
                     if (entitlementForegroundPrimed) {
                         applicationScope.launch {
                             runCatching { MobileEntitlementCoordinator.refresh(this@SmsCodeApplication) }
+                                .onFailure { error ->
+                                    io.github.magisk317.xposed.logging.XLog.w(
+                                        message = "entitlement refresh on foreground failed: ${error.message}",
+                                        error,
+                                    )
+                                }
                         }
                     } else {
                         // initialize() covers the first process start.

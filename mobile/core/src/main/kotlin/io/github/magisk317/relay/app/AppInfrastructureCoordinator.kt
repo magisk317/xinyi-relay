@@ -14,6 +14,9 @@ import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.di.RuntimeDependenciesImpl
 import org.koin.core.context.GlobalContext
 import timber.log.Timber
+import io.github.magisk317.forward.runtime.ingress.ForwardIngressEnvironment
+import io.github.magisk317.relay.platform.ipc.RelayForwardIngressEnvironment
+import io.github.magisk317.relay.platform.ipc.ForwardDatabaseBootstrapper
 
 object AppInfrastructureCoordinator {
     fun initialize(
@@ -23,6 +26,8 @@ object AppInfrastructureCoordinator {
         // Bridge Koin singletons into :runtime via the RuntimeDependencies interface,
         // so :runtime callers can resolve dependencies without importing Koin directly.
         RuntimeDependencies.register(RuntimeDependenciesImpl(GlobalContext.get()))
+        ForwardIngressEnvironment.register(RelayForwardIngressEnvironment(application))
+        ForwardDatabaseBootstrapper.scheduleLegacyImport(application)
         AnalyticsTracker.init(application)
         RuntimeDiagnosticsBridge.ensureInstalled()
         RuntimeLogStore.initialize(application, enableDetailedLogs = MagiskLogPolicy.current().verboseLogging)

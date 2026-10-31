@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
-import io.github.magisk317.relay.engine.model.ScheduledTask
+import io.github.magisk317.forward.engine.model.ScheduledTask
 import io.github.magisk317.uikit.surface.AppAlertDialog
 import io.github.magisk317.uikit.preference.AppSwitch
 import io.github.magisk317.uikit.text.AppText

@@ -24,8 +24,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
-import io.github.magisk317.relay.contract.constant.MessageType
-import io.github.magisk317.relay.contract.model.ForwardCommonConfig
+import io.github.magisk317.forward.contract.constant.MessageType
+import io.github.magisk317.forward.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.contract.settings.SimRemarkSettingsSnapshot
 import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.uikit.surface.AppAlertDialog

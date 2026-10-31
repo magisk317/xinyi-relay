@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.ui.sender
 
 import android.content.Context
-import io.github.magisk317.relay.engine.sender.SenderType
+import io.github.magisk317.forward.engine.sender.SenderType
 import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.relay.mobilefeature.common.BuildConfig
 

@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.ui.record
 
-import io.github.magisk317.smscode.db.entity.SmsMsg
+import io.github.magisk317.forward.engine.model.ReadRecordData
+import io.github.magisk317.forward.engine.model.ReadRecordDataImpl
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
@@ -10,10 +11,10 @@ class RecordQueryStateTest {
     fun buildRecordQueryState_splitsRecordsByTab() {
         val state = buildRecordQueryState(
             listOf(
-                record(id = 1, msgType = SmsMsg.MSG_TYPE_SMS, smsCode = "123456"),
-                record(id = 2, msgType = SmsMsg.MSG_TYPE_SMS, smsCode = ""),
-                record(id = 3, msgType = SmsMsg.MSG_TYPE_APP_NOTIFY, packageName = "com.example.app"),
-                record(id = 4, msgType = SmsMsg.MSG_TYPE_CALL_NOTIFY),
+                record(id = 1, msgType = ReadRecordData.MSG_TYPE_SMS, smsCode = "123456"),
+                record(id = 2, msgType = ReadRecordData.MSG_TYPE_SMS, smsCode = ""),
+                record(id = 3, msgType = ReadRecordData.MSG_TYPE_APP_NOTIFY, packageName = "com.example.app"),
+                record(id = 4, msgType = ReadRecordData.MSG_TYPE_CALL_NOTIFY),
             ),
         )
 
@@ -39,21 +40,33 @@ class RecordQueryStateTest {
 
     private fun record(
         id: Long,
-        msgType: Int = SmsMsg.MSG_TYPE_SMS,
+        msgType: Int = ReadRecordData.MSG_TYPE_SMS,
         body: String = "body",
         smsCode: String? = null,
         packageName: String? = null,
         date: Long = id * 10_000L,
-    ): SmsMsg {
-        return SmsMsg(
+    ): ReadRecordData {
+        return ReadRecordDataImpl(
             id = id,
             sender = "Bank",
             body = body,
             date = date,
+            processedTime = date,
             company = "Bank",
             smsCode = smsCode,
             packageName = packageName,
+            notifyChannelId = "",
+            simSlot = -1,
+            subId = 0,
+            contactName = "",
+            phoneArea = "",
+            forwardStatus = 0,
+            forwardTarget = null,
+            forwardMessage = null,
+            forwardTime = 0L,
             msgType = msgType,
+            callType = 0,
+            sessionKey = "",
         )
     }
 }

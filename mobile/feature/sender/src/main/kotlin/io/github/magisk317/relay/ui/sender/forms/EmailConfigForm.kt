@@ -16,11 +16,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.mobile.core.R
-import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.engine.service.SenderRuntimeServiceRegistry
-import io.github.magisk317.relay.sender.DeviceCodePollResult
-import io.github.magisk317.relay.sender.EmailOAuthService
-import io.github.magisk317.relay.sender.SenderSettingDraft
+import io.github.magisk317.forward.engine.sender.SenderType
+import io.github.magisk317.forward.engine.service.SenderRuntimeServiceRegistry
+import io.github.magisk317.forward.sender.DeviceCodePollResult
+import io.github.magisk317.forward.sender.EmailOAuthService
+import io.github.magisk317.forward.sender.SenderSettingDraft
 import io.github.magisk317.uikit.foundation.LocalSnackbarHostState
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import io.github.magisk317.uikit.common.showLatestSnackbar
@@ -168,6 +168,8 @@ private fun OAuth2DeviceAuthSection(
                 coroutineScope.launch {
                     runCatching {
                         withContext(Dispatchers.IO) { oauthService.deleteCredentials(credentialId) }
+                    }.onFailure { error ->
+                        // ignored here: no logger is reachable from this file and the failure has no remedy at this point
                     }
                     onDraftChange(draft.withString("oauth2CredentialId", ""))
                     snackbarHostState.showLatestSnackbar(

@@ -1,11 +1,11 @@
 package io.github.magisk317.relay.app.sender
 
 import android.content.Context
-import io.github.magisk317.relay.engine.model.MsgInfo
-import io.github.magisk317.relay.engine.model.Sender
-import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.engine.service.SenderDispatchResult
-import io.github.magisk317.relay.engine.service.SenderRuntimeServiceRegistry
+import io.github.magisk317.forward.engine.model.MsgInfo
+import io.github.magisk317.forward.engine.model.Sender
+import io.github.magisk317.forward.engine.sender.SenderType
+import io.github.magisk317.forward.engine.service.SenderDispatchResult
+import io.github.magisk317.forward.engine.service.SenderRuntimeServiceRegistry
 import io.github.magisk317.xposed.logging.MagiskOtel
 
 class SenderTestService(context: Context) {

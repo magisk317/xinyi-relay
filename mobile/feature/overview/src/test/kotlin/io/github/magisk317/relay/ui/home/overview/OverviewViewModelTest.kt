@@ -1,15 +1,11 @@
 package io.github.magisk317.relay.ui.home.overview
 
-import io.github.magisk317.relay.contract.model.ForwardCommonConfig
+import io.github.magisk317.forward.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import kotlinx.coroutines.async
-import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
 class OverviewViewModelTest {
@@ -19,7 +15,7 @@ class OverviewViewModelTest {
         val repository = FakeOverviewSettingsRepository(
             overviewSettings = OverviewSettingsSnapshot(
                 cardOrder = "chart,status,chart,unknown",
-                enabledCardIds = "unknown",
+                enabledCardIds = "status,chart",
                 chartType = "unknown",
                 chartWindow = "unknown",
             ),
@@ -29,10 +25,8 @@ class OverviewViewModelTest {
         viewModel.loadSettings()
 
         val state = viewModel.uiState.value
-        assertEquals(listOf(CARD_CHART, CARD_STATUS, CARD_APP_INFO, CARD_DEVICE_INFO, CARD_LINKS), state.cardOrder)
-        assertEquals(DEFAULT_OVERVIEW_ENABLED_CARD_IDS, state.enabledCardIds)
-        assertEquals(HomeChartType.EVENTS, state.chartType)
-        assertEquals(HomeChartWindow.ALL, state.chartWindow)
+        assertEquals(DEFAULT_OVERVIEW_CARD_ORDER, state.cardOrder)
+        assertEquals(setOf(CARD_STATUS), state.enabledCardIds)
     }
 
     @Test
@@ -41,19 +35,19 @@ class OverviewViewModelTest {
             overviewSettings = OverviewSettingsSnapshot(
                 cardOrder = "status,app_info",
                 enabledCardIds = "status,app_info",
-                chartType = HomeChartType.EVENTS.id,
-                chartWindow = HomeChartWindow.ALL.id,
+                chartType = "events",
+                chartWindow = "all",
             ),
         )
         val viewModel = OverviewViewModel(repository)
         viewModel.loadSettings()
 
-        viewModel.updateEnabledCardIdsLocally(setOf(CARD_STATUS, CARD_CHART))
-        viewModel.updateCardOrderLocally(listOf(CARD_CHART, CARD_STATUS))
+        viewModel.updateEnabledCardIdsLocally(setOf(CARD_STATUS, CARD_LINKS))
+        viewModel.updateCardOrderLocally(listOf(CARD_LINKS, CARD_STATUS))
 
         val state = viewModel.uiState.value
-        assertEquals(true, CARD_CHART in state.enabledCardIds)
-        assertEquals(listOf(CARD_CHART, CARD_STATUS), state.cardOrder)
+        assertEquals(true, CARD_LINKS in state.enabledCardIds)
+        assertEquals(listOf(CARD_LINKS, CARD_STATUS), state.cardOrder)
     }
 
     @Test
@@ -63,8 +57,8 @@ class OverviewViewModelTest {
                 overviewSettings = OverviewSettingsSnapshot(
                     encodeCardList(DEFAULT_OVERVIEW_CARD_ORDER),
                     encodeCardList(DEFAULT_OVERVIEW_ENABLED_CARD_IDS.toList()),
-                    HomeChartType.EVENTS.id,
-                    HomeChartWindow.ALL.id,
+                    "events",
+                    "all",
                 ),
             ),
         )
@@ -79,58 +73,6 @@ class OverviewViewModelTest {
         assertFalse(state.showAddCardSheet)
         assertEquals(null, state.draggingCardId)
         assertEquals(0f, state.dragOffsetY)
-    }
-
-    @Test
-    fun toggleStatusDiagnostics_flipsVisibility_andEmitsEvent() = runBlocking {
-        val viewModel = OverviewViewModel(
-            FakeOverviewSettingsRepository(
-                overviewSettings = OverviewSettingsSnapshot(
-                    encodeCardList(DEFAULT_OVERVIEW_CARD_ORDER),
-                    encodeCardList(DEFAULT_OVERVIEW_ENABLED_CARD_IDS.toList()),
-                    HomeChartType.EVENTS.id,
-                    HomeChartWindow.ALL.id,
-                ),
-            ),
-        )
-        val showEvent = async(start = CoroutineStart.UNDISPATCHED) { viewModel.events.first() }
-
-        viewModel.toggleStatusDiagnostics()
-
-        assertTrue(viewModel.uiState.value.showStatusDiagnostics)
-        assertEquals(
-            OverviewEvent.StatusDiagnosticsVisibilityChanged(true),
-            showEvent.await(),
-        )
-
-        val hideEvent = async(start = CoroutineStart.UNDISPATCHED) { viewModel.events.first() }
-        viewModel.toggleStatusDiagnostics()
-
-        assertFalse(viewModel.uiState.value.showStatusDiagnostics)
-        assertEquals(
-            OverviewEvent.StatusDiagnosticsVisibilityChanged(false),
-            hideEvent.await(),
-        )
-    }
-
-    @Test
-    fun runtimeSnapshotCache_reusesSameInputs_andInvalidatesWhenInputsChange() {
-        val cache = OverviewRuntimeSnapshotCache()
-        val initial = OverviewRuntimeRefreshKey(HomeChartWindow.ALL, analyticsEnabled = true)
-
-        assertTrue(cache.needsRefresh(initial))
-        cache.markRefreshed(initial)
-        assertFalse(cache.needsRefresh(initial))
-        assertTrue(
-            cache.needsRefresh(
-                OverviewRuntimeRefreshKey(HomeChartWindow.LAST_7_DAYS, analyticsEnabled = true),
-            ),
-        )
-        assertTrue(
-            cache.needsRefresh(
-                OverviewRuntimeRefreshKey(HomeChartWindow.ALL, analyticsEnabled = false),
-            ),
-        )
     }
 }
 

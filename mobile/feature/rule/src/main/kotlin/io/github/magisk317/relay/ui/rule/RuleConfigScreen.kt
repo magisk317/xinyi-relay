@@ -10,8 +10,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import io.github.magisk317.relay.engine.model.Rule
-import io.github.magisk317.relay.engine.model.Sender
+import io.github.magisk317.forward.engine.model.Rule
+import io.github.magisk317.forward.engine.model.Sender
 import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector

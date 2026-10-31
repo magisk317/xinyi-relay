@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.PowerManager
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
+import io.github.magisk317.xposed.runtime.state.RuntimeStateStore
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.mobile.core.BuildConfig
 import io.github.magisk317.relay.feature.reminder.SpecialAlertCoordinator
@@ -65,6 +66,23 @@ class AppNotificationListenerService : NotificationListenerService() {
                 payload.body.orEmpty(),
                 !payload.smsCode.isNullOrBlank(),
             )
+
+            runCatching {
+                RuntimeStateStore.recordNotifyEvent(
+                    context = applicationContext,
+                    source = "nls",
+                    packageName = payload.packageName.orEmpty(),
+                    channelId = payload.notifyChannelId.orEmpty(),
+                    msgType = "app_notify",
+                    skipReason = "",
+                )
+            }.onFailure { error ->
+                XLog.w(
+                    message = "NLS: notify diagnostics write failed pkg=%s err=%s",
+                    payload.packageName,
+                    error.message ?: error.javaClass.simpleName,
+                )
+            }
 
             val wakeLock = acquireWakeLock()
             try {

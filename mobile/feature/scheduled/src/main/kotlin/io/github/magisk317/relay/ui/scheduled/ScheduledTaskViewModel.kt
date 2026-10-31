@@ -7,10 +7,10 @@ import androidx.lifecycle.viewModelScope
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.app.sender.SenderTestService
 import io.github.magisk317.relay.mobile.core.R
-import io.github.magisk317.relay.engine.model.MsgInfo
-import io.github.magisk317.relay.engine.model.ScheduledTask
-import io.github.magisk317.relay.engine.schedule.CronUtils
-import io.github.magisk317.relay.engine.service.ScheduledTaskRepository
+import io.github.magisk317.forward.engine.model.MsgInfo
+import io.github.magisk317.forward.engine.model.ScheduledTask
+import io.github.magisk317.forward.engine.schedule.CronUtils
+import io.github.magisk317.forward.engine.service.ScheduledTaskRepository
 import io.github.magisk317.relay.mobilefeature.scheduled.BuildConfig
 import java.util.Date
 import kotlinx.coroutines.Dispatchers
@@ -159,35 +159,29 @@ class ScheduledTaskViewModel(
     }
 
     private fun validateTask(task: ScheduledTask): String? {
-        if (task.taskType == ScheduledTask.TASK_TYPE_SMS && !BuildConfig.ENABLE_SMS_CHANNEL) {
-            return string(R.string.sender_channel_disabled_summary)
+        return ScheduledTaskValidation.validate(
+            taskType = task.taskType,
+            smsChannelEnabled = BuildConfig.ENABLE_SMS_CHANNEL,
+            cronExpression = task.cronExpression,
+            simSlot = task.simSlot,
+            content = task.content,
+            mobiles = task.mobiles,
+        )?.let { report ->
+            when (report.kind) {
+                ScheduledTaskProblem.SMS_CHANNEL_DISABLED ->
+                    string(R.string.sender_channel_disabled_summary)
+                ScheduledTaskProblem.CRON_INVALID ->
+                    string(R.string.scheduled_task_error_cron_invalid)
+                ScheduledTaskProblem.SIM_SLOT_INVALID ->
+                    string(R.string.scheduled_task_error_sim_slot)
+                ScheduledTaskProblem.CONTENT_BLANK ->
+                    string(R.string.scheduled_task_error_content_blank)
+                ScheduledTaskProblem.MOBILES_BLANK ->
+                    string(R.string.scheduled_task_error_mobiles_blank)
+                ScheduledTaskProblem.MOBILE_INVALID ->
+                    string(R.string.scheduled_task_error_mobile_invalid, report.invalidTarget ?: "")
+            }
         }
-        CronUtils.validateCronExpression(task.cronExpression)?.let {
-            return string(R.string.scheduled_task_error_cron_invalid)
-        }
-        if (task.simSlot !in 0..2) {
-            return string(R.string.scheduled_task_error_sim_slot)
-        }
-        if (task.content.isBlank()) {
-            return string(R.string.scheduled_task_error_content_blank)
-        }
-
-        val targets = task.mobiles
-            .replace("[,，;；]".toRegex(), ",")
-            .split(',')
-            .map { it.trim() }
-            .filter { it.isNotBlank() }
-        if (targets.isEmpty()) {
-            return string(R.string.scheduled_task_error_mobiles_blank)
-        }
-
-        val mobilePattern = Regex("""^\+?[0-9][0-9\-\s]{2,}$""")
-        val invalidTarget = targets.firstOrNull { target -> !mobilePattern.matches(target) }
-        if (invalidTarget != null) {
-            return string(R.string.scheduled_task_error_mobile_invalid, invalidTarget)
-        }
-
-        return null
     }
 
     private fun string(@StringRes id: Int, vararg args: Any): String {

@@ -353,7 +353,13 @@ private fun GrantManualStep(
                 actionText = stringResource(R.string.setup_grant_item_open),
                 onClick = {
                     if (status.granted) return@PermissionRow
-                    intent?.let { runCatching { specialLauncher.launch(it) } }
+                    intent?.let { target ->
+                        runCatching { specialLauncher.launch(target) }
+                            .onFailure {
+                                // A refused Settings intent is surfaced by the permission row itself;
+                                // nothing else can be done from here.
+                            }
+                    }
                 },
             )
         }

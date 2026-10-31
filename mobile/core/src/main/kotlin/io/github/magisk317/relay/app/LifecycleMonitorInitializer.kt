@@ -12,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import io.github.magisk317.xposed.logging.XLog
 
 class LifecycleMonitorInitializer : AppInitializer {
     private var startedActivityCount: Int = 0
@@ -40,7 +41,7 @@ class LifecycleMonitorInitializer : AppInitializer {
                     scope.launch {
                         runCatching {
                             RuntimeGraph.from(application).configSyncCoordinator.onAppForegrounded()
-                        }
+                        }.onFailure { XLog.w("config sync on foreground failed: ${it.message}", it) }
                     }
                 }
             }
@@ -75,6 +76,8 @@ class LifecycleMonitorInitializer : AppInitializer {
                     scope.launch {
                         runCatching {
                             RuntimeGraph.from(application).configSyncCoordinator.onAppBackgrounded()
+                        }.onFailure {
+                            XLog.w("config sync on background failed: ${it.message}", it)
                         }
                     }
                 }

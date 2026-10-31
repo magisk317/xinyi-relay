@@ -5,10 +5,10 @@ import android.content.pm.PackageManager
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import io.github.magisk317.relay.engine.filter.ForwardFilterConst
-import io.github.magisk317.relay.engine.model.ForwardFilterRule
-import io.github.magisk317.relay.engine.service.AppConfigRepository
-import io.github.magisk317.relay.engine.service.MessageRecordRepository
+import io.github.magisk317.forward.engine.filter.ForwardFilterConst
+import io.github.magisk317.forward.engine.model.ForwardFilterRule
+import io.github.magisk317.forward.engine.service.AppConfigRepository
+import io.github.magisk317.forward.engine.service.MessageRecordRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow

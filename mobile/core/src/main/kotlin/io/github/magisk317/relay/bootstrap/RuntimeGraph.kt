@@ -4,6 +4,7 @@ import android.content.Context
 import io.github.magisk317.relay.contract.backup.AutoBackupTrigger
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.AppDatabase
+import io.github.magisk317.forward.db.ForwardDatabase
 import io.github.magisk317.relay.contract.repository.ConfigSyncCoordinator
 import io.github.magisk317.relay.contract.repository.LocalConfigRepository
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
@@ -13,13 +14,13 @@ import io.github.magisk317.relay.domain.pipeline.EventGatekeeper
 import io.github.magisk317.relay.domain.pipeline.EventPipeline
 import io.github.magisk317.relay.domain.pipeline.RoutingResolver
 import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
-import io.github.magisk317.relay.engine.pipeline.SenderSelector
-import io.github.magisk317.relay.engine.service.AppConfigRepository
-import io.github.magisk317.relay.engine.service.MessageFormatter
-import io.github.magisk317.relay.engine.service.MessageRecordRepository
-import io.github.magisk317.relay.engine.service.RuntimeAnalyticsProvider
-import io.github.magisk317.relay.engine.service.ScheduledTaskRepository
-import io.github.magisk317.relay.engine.service.SystemInfoProvider
+import io.github.magisk317.forward.engine.pipeline.SenderSelector
+import io.github.magisk317.forward.engine.service.AppConfigRepository
+import io.github.magisk317.forward.engine.service.MessageFormatter
+import io.github.magisk317.forward.engine.service.MessageRecordRepository
+import io.github.magisk317.forward.engine.service.RuntimeAnalyticsProvider
+import io.github.magisk317.forward.engine.service.ScheduledTaskRepository
+import io.github.magisk317.forward.engine.service.SystemInfoProvider
 import org.koin.core.context.GlobalContext
 
 /**
@@ -42,6 +43,7 @@ object RuntimeGraph {
     private val koin get() = GlobalContext.get()
 
     val database: AppDatabase get() = koin.get()
+    val forwardDatabase: ForwardDatabase get() = koin.get()
     val preferenceDataSource: PreferenceDataSource get() = koin.get()
     val settingsRepository: SettingsPreferencesRepository get() = koin.get()
     val relayRecordRepository: MessageRecordRepository get() = koin.get()

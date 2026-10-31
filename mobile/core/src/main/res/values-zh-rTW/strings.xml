@@ -23,19 +23,9 @@
     <!-- general end -->
 
     <!-- preferences general -->
-    <string name="pref_general_title">一般設定</string>
-    <string name="pref_enable_title">主開關</string>
-    <string name="pref_enable_summary">模組已啟用</string>
     <string name="pref_settings_display_mode_title">摺疊分組</string>
-    <string name="pref_settings_display_mode_summary">開啟：分組可摺疊；關閉：全部設定直接展開</string>
     <string name="pref_create_shortcut_title">建立桌面捷徑</string>
     <string name="pref_create_shortcut_summary">將捷徑固定在桌面上以便快速存取</string>
-    <string name="pref_show_launcher_icon_title">顯示桌面圖示</string>
-    <string name="pref_show_launcher_icon_summary">在桌面顯示應用圖示，便於快速開啟</string>
-    <string name="pref_show_launcher_icon_failed">切換桌面圖示顯示狀態失敗</string>
-    <string name="pref_choose_theme_title">主題</string>
-    <string name="pref_choose_theme_summary">隨系統、淺色、深色或純黑</string>
-    <string name="pref_ui_kit_style_title">介面風格</string>
     <string name="pref_ui_kit_style_summary">在 Material 與 Miuix 風格間切換</string>
     <string name="ui_kit_style_expressive">Expressive</string>
     <string name="ui_kit_style_miuix">Miuix</string>
@@ -77,8 +67,6 @@
     <string name="accent_green">綠色</string>
     <string name="accent_orange">橙色</string>
     <string name="accent_rose">玫紅</string>
-    <string name="pref_language_title">語言</string>
-    <string name="pref_language_summary">選擇語言</string>
     <string name="language_follow_system">系統默認/跟隨系統</string>
     <string name="language_en">English</string>
     <string name="language_zh_cn">简体中文</string>
@@ -89,61 +77,26 @@
 
     <!-- preferences sms code -->
     <string name="pref_sms_code_title">驗證碼</string>
-    <string name="pref_show_toast_title">顯示 Toast 提示</string>
-    <string name="pref_show_toast_summary">擷取到驗證碼時顯示 Toast 提示</string>
-    <string name="pref_copy_to_clipboard_title">複製到剪貼簿</string>
-    <string name="pref_copy_to_clipboard_summary">擷取成功後將驗證碼複製到剪貼簿</string>
-    <string name="pref_block_sms_title">攔截驗證碼簡訊</string>
-    <string name="pref_block_sms_summary">警告！擷取成功後驗證碼簡訊將被攔截，簡訊應用程式將無法收到</string>
     <string name="pref_deduplicate_sms_title">過濾重複簡訊</string>
     <string name="pref_deduplicate_sms_summary">過濾掉重複的驗證碼簡訊</string>
     <string name="pref_forwarding_title">轉發</string>
     <string name="pref_enable_forward_title">啟用轉發</string>
     <string name="pref_enable_forward_summary">啟用驗證碼轉發，點擊渠道名稱可進入詳細設定</string>
-    <string name="pref_sim_slot1_remark_title">SIM1 備註</string>
-    <string name="pref_sim_slot2_remark_title">SIM2 備註</string>
     <string name="pref_sim_slot_remark_summary">自定義模板變數 {{CARD_SLOT}} 的顯示內容</string>
     <string name="pref_sim_slot_remark_not_set">未設定</string>
     <!-- preferences sms code end -->
 
     <!-- preferences auto-input -->
     <string name="pref_category_auto_input_title">自動輸入</string>
-    <string name="pref_enable_auto_input_code_title">自動輸入驗證碼</string>
-    <string name="pref_enable_auto_input_code_summary">嘗試自動輸入驗證碼</string>
-    <string name="pref_auto_input_accessibility_service_title">無障礙服務狀態</string>
-    <string name="pref_auto_input_accessibility_service_summary">協助尋找目前的驗證碼輸入框並優先直接填入。</string>
     <string name="pref_auto_input_accessibility_service_summary_unavailable">系統目前沒有列出這個無障礙服務。若為側載安裝，請先到應用資訊允許「受限設定」，再返回無障礙設定。</string>
-    <string name="pref_auto_input_accessibility_service_status_enabled">已開啟</string>
-    <string name="pref_auto_input_accessibility_service_status_disabled">未開啟</string>
-    <string name="pref_auto_input_accessibility_service_open_failed">無法開啟無障礙設定</string>
     <string name="pref_auto_input_accessibility_service_restricted_hint">系統目前沒有列出這個服務。請先打開應用資訊，必要時允許「受限設定」。</string>
     <string name="accessibility_auto_input_service_label">自動輸入輔助服務</string>
     <string name="accessibility_auto_input_service_description">自動輸入輔助服務：優先尋找目前的驗證碼輸入框並直接填入，失敗後再回退到模擬按鍵輸入。</string>
-    <string name="pref_enable_auto_enter_code_title">自動確認/回車</string>
-    <string name="pref_enable_auto_enter_code_summary">填充驗證碼後自動觸發回車操作</string>
-    <string name="pref_auto_input_code_delay_title">自動輸入延遲</string>
-    <string name="pref_auto_input_code_delay_summary">延遲 %sms</string>
-    <string name="pref_auto_input_code_interval_title">自動輸入間隔</string>
-    <string name="pref_auto_input_code_interval_summary">間隔 %sms</string>
     <!-- preferences auto-input end -->
 
     <!-- preference code notification -->
     <string name="pref_notification_title">通知</string>
-    <string name="pref_show_code_notification_title">顯示狀態列通知</string>
-    <string name="pref_show_code_notification_summary">擷取到驗證碼時顯示狀態列通知（部分系統顯示為電話服務）</string>
-    <string name="pref_code_notification_owner_title">通知歸屬</string>
-    <string name="pref_code_notification_owner_summary">目前：%1$s。模組自身會顯示為本應用；電話服務在部分場景更穩，但會顯示為電話服務。</string>
-    <string name="pref_code_notification_owner_app">模組自身</string>
-    <string name="pref_code_notification_owner_phone">電話服務</string>
-    <string name="pref_code_notification_owner_unselected">未選擇</string>
-    <string name="pref_code_notification_owner_permission_denied">通知權限仍未授予，未套用「模組自身」選擇。</string>
-    <string name="pref_code_notification_owner_permission_settings_hint">模組自身通知需要通知權限，請在系統通知設定中開啟。</string>
-    <string name="pref_code_notification_owner_app_option">模組自身：顯示為本應用，但應用被強停後後續行為可能受影響</string>
-    <string name="pref_code_notification_owner_phone_option">電話服務：部分場景更穩，但會顯示為電話服務</string>
-    <string name="pref_auto_cancel_notification_title">自動取消通知</string>
-    <string name="pref_auto_cancel_notification_summary">自動取消驗證碼通知</string>
     <!-- notification retention time -->
-    <string name="pref_notification_retention_time_title">通知保留時間</string>
     <string name="notification_retention_time_5_secs_entry">5 秒</string>
     <string name="notification_retention_time_10_secs_entry">10 秒</string>
     <string name="notification_retention_time_30_secs_entry">30 秒</string>
@@ -156,7 +109,6 @@
     <!-- preference code records -->
     <string name="pref_entry_code_records_title">驗證碼歷史記錄</string>
     <string name="pref_entry_code_records_summary">共 %d 條記錄</string>
-    <string name="pref_code_records_title">驗證碼記錄</string>
     <string name="relay_records">驗證碼記錄</string>
     <string name="edit_relay_records">編輯驗證碼記錄</string>
     <string name="prompt_sms_code_copied">驗證碼已複製: %s</string>
@@ -205,14 +157,11 @@
     <string name="delete_notification_action">刪除通知</string>
     <string name="prompt_sms_copied">簡訊已複製</string>
     <string name="prompt_notification_copied">通知已複製</string>
-    <string name="pref_enable_code_records_title">保留驗證碼記錄</string>
     <string name="pref_enable_plain_sms_records_title">保留普通簡訊記錄</string>
     <string name="pref_enable_app_notify_records_title">保留應用通知記錄</string>
     <string name="pref_enable_call_notify_records_title">保留通話通知記錄</string>
     <string name="pref_enable_sms_blacklist_hit_records_title">保留攔截記錄</string>
     <string name="selected_count">已選 %d 項</string>
-    <string name="pref_history_limit_title">歷史記錄限制</string>
-    <string name="pref_history_limit_title_with_target">歷史記錄限制（%1$s）</string>
     <string name="record_settings_title_with_target">記錄設定（%1$s）</string>
     <string name="record_settings_target_code">驗證碼記錄</string>
     <string name="record_settings_target_plain">普通簡訊記錄</string>
@@ -240,6 +189,7 @@
     <string name="record_clear_dialog_message">確認要清空%1$s嗎？</string>
     <string name="record_settings_clear_current_tab">清空目前分頁記錄</string>
     <string name="record_export_dialog_title">導出記錄</string>
+    <string name="record_chart_entry_title">統計圖表</string>
     <string name="record_export_current_tab_option">導出當前頁（%1$s）</string>
     <string name="record_export_all_tabs_option">導出所有</string>
     <string name="title_notification_rules">通知轉發</string>
@@ -353,18 +303,7 @@
 
     <!-- preference others -->
     <string name="pref_others_title">其他設定</string>
-    <string name="pref_share_log_title">儲存日誌</string>
-    <string name="pref_share_log_summary">儲存日誌包用於除錯</string>
-    <string name="pref_log_sanitization_title">脫敏日誌</string>
-    <string name="pref_log_sanitization_summary">開啟後隱藏日誌中的敏感資訊</string>
-    <string name="pref_runtime_log_retention_days_title">日誌保留天數</string>
     <string name="pref_runtime_log_retention_days_summary">按天輪轉，保留最近 %1$d 天日誌</string>
-    <string name="pref_runtime_log_retention_days_hint">單位：天，最小值 1，預設 2。</string>
-    <string name="pref_runtime_log_retention_days_error">請輸入大於等於 1 的整數。</string>
-    <string name="pref_auto_update_on_start_title">啟動時自動更新</string>
-    <string name="pref_auto_update_on_start_summary">應用啟動時執行一次更新策略</string>
-    <string name="pref_auto_update_wifi_only_title">僅 Wi-Fi 自動檢查更新</string>
-    <string name="pref_auto_update_wifi_only_summary">僅在 Wi-Fi 下執行啟動更新檢查</string>
     <string name="scheduled_reminder_entry_title">特殊提醒</string>
     <string name="scheduled_reminder_entry_summary">電量、來電與關鍵字提醒</string>
     <string name="scheduled_task_entry_title">定時任務</string>
@@ -372,8 +311,6 @@
     <string name="settings_group_verification_features">驗證碼功能</string>
     <string name="settings_group_features">功能設定</string>
     <string name="settings_group_features_summary">驗證碼辨識與訊息轉發</string>
-    <string name="settings_group_advanced">進階選項</string>
-    <string name="settings_group_advanced_summary">驗證、轉發、保活、定時、網頁協作與攔截入口</string>
     <string name="pref_verification_features_title">驗證碼功能</string>
     <string name="pref_verification_features_summary">統一控制驗證碼識別、通知、複製與自動輸入能力</string>
     <string name="pref_verification_settings_title">驗證碼功能設定</string>
@@ -620,17 +557,11 @@
     <string name="pref_about_title">關於</string>
     <string name="pref_version_title">版本</string>
     <string name="pref_version_summary"><![CDATA[當前版本：%1$s (%2$d)]]></string>
-    <string name="pref_join_telegram_group_title">Telegram</string>
-    <string name="pref_join_telegram_group_summary">點擊加入</string>
-    <string name="pref_source_code_title">專案源碼</string>
     <string name="browser_install_or_enable_prompt">請先安裝或啟用瀏覽器</string>
-    <string name="pref_source_code_summary">歡迎 Star</string>
-    <string name="pref_donate_by_alipay_title">打賞感謝</string>
     <string name="alipay_install_prompt">請先安裝支付寶</string>
     <string name="alipay_enable_prompt">請先啟用支付寶</string>
     <string name="wechat_install_prompt">請先安裝 WeChat</string>
     <string name="wechat_enable_prompt">請先啟用 WeChat</string>
-    <string name="pref_privacy_policy_title">隱私政策</string>
     <!-- preference about end -->
 
     <!-- auto-input block settings -->
@@ -673,8 +604,6 @@
     <string name="rule_code_type">驗證碼類型</string>
     <string name="rule_code_length">驗證碼長度</string>
     <string name="rule_code_regex_hint">驗證碼正規表達式</string>
-    <string name="pref_code_rules_title">驗證碼規則</string>
-    <string name="pref_code_rules_summary">自定義特定的驗證碼匹配規則</string>
     <string name="quick_choose">快速選擇</string>
     <string name="sms_code_type_digit_entry">僅數字 [0\-9]</string>
     <string name="sms_code_type_letter_entry">僅字母 [a\-zA\-Z]</string>
@@ -749,7 +678,6 @@
     <!-- code parsing notification end -->
 
     <!-- faq -->
-    <string name="action_home_faq_title">常見問題</string>
     <string name="simplified_question">問：</string>
     <string name="simplified_answer">答：</string>
     <!-- faq end -->
@@ -772,30 +700,14 @@
     <!-- check update -->
     <string name="check_update_title">檢查更新</string>
     <string name="check_update_summary">點擊檢查更新</string>
+    <string name="settings_track_ci_builds_title">偵測CI建置</string>
+    <string name="settings_auto_check_on_start_summary">啟動應用時自動檢查更新。關閉後只有手動檢查會觸發。</string>
+    <string name="settings_auto_check_wifi_only_summary">自動檢查僅在 Wi-Fi 下進行，行動網路不會自行觸發檢查。</string>
+    <string name="settings_track_ci_builds_summary">開啟後同時偵測 beta 分支的 CI 建置（可能彈出強制更新）；關閉後只跟隨正式版，CI 建置會等到下一個正式版發布後接上。</string>
     <!-- check update end -->
 
 
     <!-- faq -->
-    <string-array name="question_list">
-        <item>模組未啟用怎麼辦？</item>
-        <item>Android 15 會不定期閃退？</item>
-        <item>手機發燙正常嗎？</item>
-        <item>自動輸入不完整，怎麼辦？</item>
-        <item>模組失效怎麼辦？</item>
-        <item>標記簡訊為已讀或者刪除簡訊，為什麼不生效？</item>
-        <item>這個模組適用於什麼樣的 Rom 呢？</item>
-        <item>產品初衷是什麼？</item>
-    </string-array>
-    <string-array name="answer_list">
-        <item>在模組清單中重新勾選本模組，強行停止本應用程式之後重新開啟即可，必要時需要重啟手機。</item>
-        <item>Android 15 引入了新的系統機制，請確保使用最新版的 LSPosed 並正確配置作用域。</item>
-        <item>本模組極輕量，若發燙嚴重請檢查是否與其他模組衝突。</item>
-        <item>自動輸入不完整，一般是因為自動輸入的過程中焦點被搶占。通常的解決方案是：檢查是否有監控剪貼簿的應用在背景工作，然後關閉這些應用對剪貼簿的監控，或者關閉本模組的「複製到剪貼簿」選項。</item>
-        <item>1. 因為使用到 ContentProvider，所以需要放入應用控制類軟體(黑域、應用管理、綠色守護等)的白名單中。\n\n2. 檢查模組組件是否被禁用。\n\n3. 檢查系統是否開啟了驗證碼保護開關。\n\n4. 請聯繫開發者，反饋問題。</item>
-        <item>如果您設備上預設的簡訊 App 使用的是它自己的簡訊資料庫，而不是系統的簡訊資料庫，那麼標記為已讀或者刪除操作可能不會生效。</item>
-        <item>適用於基於 AOSP 的原生類 Rom，在其他高度客製化的 Rom 可能運作效果不佳。</item>
-        <item>不做毒瘤，綠色 Android。</item>
-    </string-array>
     <!-- faq end -->
 
     <!-- privacy policy start -->
@@ -945,10 +857,6 @@
     <!-- backup and restore -->
     <string name="pref_backup_restore_title">備份與還原</string>
     <string name="settings_group_backup_restore_summary">匯出或還原設定、規則與記錄</string>
-    <string name="pref_backup_title">備份</string>
-    <string name="pref_backup_summary">匯出設定、規則和記錄</string>
-    <string name="pref_restore_title">還原</string>
-    <string name="pref_restore_summary">從備份檔案還原資料</string>
     <string name="dialog_backup_source_title">選擇備份方式</string>
     <string name="dialog_restore_source_title">選擇還原方式</string>
     <string name="backup_source_local">本機</string>
@@ -996,14 +904,12 @@
     <string name="status_working_enhanced">增強模式 (工作正常)</string>
     <string name="status_not_active">未啟用</string>
     <string name="status_tip">請在管理器中啟用並重啟設備</string>
-    <string name="battery_optimization_active_hint">電池最佳化已開啟，請將本應用加入白名單以確保背景正常運作。</string>
     <string name="feature_requires_xposed">⚠ 需要 Xposed/LSPosed 框架</string>
     <string name="feature_requires_root">⚠ 需要 Root 權限</string>
     <string name="framework_incompatibility_title">偵測到框架不相容</string>
     <string name="framework_incompatibility_known_framework_message">偵測到目前使用的是 %1$s。該框架曾出現較多相容性問題，可能導致模組異常、閃退或功能失效。建議盡快更換為官方 LSPosed 框架；你可以自行取得，或到群組內取得對應版本。</string>
     <string name="framework_incompatibility_hooker_annotation_message">目前框架與模組不相容，Hook 註冊失敗。請下載最新 it 版，或滑到頁面底部加入社群取得。</string>
     <string name="home_card_status_title">工作狀態</string>
-    <string name="home_card_chart_title">統計</string>
     <string name="home_card_appinfo_title">應用資訊</string>
     <string name="home_card_deviceinfo_title">裝置資訊</string>
     <string name="home_card_links_title">交流社群</string>
@@ -1428,17 +1334,6 @@
     <string name="matrix_e2ee_verification_status_unsupported_auth">Matrix E2EE 驗證需要使用使用者名稱與密碼登入。</string>
     <string name="sender_type_yunhu">雲湖</string>
     <string name="sender_type_unknown">未知通道</string>
-    <string name="overview_runtime_diagnostics_shown">已顯示執行時診斷</string>
-    <string name="overview_runtime_diagnostics_hidden">已隱藏執行時診斷</string>
-    <string name="overview_runtime_connected">已連線</string>
-    <string name="overview_runtime_disconnected">未連線</string>
-    <string name="overview_runtime_last_connected">最近連線</string>
-    <string name="overview_runtime_unknown">未知</string>
-    <string name="overview_runtime_none">&lt;無&gt;</string>
-    <string name="overview_runtime_not_available">暫無</string>
-    <string name="overview_runtime_service_label">Xposed 服務</string>
-    <string name="overview_runtime_recent_hook_process">最近 Hook 進程</string>
-    <string name="overview_runtime_recent_hook_time">最近 Hook 時間</string>
     <string name="settings_cloud_backup_title">雲端備份</string>
     <string name="settings_cloud_backup_summary">Google Drive 與 WebDAV 備份</string>
     <string name="settings_cloud_backup_pro_tag">PRO</string>

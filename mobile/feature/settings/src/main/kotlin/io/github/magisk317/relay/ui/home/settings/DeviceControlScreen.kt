@@ -331,14 +331,14 @@ fun DeviceControlScreen(onBack: () -> Unit) {
     }
 
     when (currentUiKitStyle()) {
-        UiKitStyle.Miuix -> DeviceControlScreenMiuix(
+        UiKitStyle.Miuix -> SettingsSubpageMiuix(
             title = stringResource(id = R.string.device_control_title),
             onBack = onBack,
             snackbarHostState = snackbarHostState,
             body = body,
         )
 
-        UiKitStyle.Expressive -> DeviceControlScreenMaterial(
+        UiKitStyle.Expressive -> SettingsSubpageMaterial(
             title = stringResource(id = R.string.device_control_title),
             onBack = onBack,
             snackbarHostState = snackbarHostState,

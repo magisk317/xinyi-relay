@@ -13,9 +13,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.mobile.core.R
-import io.github.magisk317.relay.engine.sender.SenderType
-import io.github.magisk317.relay.sender.AesUtils
-import io.github.magisk317.relay.sender.SenderSettingDraft
+import io.github.magisk317.forward.engine.sender.SenderType
+import io.github.magisk317.forward.sender.AesUtils
+import io.github.magisk317.forward.sender.SenderSettingDraft
 import io.github.magisk317.uikit.foundation.LocalSnackbarHostState
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import io.github.magisk317.uikit.surface.AppIcon

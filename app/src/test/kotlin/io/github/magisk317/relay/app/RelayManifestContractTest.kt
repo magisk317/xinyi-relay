@@ -206,7 +206,7 @@ class RelayManifestContractTest {
     }
 
     @Test
-    fun `libxposed entrypoint and scope metadata remain declared`() {
+    fun `libxposed entrypoint and dynamic scope metadata remain declared`() {
         assertEquals(
             "io.github.magisk317.relay.xp.LibXposedEntry",
             resolveProjectFile("modules/hook/entry/src/main/resources/META-INF/xposed/java_init.list").readText().trim(),
@@ -215,19 +215,12 @@ class RelayManifestContractTest {
         val moduleProps = resolveProjectFile("modules/hook/entry/src/main/resources/META-INF/xposed/module.prop").readText()
         assertTrue("minApiVersion=102" in moduleProps)
         assertTrue("targetApiVersion=102" in moduleProps)
-        assertTrue("staticScope=true" in moduleProps)
+        assertTrue("staticScope=false" in moduleProps)
         assertTrue("autoHotReload=true" in moduleProps)
-
-        val scope = resolveProjectFile("modules/hook/entry/src/main/resources/META-INF/xposed/scope.list")
-            .readLines()
-            .filter { it.isNotBlank() }
-            .toSet()
-        assertTrue("android" in scope)
-        assertTrue("system" in scope)
-        assertTrue("com.android.phone" in scope)
-        assertTrue("com.xiaomi.phone" in scope)
-        assertTrue("com.android.providers.telephony" in scope)
-        assertTrue("com.android.mms" in scope)
+        val scopeList = runCatching {
+            resolveProjectFile("modules/hook/entry/src/main/resources/META-INF/xposed/scope.list")
+        }.getOrNull()
+        assertTrue(scopeList == null || !scopeList.exists(), "dynamic scope must not ship a scope.list")
     }
 
     @Test

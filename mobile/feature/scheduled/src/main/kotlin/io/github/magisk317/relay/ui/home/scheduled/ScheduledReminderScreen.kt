@@ -100,7 +100,7 @@ fun ScheduledReminderScreen(onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { AppSnackbarHostState() }
     val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
-    val notifySaved = {
+    val notifySaved: () -> Unit = {
         scope.launch {
             snackbarHostState.showLatestSnackbar(savedSnackbarText)
         }

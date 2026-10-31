@@ -30,6 +30,14 @@ private const val BENCHMARK_ADVANCED_RELAY_CONFIG = "xinyi_benchmark_advanced_re
 private fun Modifier.advancedBenchmarkTag(enabled: Boolean): Modifier =
     if (enabled) testTag(BENCHMARK_ADVANCED_RELAY_CONFIG) else this
 
+/**
+ * The advanced tab: one card of entry rows with no group header.
+ *
+ * Each row opens its own screen, so a group header has nothing left to name: the tab title is
+ * already in the top bar of [AdvancedScreenMaterial] / [AdvancedScreenMiuix], and a summary of the
+ * group would just hand-copy the rows listed under it - the one text on this page that can go
+ * stale while every check still passes. Add a `title` if this tab ever grows a second group.
+ */
 @Composable
 fun AdvancedScreen(
     bottomContentPadding: Dp = 0.dp,
@@ -60,13 +68,7 @@ fun AdvancedScreen(
             verticalArrangement = Arrangement.spacedBy(RelayAppConst.SPACING_SMALL.dp),
         ) {
             Spacer(modifier = Modifier.height(RelayAppConst.SPACING_SMALL.dp))
-            SectionCard(
-                title = stringResource(id = R.string.settings_group_advanced),
-                summary = stringResource(id = R.string.settings_group_advanced_summary),
-                accordionMode = false,
-                sectionExpanded = true,
-                onExpandedChange = {},
-            ) {
+            SectionCard {
                 AppArrowItem(
                     title = stringResource(id = R.string.pref_verification_config_title),
                     summary = stringResource(id = R.string.pref_verification_config_summary),

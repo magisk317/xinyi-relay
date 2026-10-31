@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import io.github.magisk317.relay.mobile.core.R
+import io.github.magisk317.uikit.R as UiKitR
 import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.surface.AppIconButton
 import io.github.magisk317.uikit.surface.AppTopBar
@@ -89,7 +90,7 @@ internal fun BlacklistHitListScreenMaterial(
                         AppIconButton(onClick = onOpenSettings) {
                             AppIcon(
                                 imageVector = Icons.Default.Settings,
-                                contentDescription = stringResource(R.string.pref_code_records_title),
+                                contentDescription = stringResource(UiKitR.string.pref_code_records_title),
                             )
                         }
                     },

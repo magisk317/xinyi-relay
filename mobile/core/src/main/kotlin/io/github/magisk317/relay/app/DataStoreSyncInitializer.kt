@@ -7,7 +7,7 @@ import io.github.magisk317.relay.bootstrap.RuntimeGraph
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
-import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
+import io.github.magisk317.xposed.runtime.contract.logging.LogRoute
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

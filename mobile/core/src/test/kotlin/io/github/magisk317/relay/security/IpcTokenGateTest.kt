@@ -1,4 +1,4 @@
-package io.github.magisk317.relay.security
+package io.github.magisk317.forward.security
 
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue

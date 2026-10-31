@@ -56,7 +56,7 @@ fun ForwardKeepAliveScreen(onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
     val savedSnackbarText = stringResource(id = R.string.pref_sync_snackbar)
     val snackbarHostState = remember { AppSnackbarHostState() }
-    val notifySaved = {
+    val notifySaved: () -> Unit = {
         scope.launch {
             snackbarHostState.showLatestSnackbar(savedSnackbarText)
         }

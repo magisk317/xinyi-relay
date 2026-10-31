@@ -1,8 +1,6 @@
 package io.github.magisk317.relay.ui.home.overview
 
-import io.github.magisk317.relay.android.otel.MagiskOtelBootstrap
 import io.github.magisk317.relay.mobilefeature.overview.BuildConfig
-import io.github.magisk317.relay.ui.common.rememberPrefBoolean
 import android.widget.Toast
 import io.github.magisk317.uikit.surface.DonateDialog
 import io.github.magisk317.uikit.surface.QRCodeDialog
@@ -16,7 +14,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.activity.compose.LocalActivity
-import io.github.magisk317.relay.feature.mode.BatteryOptimizationHelper
 import io.github.magisk317.relay.feature.mode.XposedRuntimeState
 import io.github.magisk317.uikit.foundation.LocalSnackbarHostState
 import androidx.compose.foundation.layout.Arrangement
@@ -31,7 +28,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CheckCircle
@@ -40,6 +36,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -47,7 +44,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -63,12 +59,9 @@ import androidx.lifecycle.repeatOnLifecycle
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
-import io.github.magisk317.smscode.runtime.contract.diagnostics.ActivationDiagnosticsSnapshot
 import io.github.magisk317.smscode.runtime.common.utils.BrowserUtils
 import io.github.magisk317.relay.mobile.core.R
-import io.github.magisk317.relay.engine.service.RuntimeAnalyticsProvider
 import io.github.magisk317.relay.billing.BillingProvider
-import io.github.magisk317.smscode.runtime.common.diagnostics.ActivationDiagnosticsStore
 import io.github.magisk317.uikit.entitlement.rememberEntitlementState
 import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.surface.AppIconButton
@@ -98,11 +91,11 @@ internal data class HomeCardSpec(
 fun OverviewScreen(
     isActive: Boolean = true,
     bottomContentPadding: androidx.compose.ui.unit.Dp = 0.dp,
+    onOpenDiagnostics: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val activity = LocalActivity.current
     val viewModel: OverviewViewModel = koinViewModel()
-    val analyticsRepository: RuntimeAnalyticsProvider = koinInject()
     val billingProvider: BillingProvider = koinInject()
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = LocalSnackbarHostState.current
@@ -111,7 +104,6 @@ fun OverviewScreen(
     }
     var showDonateDialog by remember { mutableStateOf(false) }
     var showQRCodeDialog by remember { mutableStateOf<Pair<Int, String>?>(null) }
-    var batteryOptimizationHintShown by rememberSaveable { mutableStateOf(false) }
 
     DisposableEffect(viewModel, isActive) {
         viewModel.setPageActive(isActive)
@@ -120,12 +112,6 @@ fun OverviewScreen(
         }
     }
 
-    val analyticsEnabled = rememberPrefBoolean(
-        PrefConst.KEY_ENABLE_ANALYTICS,
-        true,
-        isActive = isActive,
-    )
-    val effectiveAnalyticsEnabled = MagiskOtelBootstrap.isEffectivelyEnabled(analyticsEnabled.value)
     val mobileAutomationAllowed = rememberEntitlementState(
         isActive = isActive,
         dataStoreReader = ::readEntitlementAutomationAllowed,
@@ -134,17 +120,7 @@ fun OverviewScreen(
     val xposedActive by XposedRuntimeState.xposedActive.collectAsStateWithLifecycle()
     val isEnabled = xposedActive
 
-    fun refreshBatteryOptimizationExemption(): Boolean {
-        val exempted = BatteryOptimizationHelper.isExempted(context)
-        viewModel.updateBatteryOptimizationExempted(exempted)
-        return exempted
-    }
-
     val lifecycleOwner = LocalLifecycleOwner.current
-    val activationStatusFlow = remember(context) {
-        ActivationDiagnosticsStore.observeStatus(context.applicationContext)
-    }
-    val activationStatus by activationStatusFlow.collectAsStateWithLifecycle()
 
     // The activation flow is absent on play, which drops the gate entirely;
     // resolveActivity doubles as the runtime probe for that flavor decision.
@@ -162,22 +138,6 @@ fun OverviewScreen(
     val density = LocalDensity.current
     val dragThresholdPx = remember(density) { with(density) { 72.dp.toPx() } }
     val overviewUiState by viewModel.uiState.collectAsStateWithLifecycle()
-    LaunchedEffect(isActive) {
-        if (!isActive) return@LaunchedEffect
-        viewModel.events.collect { event ->
-            when (event) {
-                is OverviewEvent.StatusDiagnosticsVisibilityChanged -> {
-                    showMessage(
-                        if (event.visible) {
-                            context.getString(R.string.overview_runtime_diagnostics_shown)
-                        } else {
-                            context.getString(R.string.overview_runtime_diagnostics_hidden)
-                        },
-                    )
-                }
-            }
-        }
-    }
 
     val allCardSpecs = listOf(
         HomeCardSpec(
@@ -200,12 +160,6 @@ fun OverviewScreen(
             titleRes = R.string.home_card_links_title,
             icon = Icons.Default.Favorite,
         ),
-        HomeCardSpec(
-            id = CARD_CHART,
-            titleRes = R.string.home_card_chart_title,
-            icon = Icons.AutoMirrored.Filled.List,
-            available = effectiveAnalyticsEnabled,
-        ),
     )
     val cardSpecById = remember(allCardSpecs) { allCardSpecs.associateBy(HomeCardSpec::id) }
 
@@ -217,37 +171,24 @@ fun OverviewScreen(
     LaunchedEffect(
         lifecycleOwner,
         isActive,
-        effectiveAnalyticsEnabled,
-        overviewUiState.chartWindow,
     ) {
         if (!isActive) {
             viewModel.invalidateRuntimeRefresh()
             return@LaunchedEffect
         }
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-            val batteryOptimizationExempted = refreshBatteryOptimizationExemption()
-            if (!batteryOptimizationExempted && !batteryOptimizationHintShown) {
-                batteryOptimizationHintShown = true
-                showMessage(context.getString(R.string.battery_optimization_active_hint))
-            } else if (batteryOptimizationExempted) {
-                batteryOptimizationHintShown = false
-            }
             viewModel.refreshRuntimeSnapshot(
                 context = context,
-                analyticsRepository = analyticsRepository,
-                analyticsEnabled = effectiveAnalyticsEnabled,
             )
             awaitCancellation()
         }
     }
     val cardOrder = overviewUiState.cardOrder
     val enabledCardIds = overviewUiState.enabledCardIds
-    val chartType = overviewUiState.chartType
-    val chartWindow = overviewUiState.chartWindow
     val runtimeUiState = overviewUiState.runtimeSnapshot
     val editMode = overviewUiState.editMode
 
-    val visibleCardIds = remember(cardOrder, enabledCardIds, effectiveAnalyticsEnabled) {
+    val visibleCardIds = remember(cardOrder, enabledCardIds) {
         cardOrder.filter { id ->
             enabledCardIds.contains(id) && (cardSpecById[id]?.available == true)
         }
@@ -297,19 +238,13 @@ fun OverviewScreen(
                 enabledCardIds = enabledCardIds,
                 editMode = editMode,
                 isEnabled = isEnabled,
-                chartType = chartType,
-                chartWindow = chartWindow,
-                chartSnapshot = runtimeUiState.chartSnapshot,
                 appVersionName = runtimeUiState.appVersionName,
                 appVersionCode = runtimeUiState.appVersionCode,
                 frameworkType = runtimeUiState.frameworkType,
                 frameworkVersion = runtimeUiState.frameworkVersion,
                 hasRootAccess = runtimeUiState.hasRootAccess,
-                runtimeConnected = activationStatus.runtimeConnected,
                 mobileAutomationAllowed = mobileAutomationAllowed,
                 showEntitlement = entitlementUiAvailable,
-                activationDiagnostics = activationStatus.diagnostics,
-                showStatusDiagnostics = overviewUiState.showStatusDiagnostics,
                 draggingCardId = overviewUiState.draggingCardId,
                 dragOffsetY = overviewUiState.dragOffsetY,
                 dragThresholdPx = dragThresholdPx,
@@ -322,12 +257,6 @@ fun OverviewScreen(
                 onEnabledCardIdsChange = viewModel::updateEnabledCardIdsLocally,
                 onPersistEnabledCardIds = viewModel::persistEnabledCardIds,
                 onDragStateChange = viewModel::updateDragState,
-                onChartTypeChange = { next ->
-                    viewModel.setChartType(next)
-                },
-                onChartWindowChange = { next ->
-                    viewModel.setChartWindow(next)
-                },
                 onShowDonate = { showDonateDialog = true },
                 onActivateClick = {
                     runCatching {
@@ -342,7 +271,7 @@ fun OverviewScreen(
                         )
                     }
                 },
-                onDiagnosticsToggle = { viewModel.toggleStatusDiagnostics() },
+                onOpenDiagnostics = onOpenDiagnostics,
                 bottomContentPadding = effectiveBottomPadding,
             )
         }
@@ -390,19 +319,13 @@ private fun OverviewContent(
     enabledCardIds: Set<String>,
     editMode: Boolean,
     isEnabled: Boolean,
-    chartType: HomeChartType,
-    chartWindow: HomeChartWindow,
-    chartSnapshot: HomeAnalyticsSnapshot?,
     appVersionName: String,
     appVersionCode: String,
     frameworkType: String,
     frameworkVersion: String,
     hasRootAccess: Boolean,
-    runtimeConnected: Boolean,
     mobileAutomationAllowed: Boolean,
     showEntitlement: Boolean,
-    activationDiagnostics: ActivationDiagnosticsSnapshot,
-    showStatusDiagnostics: Boolean,
     draggingCardId: String?,
     dragOffsetY: Float,
     dragThresholdPx: Float,
@@ -415,11 +338,9 @@ private fun OverviewContent(
     onEnabledCardIdsChange: (Set<String>) -> Unit,
     onPersistEnabledCardIds: (Set<String>) -> Unit,
     onDragStateChange: (String?, Float) -> Unit,
-    onChartTypeChange: (HomeChartType) -> Unit,
-    onChartWindowChange: (HomeChartWindow) -> Unit,
     onShowDonate: () -> Unit,
     onActivateClick: () -> Unit,
-    onDiagnosticsToggle: () -> Unit,
+    onOpenDiagnostics: (() -> Unit)?,
     bottomContentPadding: androidx.compose.ui.unit.Dp,
 ) {
     val context = LocalContext.current
@@ -449,19 +370,13 @@ private fun OverviewContent(
                 enabledCardIds = enabledCardIds,
                 editMode = editMode,
                 isEnabled = isEnabled,
-                chartType = chartType,
-                chartWindow = chartWindow,
-                chartSnapshot = chartSnapshot,
                 appVersionName = appVersionName,
                 appVersionCode = appVersionCode,
                 frameworkType = frameworkType,
                 frameworkVersion = frameworkVersion,
                 hasRootAccess = hasRootAccess,
-                runtimeConnected = runtimeConnected,
                 mobileAutomationAllowed = mobileAutomationAllowed,
                 showEntitlement = showEntitlement,
-                activationDiagnostics = activationDiagnostics,
-                showStatusDiagnostics = showStatusDiagnostics,
                 draggingCardId = draggingCardId,
                 dragOffsetY = dragOffsetY,
                 dragThresholdPx = dragThresholdPx,
@@ -471,11 +386,9 @@ private fun OverviewContent(
                 onEnabledCardIdsChange = onEnabledCardIdsChange,
                 onPersistEnabledCardIds = onPersistEnabledCardIds,
                 onDragStateChange = onDragStateChange,
-                onChartTypeChange = onChartTypeChange,
-                onChartWindowChange = onChartWindowChange,
                 onShowDonate = onShowDonate,
                 onActivateClick = onActivateClick,
-                onDiagnosticsToggle = onDiagnosticsToggle,
+                onOpenDiagnostics = onOpenDiagnostics,
             )
         }
     }
@@ -490,19 +403,13 @@ private fun OverviewCardItem(
     enabledCardIds: Set<String>,
     editMode: Boolean,
     isEnabled: Boolean,
-    chartType: HomeChartType,
-    chartWindow: HomeChartWindow,
-    chartSnapshot: HomeAnalyticsSnapshot?,
     appVersionName: String,
     appVersionCode: String,
     frameworkType: String,
     frameworkVersion: String,
     hasRootAccess: Boolean,
-    runtimeConnected: Boolean,
     mobileAutomationAllowed: Boolean,
     showEntitlement: Boolean,
-    activationDiagnostics: ActivationDiagnosticsSnapshot,
-    showStatusDiagnostics: Boolean,
     draggingCardId: String?,
     dragOffsetY: Float,
     dragThresholdPx: Float,
@@ -512,16 +419,16 @@ private fun OverviewCardItem(
     onEnabledCardIdsChange: (Set<String>) -> Unit,
     onPersistEnabledCardIds: (Set<String>) -> Unit,
     onDragStateChange: (String?, Float) -> Unit,
-    onChartTypeChange: (HomeChartType) -> Unit,
-    onChartWindowChange: (HomeChartWindow) -> Unit,
     onShowDonate: () -> Unit,
     onActivateClick: () -> Unit,
-    onDiagnosticsToggle: () -> Unit,
+    onOpenDiagnostics: (() -> Unit)?,
 ) {
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val snackbarHostState = io.github.magisk317.uikit.foundation.LocalSnackbarHostState.current
     val dragEnabled = editMode
     val updateController = koinInject<io.github.magisk317.uikit.update.AppUpdateController>()
+    // The badge the silent background finding lands on.
+    val hasUpdate by updateController.hasUpdate.collectAsState()
     HomeCardContainer(
         editMode = editMode,
         wiggleKey = spec.id,
@@ -567,38 +474,15 @@ private fun OverviewCardItem(
                     isEnhancedModeEnabled = isEnabled,
                     isEntitled = mobileAutomationAllowed,
                     showEntitlement = showEntitlement,
-                    showDiagnostics = showStatusDiagnostics,
-                    diagnostics = buildStatusDiagnostics(
-                        context = context,
-                        snapshot = activationDiagnostics,
-                        runtimeConnected = runtimeConnected,
-                    ),
                     onActivateClick = if (editMode) {
                         null
                     } else {
                         onActivateClick
                     },
-                    onDiagnosticsToggle = if (editMode) {
+                    onOpenDiagnostics = if (editMode) {
                         null
                     } else {
-                        onDiagnosticsToggle
-                    },
-                )
-            }
-            CARD_CHART -> {
-                HomeChartCard(
-                    chartType = chartType,
-                    chartWindow = chartWindow,
-                    data = chartSnapshot,
-                    onChartTypeChange = if (editMode) {
-                        {}
-                    } else {
-                        onChartTypeChange
-                    },
-                    onChartWindowChange = if (editMode) {
-                        {}
-                    } else {
-                        onChartWindowChange
+                        onOpenDiagnostics
                     },
                 )
             }
@@ -609,6 +493,7 @@ private fun OverviewCardItem(
                     appVersionCodeLabel = androidx.compose.ui.res.stringResource(id = UiKitR.string.uikit_version_code),
                     frameworkType = frameworkType,
                     frameworkVersion = frameworkVersion,
+                    hasUpdateBadge = hasUpdate,
                     interactive = !editMode,
                     onVersionClick = if (editMode) {
                         null

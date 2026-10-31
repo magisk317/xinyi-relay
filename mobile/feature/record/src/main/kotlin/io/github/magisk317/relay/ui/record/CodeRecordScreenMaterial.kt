@@ -38,7 +38,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.mobile.core.R
+import io.github.magisk317.uikit.R as UiKitR
 import io.github.magisk317.uikit.scroll.ScrollChromeState
+import io.github.magisk317.uikit.theme.UiKitStyle
+import io.github.magisk317.uikit.theme.currentUiKitStyle
 import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.surface.AppIconButton
 import io.github.magisk317.uikit.surface.AppTopBar
@@ -158,7 +161,7 @@ internal fun CodeRecordScreenMaterial(
                                 AppIcon(
                                     imageVector = Icons.Default.Settings,
                                     contentDescription = stringResource(
-                                        R.string.pref_code_records_title,
+                                        UiKitR.string.pref_code_records_title,
                                     ),
                                 )
                             }
@@ -193,6 +196,58 @@ internal fun CodeRecordScreenMaterial(
             listState = listState,
             visible = scrollChromeState?.isChromeVisible != true,
             extraBottomPadding = bottomPadding,
+        )
+    }
+}
+
+/**
+ * Style switch shared by the record skeleton: picks the Miuix or Material chrome shell
+ * without duplicating the parameter plumbing in [CodeRecordScreen].
+ */
+@Composable
+internal fun CodeRecordScreenChrome(
+    title: String,
+    isSelectionMode: Boolean,
+    onBack: (() -> Unit)?,
+    onExitSelectionMode: () -> Unit,
+    onSelectAllVisible: () -> Unit,
+    onDeleteSelected: () -> Unit,
+    onOpenSettings: () -> Unit,
+    tabRow: @Composable () -> Unit,
+    scrollChromeState: ScrollChromeState?,
+    listState: LazyListState,
+    bottomContentPadding: Dp,
+    body: @Composable (PaddingValues, Modifier) -> Unit,
+) {
+    when (currentUiKitStyle()) {
+        UiKitStyle.Miuix -> CodeRecordScreenMiuix(
+            title = title,
+            isSelectionMode = isSelectionMode,
+            onBack = onBack,
+            onExitSelectionMode = onExitSelectionMode,
+            onSelectAllVisible = onSelectAllVisible,
+            onDeleteSelected = onDeleteSelected,
+            onOpenSettings = onOpenSettings,
+            tabRow = tabRow,
+            scrollChromeState = scrollChromeState,
+            listState = listState,
+            bottomContentPadding = bottomContentPadding,
+            body = body,
+        )
+
+        UiKitStyle.Expressive -> CodeRecordScreenMaterial(
+            title = title,
+            isSelectionMode = isSelectionMode,
+            onBack = onBack,
+            onExitSelectionMode = onExitSelectionMode,
+            onSelectAllVisible = onSelectAllVisible,
+            onDeleteSelected = onDeleteSelected,
+            onOpenSettings = onOpenSettings,
+            tabRow = tabRow,
+            scrollChromeState = scrollChromeState,
+            listState = listState,
+            bottomContentPadding = bottomContentPadding,
+            body = body,
         )
     }
 }

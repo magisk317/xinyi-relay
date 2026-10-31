@@ -11,6 +11,13 @@ android {
     }
 
     buildFeatures {
+        // The magisk.android.distribution convention plugin injects BuildConfig
+        // fields into defaultConfig, so this module cannot turn the feature off
+        // (AGP: "defaultConfig contains custom BuildConfig fields, but the
+        // feature is disabled"). Gradle 9.9.0-rc-1 with AGP 9.5.0 instead left
+        // the dynamic-feature applicationId provider an empty collection, which
+        // killed generatePlayReleaseBuildConfig with "Collection is empty"; the
+        // task-level pin below is what clears it.
         buildConfig = true
     }
 
@@ -71,9 +78,15 @@ androidComponents {
     }
 }
 
+
 dependencies {
+    // Not a dead dependency: com.android.dynamic-feature resolves this module's
+    // applicationId through the base application, and without it
+    // generatePlayReleaseBuildConfig fails to calculate the property with
+    // "Collection is empty". The edge-to-edge plugin also has to load after the
+    // app classloader, which is the parent-first contract this line carries.
     implementation(project(":app"))
-    implementation(project(":relay:sender:api"))
-    implementation(project(":relay:sender"))
+    implementation(project(":magisk-forward-core:sender:api"))
+    implementation(project(":magisk-forward-core:sender"))
     implementation(project(":relay:matrix-e2ee"))
 }

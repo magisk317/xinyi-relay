@@ -18,8 +18,8 @@ import androidx.compose.ui.unit.dp
 import io.github.magisk317.smscode.runtime.common.utils.ClipboardUtils
 import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
-import io.github.magisk317.relay.engine.model.MsgInfo
-import io.github.magisk317.relay.engine.model.Sender
+import io.github.magisk317.forward.engine.model.MsgInfo
+import io.github.magisk317.forward.engine.model.Sender
 import io.github.magisk317.relay.ui.sender.SenderViewModel
 import io.github.magisk317.relay.ui.sender.getSenderTypeName
 import io.github.magisk317.uikit.foundation.LocalSnackbarHostState

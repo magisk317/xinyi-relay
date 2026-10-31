@@ -7,8 +7,8 @@ import android.content.pm.PackageManager
 import android.os.Build
 import io.github.magisk317.relay.android.common.utils.RelayLogger
 import io.github.magisk317.relay.bootstrap.RuntimeGraph
-import io.github.magisk317.relay.engine.service.AppConfigRepository
-import io.github.magisk317.smscode.runtime.contract.logging.LogRoute
+import io.github.magisk317.forward.engine.service.AppConfigRepository
+import io.github.magisk317.xposed.runtime.contract.logging.LogRoute
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -32,8 +32,8 @@ class ConfigDiagnosticsInitializer : AppInitializer {
         val rules = configRepository.getAllRules()
         val smsRules = configRepository.getAllSmsCodeRules()
         val forwardingApps = configRepository.getAllAppInfo().count { it.forwarding }
-        val notifyRoutes = runtimeGraph.database.notifyRouteRuleDao().getAll().size
-        val forwardFilters = runtimeGraph.database.forwardFilterRuleDao().getAll().size
+        val notifyRoutes = runtimeGraph.forwardDatabase.forwardRouteRuleDao().all().size
+        val forwardFilters = runtimeGraph.forwardDatabase.forwardFilterRuleDao().all().size
         val enabledSenders = senders.count { it.status == 1 }
         val appNotifyEnabledSenders = senders.count { it.status == 1 && it.receiveAppNotify == 1 }
 

@@ -15,7 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.mobile.core.R
-import io.github.magisk317.relay.engine.sender.SenderType
+import io.github.magisk317.forward.engine.sender.SenderType
 import io.github.magisk317.relay.mobilefeature.sender.BuildConfig
 import io.github.magisk317.uikit.surface.AppPrimaryButton
 import io.github.magisk317.uikit.text.AppText

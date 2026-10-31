@@ -41,11 +41,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.mobile.core.R
-import io.github.magisk317.smscode.db.entity.SmsCodeRule
-import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
-import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toEntity
+import io.github.magisk317.uikit.R as UiKitR
+import io.github.magisk317.forward.engine.model.AppCodeRuleData
+import io.github.magisk317.forward.engine.model.AppCodeRuleImpl
 import io.github.magisk317.relay.android.sms.SmsCodeUtils as RelaySmsCodeUtils
-import io.github.magisk317.relay.engine.service.AppConfigRepository
+import io.github.magisk317.forward.engine.service.AppConfigRepository
 import io.github.magisk317.smscode.rule.model.BuiltinSmsCodeRuleSpec
 import io.github.magisk317.smscode.rule.model.BuiltinSmsCodeRules
 import io.github.magisk317.smscode.rule.catalog.OfficialSmsCodeRule
@@ -66,6 +66,7 @@ import io.github.magisk317.uikit.surface.AppIconButton
 import io.github.magisk317.uikit.surface.AppTextButton
 import io.github.magisk317.uikit.theme.AppColorRole
 import io.github.magisk317.uikit.theme.appColor
+import io.github.magisk317.uikit.surface.AppRefreshIcon
 
 private const val BUILTIN_RULE_EDITOR_ID_ALPHANUMERIC = -101L
 private const val BUILTIN_RULE_EDITOR_ID_DIGITS = -102L
@@ -211,7 +212,7 @@ fun SmsCodeRuleListScreen(
                 } else {
                     itemsIndexed(rules, key = { _, rule -> rule.id }) { index, rule ->
                         SmsCodeRuleCard(
-                            rule = rule.toEntity(),
+                            rule = rule,
                             ordinal = index + 1,
                             onEdit = { onEditClick(rule.id) },
                             onDelete = {
@@ -241,6 +242,7 @@ fun SmsCodeRuleListScreen(
             onSourceSettingsClick = onSourceSettingsClick,
             onRefresh = { loadOfficialRules(refresh = true) },
             refreshEnabled = !officialLoading,
+            refreshing = officialLoading,
             onAddClick = onAddClick,
             fabContentDescription = stringResource(id = R.string.create_rule),
             listState = listState,
@@ -253,6 +255,7 @@ fun SmsCodeRuleListScreen(
             onSourceSettingsClick = onSourceSettingsClick,
             onRefresh = { loadOfficialRules(refresh = true) },
             refreshEnabled = !officialLoading,
+            refreshing = officialLoading,
             onAddClick = onAddClick,
             fabContentDescription = stringResource(id = R.string.create_rule),
             listState = listState,
@@ -337,7 +340,7 @@ private fun OfficialSmsCodeRuleCard(
 
 @Composable
 private fun SmsCodeRuleCard(
-    rule: SmsCodeRule,
+    rule: AppCodeRuleData,
     ordinal: Int,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -404,7 +407,7 @@ fun SmsCodeRuleEditorScreen(
     val duplicateText = stringResource(id = R.string.rule_duplicated_prompt)
     val confirmLabel = stringResource(id = R.string.confirm)
     val copyLabel = stringResource(id = R.string.action_copy)
-    val rulesSummary = stringResource(id = R.string.pref_code_rules_summary)
+    val rulesSummary = stringResource(id = UiKitR.string.pref_code_rules_summary)
     val builtinSummary = stringResource(id = R.string.builtin_code_rules_summary)
     val builtinKeywordSetting = stringResource(id = R.string.builtin_rule_keyword_setting)
     val builtinTitle = when (builtinRule?.id) {
@@ -481,12 +484,12 @@ fun SmsCodeRuleEditorScreen(
                 return@launch
             }
             repository.upsertSmsCodeRule(
-                SmsCodeRule(
+                AppCodeRuleImpl(
                     company = normalizedCompany,
                     codeKeyword = normalizedKeyword,
                     codeRegex = normalizedRegex,
                     id = ruleId,
-                ).toDomain(),
+                ),
             )
             repository.checkpoint()
             onBack()

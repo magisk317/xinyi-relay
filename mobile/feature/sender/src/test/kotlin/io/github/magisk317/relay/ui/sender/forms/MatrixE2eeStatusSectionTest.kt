@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.ui.sender.forms
 
-import io.github.magisk317.relay.sender.E2eeModuleStatus
-import io.github.magisk317.relay.sender.MatrixE2eeAvailability
+import io.github.magisk317.forward.sender.E2eeModuleStatus
+import io.github.magisk317.forward.sender.MatrixE2eeAvailability
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
