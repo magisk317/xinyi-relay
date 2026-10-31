@@ -1,5 +1,1 @@
-- Updated to 0.4.1 (54).
-- Setup resumes after interruption and the permission flow has been reworked.
-- Fixed keep-alive recovery and E2EE initialization.
-- Backend and desktop stability fixes.
-- https://gitlab.com/magisk3171/xinyi-relay/-/releases
+One-shot migration of the legacy database into the forward store with a verified, lossless upgrade; backups now carry the forward data; the record screen reworked.

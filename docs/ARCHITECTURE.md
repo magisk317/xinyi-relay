@@ -422,3 +422,13 @@ KMP 模块里的 contract 源文件，因此 contract 源在 `commonMain`/`andro
 11. 平台专属入口放对应 sourceSet 并复用 commonMain 实现，commonMain 只保留可共享纯逻辑。
 12. 桌面新轨不引入 `:magisk-ui-kit`，直接使用 Compose Multiplatform Material 3 叶子组件。
 13. KMP 模块的测试一律放 `src/jvmTest/kotlin/`，并把对应 `:<模块>:jvmTest` 写入 `scripts/config/android-test-tasks.json` 的路径规则；否则测试不进 CI（`relay/engine` 的两个引擎测试就曾在 `runtime` 的 `src/test` 里长期无人执行）。
+
+## Storage entity contract (2026-10-26)
+
+The smscode-core db entities double as the cross-surface domain model shared
+with XposedSmsCode ( implements ).
+Mobile UI may therefore hold entity types, with one enforced boundary: no
+ imports in mobile UI (verify_module_boundaries.sh). The
+long-term direction is migrating consumers to the  record
+interfaces - an smscode-core change to co-design with XSC, not a UI-side
+mapping layer.
