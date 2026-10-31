@@ -14,13 +14,13 @@ from kmp_source import resolve_source
 
 ROOT = Path(__file__).resolve().parents[2]
 SENDER_TYPE_SOURCE = resolve_source(
-    "modules/relay/engine/api",
-    "io/github/magisk317/relay/engine/sender",
+    "forward/core/engine/api",
+    "io/github/magisk317/forward/engine/sender",
     "SenderType.kt",
 )
 SCHEMA_SOURCE = resolve_source(
-    "modules/relay/sender/api",
-    "io/github/magisk317/relay/sender",
+    "forward/core/sender/api",
+    "io/github/magisk317/forward/sender",
     "SenderSettingSchema.kt",
 )
 OUTPUT = ROOT / "frontend/shared/contracts/senderSchemas.json"

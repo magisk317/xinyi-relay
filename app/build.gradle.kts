@@ -164,7 +164,6 @@ dependencies {
     implementation(project(":magisk-xposed-kit:runtime"))
     implementation(libs.mobile.entitlement.android)
     implementation(project(":policy"))
-    implementation(project(":runtime"))
     implementation(fileTree(mapOf("dir" to "libs", "include" to listOf("*.jar"))))
     implementation(project(":mobile:core"))
     implementation(project(":mobile:ui"))
@@ -203,6 +202,9 @@ dependencies {
         add("${flavor}Implementation", project(":hook:entry"))
         add("${flavor}Implementation", project(":xpbridge:core"))
         add("${flavor}Implementation", libs.libxposed.service)
+        // The Xposed service bridge (src/xposed) consumes the runtime scope API;
+        // other flavors keep their runtime classpath strictly behind mobile:core.
+        add("${flavor}Implementation", project(":runtime"))
     }
 
     testImplementation(libs.junit.jupiter)
