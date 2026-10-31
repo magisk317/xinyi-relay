@@ -152,7 +152,11 @@ BKC
 
   docker buildx create "${create_args[@]}" --use
   if [[ -n "$config_file" ]]; then
-    trap 'rm -f "$config_file"; docker buildx rm "$BUILDX_BUILDER" >/dev/null 2>&1 || true' EXIT
+    # config_file is local to this function: a trap that names it expands at
+    # EXIT, once the scope is gone, and `set -u` then kills a job that the
+    # pipeline declares allow_failure. Bind the resolved path into the trap
+    # string instead of the variable name.
+    trap 'rm -f "'"$config_file"'"; docker buildx rm "$BUILDX_BUILDER" >/dev/null 2>&1 || true' EXIT
   else
     trap 'docker buildx rm "$BUILDX_BUILDER" >/dev/null 2>&1 || true' EXIT
   fi
