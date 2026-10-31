@@ -61,8 +61,11 @@ object BackupManager {
                 XLog.w("wal checkpoint before snapshot failed: ${it.message}", it)
             }
             runCatching {
-                ForwardDatabase.build(context).use { forwardDb ->
+                val forwardDb = ForwardDatabase.build(context)
+                try {
                     forwardDb.openHelper.writableDatabase.execSQL("PRAGMA wal_checkpoint(FULL)")
+                } finally {
+                    forwardDb.close()
                 }
             }.onFailure {
                 XLog.w("forward.db wal checkpoint before snapshot failed: ${it.message}", it)
