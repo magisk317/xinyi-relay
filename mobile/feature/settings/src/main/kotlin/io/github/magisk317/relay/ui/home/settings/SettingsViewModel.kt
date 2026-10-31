@@ -22,8 +22,9 @@ import android.content.Intent
 import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.relay.backup.RelayBackupManager
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
-import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
-import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toRecordData
+import io.github.magisk317.forward.engine.model.ReadRecordData
+import io.github.magisk317.forward.engine.model.ReadRecordDataImpl
+import io.github.magisk317.forward.engine.model.AppCodeRuleImpl
 import io.github.magisk317.forward.engine.service.AppConfigRepository
 import io.github.magisk317.forward.engine.service.MessageRecordRepository
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
@@ -615,10 +616,10 @@ class SettingsViewModel(
 
     private suspend fun restoreRules(context: Context, rules: List<BackupRule>) {
         if (rules.isEmpty()) return
-        val entities = rules.map {
-            io.github.magisk317.smscode.db.entity.SmsCodeRule(it.company, it.codeKeyword, it.codeRegex)
+        val domainRules = rules.map {
+            AppCodeRuleImpl(company = it.company, codeKeyword = it.codeKeyword, codeRegex = it.codeRegex)
         }
-        configRepository.insertSmsCodeRules(entities.map { it.toDomain() })
+        configRepository.insertSmsCodeRules(domainRules)
     }
 
     private suspend fun restoreRecords(context: Context, records: List<BackupSmsRecord>) {
@@ -628,7 +629,10 @@ class SettingsViewModel(
         }
         val beforeCount = recordRepository.queryAll().size
         val entities = records.map {
-            io.github.magisk317.relay.android.data.db.legacy.entity.LegacySmsMsg(
+            // Field defaults mirror the LegacySmsMsg surface earlier builds restored through
+            // (simSlot = SmsRoutingMetadata.UNKNOWN_SIM_SLOT, subId = UNKNOWN_SUB_ID).
+            ReadRecordDataImpl(
+                id = 0L,
                 sender = it.sender,
                 body = it.body,
                 date = it.date,
@@ -636,11 +640,21 @@ class SettingsViewModel(
                 company = it.company,
                 smsCode = it.smsCode,
                 packageName = it.packageName,
+                notifyChannelId = "",
+                simSlot = -1,
+                subId = 0,
+                contactName = "",
+                phoneArea = "",
+                forwardStatus = ReadRecordData.FORWARD_STATUS_NONE,
+                forwardTarget = null,
+                forwardMessage = null,
+                forwardTime = 0L,
                 msgType = it.msgType,
                 callType = it.callType,
+                sessionKey = "",
             )
         }
-        recordRepository.insertList(entities.map { it.toRecordData() })
+        recordRepository.insertList(entities)
         val afterCount = recordRepository.queryAll().size
         XLog.i(
             message = "Restore records finished: requested=%d before=%d after=%d delta=%d",

@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.mobile.core.R
-import io.github.magisk317.relay.android.data.db.legacy.entity.LegacyAppInfo as AppInfo
+import io.github.magisk317.forward.engine.model.AppInfoData
 import io.github.magisk317.relay.ui.common.AppIconBitmapImage
 import io.github.magisk317.uikit.foundation.LoadingIndicatorTokens
 import io.github.magisk317.uikit.foundation.PolygonMorphLoadingIndicator
@@ -80,7 +80,7 @@ private val APP_CONFIG_ICON_SIZE = 40.dp
 @Composable
 fun AppConfigScreen(
     onBack: (() -> Unit)? = null,
-    onAppClick: ((AppInfo) -> Unit)? = null,
+    onAppClick: ((AppInfoData) -> Unit)? = null,
     refreshTrigger: Int = 0,
     viewModel: AppConfigViewModel = koinViewModel(),
     scrollChromeState: ScrollChromeState? = null,
@@ -402,7 +402,7 @@ fun AppConfigScreen(
 
 @Composable
 fun AppConfigItem(
-    app: AppInfo,
+    app: AppInfoData,
     appBoundSenderCount: Int,
     appIcon: Bitmap?,
     onClick: () -> Unit,

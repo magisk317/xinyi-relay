@@ -23,7 +23,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
-import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySmsMsg as SmsMsg
+import io.github.magisk317.forward.engine.model.ReadRecordData
 import org.koin.compose.viewmodel.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -160,7 +160,7 @@ if (app == null) {
 }
 
 @Composable
-private fun AppRecentLogCard(logs: List<SmsMsg>) {
+private fun AppRecentLogCard(logs: List<ReadRecordData>) {
     val dateFormat = remember { SimpleDateFormat("yyyy.MM.dd HH:mm:ss", Locale.getDefault()) }
     AppCard(
         color = appColor(AppColorRole.SurfaceContainer),
@@ -188,10 +188,10 @@ private fun AppRecentLogCard(logs: List<SmsMsg>) {
             logs.forEachIndexed { index, log ->
                 val forwardMessage = log.forwardMessage.orEmpty()
                 val statusText = when (log.forwardStatus) {
-                    SmsMsg.FORWARD_STATUS_SUCCESS -> stringResource(R.string.forward_status_success)
-                    SmsMsg.FORWARD_STATUS_FAILED -> stringResource(R.string.forward_status_failed)
-                    SmsMsg.FORWARD_STATUS_PARTIAL -> stringResource(R.string.app_detail_status_partial)
-                    SmsMsg.FORWARD_STATUS_BLOCKED -> stringResource(R.string.forward_status_none)
+                    ReadRecordData.FORWARD_STATUS_SUCCESS -> stringResource(R.string.forward_status_success)
+                    ReadRecordData.FORWARD_STATUS_FAILED -> stringResource(R.string.forward_status_failed)
+                    ReadRecordData.FORWARD_STATUS_PARTIAL -> stringResource(R.string.app_detail_status_partial)
+                    ReadRecordData.FORWARD_STATUS_BLOCKED -> stringResource(R.string.forward_status_none)
                     else -> stringResource(R.string.forward_status_none)
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {

@@ -1,6 +1,8 @@
 package io.github.magisk317.relay.ui.home.appconfig
 
-import io.github.magisk317.relay.android.data.db.legacy.entity.LegacyAppInfo as AppInfo
+import io.github.magisk317.forward.engine.model.AppInfoData
+import io.github.magisk317.relay.data.appconfig.appInfoHasEffectiveConfig
+import io.github.magisk317.forward.engine.model.AppInfoImpl
 import kotlinx.collections.immutable.toImmutableList
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -160,8 +162,8 @@ class AppConfigListPolicyTest {
         forwarding: Boolean = false,
         forwardingConfigured: Boolean = false,
         notifyTemplate: String = "",
-    ): AppInfo {
-        return AppInfo(
+    ): AppInfoData {
+        return AppInfoImpl(
             packageName = packageName,
             label = label,
             blocked = blocked,

@@ -7,7 +7,6 @@ import io.github.magisk317.forward.engine.model.ForwardFilterRule
 import io.github.magisk317.forward.contract.model.ForwardCommonConfig
 import io.github.magisk317.forward.engine.model.Sender
 import io.github.magisk317.forward.engine.model.NotifyRouteRuleImpl
-import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
 import io.github.magisk317.relay.android.common.utils.DeviceIdentityUtils
 import io.github.magisk317.relay.app.sender.SenderTestService
 import io.github.magisk317.forward.engine.filter.ForwardFilterConst

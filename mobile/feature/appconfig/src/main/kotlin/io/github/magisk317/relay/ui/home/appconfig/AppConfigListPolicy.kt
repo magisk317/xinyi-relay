@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.ui.home.appconfig
 
-import io.github.magisk317.relay.android.data.db.legacy.entity.LegacyAppInfo as AppInfo
+import io.github.magisk317.forward.engine.model.AppInfoData
+import io.github.magisk317.relay.data.appconfig.appInfoHasEffectiveConfig
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.toImmutableList
@@ -8,7 +9,7 @@ import kotlinx.collections.immutable.toImmutableList
 internal const val APP_CONFIG_LIST_PAGE_SIZE = 80
 
 internal data class AppConfigQueryState(
-    val sourceApps: ImmutableList<AppInfo> = persistentListOf(),
+    val sourceApps: ImmutableList<AppInfoData> = persistentListOf(),
     val systemPackages: Set<String> = emptySet(),
     val usageStatsByPackage: Map<String, Long> = emptyMap(),
     val visibleCount: Int = APP_CONFIG_LIST_PAGE_SIZE,
@@ -21,13 +22,9 @@ internal data class AppConfigQueryState(
 )
 
 internal data class AppConfigListAssembly(
-    val visibleApps: ImmutableList<AppInfo>,
+    val visibleApps: ImmutableList<AppInfoData>,
     val hasMoreApps: Boolean,
 )
-
-internal fun appInfoHasEffectiveConfig(appInfo: AppInfo): Boolean {
-    return appInfo.blocked || appInfo.forwardingConfigured || appInfo.notifyTemplate.isNotBlank()
-}
 
 internal fun assembleAppConfigList(queryState: AppConfigQueryState): AppConfigListAssembly {
     val filteredApps = filterAndSortAppConfigs(
@@ -47,14 +44,14 @@ internal fun assembleAppConfigList(queryState: AppConfigQueryState): AppConfigLi
 }
 
 internal fun filterAndSortAppConfigs(
-    apps: Iterable<AppInfo>,
+    apps: Iterable<AppInfoData>,
     filterText: String,
     hideSystemApps: Boolean,
     systemPackages: Set<String>,
     sortOption: AppConfigViewModel.SortOption,
     isAscending: Boolean,
     usageStatsByPackage: Map<String, Long> = emptyMap(),
-): List<AppInfo> {
+): List<AppInfoData> {
     val normalizedFilter = filterText.lowercase()
     return apps.asSequence()
         .filter { appInfo ->
@@ -92,7 +89,7 @@ private fun appConfigComparator(
     sortOption: AppConfigViewModel.SortOption,
     isAscending: Boolean,
     usageStatsByPackage: Map<String, Long>,
-): Comparator<AppInfo> {
+): Comparator<AppInfoData> {
     return Comparator { first, second ->
         val configCompare = compareConfigPriority(first, second)
         if (configCompare != 0) {
@@ -114,7 +111,7 @@ private fun appConfigComparator(
     }
 }
 
-private fun compareConfigPriority(first: AppInfo, second: AppInfo): Int {
+private fun compareConfigPriority(first: AppInfoData, second: AppInfoData): Int {
     val firstHasConfig = appInfoHasEffectiveConfig(first)
     val secondHasConfig = appInfoHasEffectiveConfig(second)
     if (firstHasConfig != secondHasConfig) {

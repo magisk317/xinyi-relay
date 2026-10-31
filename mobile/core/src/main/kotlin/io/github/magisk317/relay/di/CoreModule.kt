@@ -9,6 +9,7 @@ import io.github.magisk317.relay.app.sender.SenderTestService
 import io.github.magisk317.relay.contract.repository.ConfigSyncCoordinator
 import io.github.magisk317.relay.contract.repository.LocalConfigRepository
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
+import io.github.magisk317.relay.data.appconfig.AppConfigEntityMirror
 import io.github.magisk317.relay.data.repository.AnalyticsRepository
 import io.github.magisk317.relay.data.repository.ConfigRepository
 import io.github.magisk317.relay.data.repository.LocalConfigRepositoryImpl
@@ -96,6 +97,7 @@ val coreModule = module {
             forwardDatabase = get(),
         )
     }
+    single { AppConfigEntityMirror(androidContext(), get()) }
     single { RemoteAgentRepository(androidContext(), get(), get()) }
     single<ConfigSyncCoordinator> { get<RemoteAgentRepository>() }
     single<ScheduledTaskRepository> { ScheduledTaskRepositoryImpl(androidContext(), get()) }

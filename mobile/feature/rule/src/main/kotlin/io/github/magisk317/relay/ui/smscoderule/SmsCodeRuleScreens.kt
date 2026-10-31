@@ -42,9 +42,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.uikit.R as UiKitR
-import io.github.magisk317.smscode.db.entity.SmsCodeRule
-import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
-import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toEntity
+import io.github.magisk317.forward.engine.model.AppCodeRuleData
+import io.github.magisk317.forward.engine.model.AppCodeRuleImpl
 import io.github.magisk317.relay.android.sms.SmsCodeUtils as RelaySmsCodeUtils
 import io.github.magisk317.forward.engine.service.AppConfigRepository
 import io.github.magisk317.smscode.rule.model.BuiltinSmsCodeRuleSpec
@@ -213,7 +212,7 @@ fun SmsCodeRuleListScreen(
                 } else {
                     itemsIndexed(rules, key = { _, rule -> rule.id }) { index, rule ->
                         SmsCodeRuleCard(
-                            rule = rule.toEntity(),
+                            rule = rule,
                             ordinal = index + 1,
                             onEdit = { onEditClick(rule.id) },
                             onDelete = {
@@ -341,7 +340,7 @@ private fun OfficialSmsCodeRuleCard(
 
 @Composable
 private fun SmsCodeRuleCard(
-    rule: SmsCodeRule,
+    rule: AppCodeRuleData,
     ordinal: Int,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
@@ -485,12 +484,12 @@ fun SmsCodeRuleEditorScreen(
                 return@launch
             }
             repository.upsertSmsCodeRule(
-                SmsCodeRule(
+                AppCodeRuleImpl(
                     company = normalizedCompany,
                     codeKeyword = normalizedKeyword,
                     codeRegex = normalizedRegex,
                     id = ruleId,
-                ).toDomain(),
+                ),
             )
             repository.checkpoint()
             onBack()
