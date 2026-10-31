@@ -45,6 +45,7 @@ import io.github.magisk317.relay.desktop.ui.RelayTone
 import io.github.magisk317.relay.desktop.ui.SurfaceCard
 import io.github.magisk317.relay.desktop.ui.ToggleRow
 import kotlinx.coroutines.launch
+import io.github.magisk317.relay.desktop.platform.DesktopLog
 
 /**
  * Desktop port of the webUI apps page: app-level interception, forwarding
@@ -88,6 +89,13 @@ fun AppsPage(
         val deviceId = console.selectedDeviceId ?: return
         scope.launch {
             runCatching { console.queueMutation(buildReplaceDeviceAppsMutation(deviceId, nextApps), "apps:update") }
+            .onFailure { error ->
+                DesktopLog.warn(
+                    key = "apps.update-mutation",
+                    message = "apps replacement could not be queued",
+                    fields = mapOf("error" to (error::class.simpleName ?: "Throwable")),
+                )
+                }
         }
     }
 
@@ -95,7 +103,18 @@ fun AppsPage(
         LiveBadge(connected = feed.connected, locale = locale)
         ActionButton(
             text = DesktopMessages.t(locale, "apps.refresh"),
-            onClick = { scope.launch { runCatching { console.refreshConfig() } } },
+            onClick = {
+                scope.launch {
+                    runCatching { console.refreshConfig() }
+                    .onFailure { error ->
+                        DesktopLog.warn(
+                            key = "apps.refreshConfig",
+                            message = "config refresh from the apps page failed",
+                            fields = mapOf("error" to (error::class.simpleName ?: "Throwable")),
+                        )
+                        }
+                }
+            },
             tone = ActionTone.NEUTRAL,
         )
     }

@@ -46,8 +46,8 @@ class FileLockInstanceGuard(private val lockFile: File) : AutoCloseable {
     }.getOrDefault(false)
 
     override fun close() {
-        runCatching { lock?.release() }
-        runCatching { channel?.close() }
+        runCatching { lock?.release() }.onFailure { /* Teardown: nothing can act on a failure once we are here. */}
+        runCatching { channel?.close() }.onFailure { /* Teardown: nothing can act on a failure once we are here. */}
         lock = null
         channel = null
         acquired = false

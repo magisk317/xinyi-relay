@@ -96,13 +96,13 @@ class DesktopRealtimeFeed(
 
         override fun onMessage(webSocket: WebSocket, text: String) {
             lastEvent = runCatching { json.decodeFromString<RealtimeEvent>(text) }
-                .onFailure {
+                .onFailure { error ->
                     DesktopLog.warn(
                         key = "realtime.decode",
                         message = "dropped undecodable realtime event",
-                        fields = mapOf("error" to (it::class.simpleName ?: "Throwable")),
+                        fields = mapOf("error" to (error::class.simpleName ?: "Throwable")),
                     )
-                }
+                    }
                 .getOrNull()
         }
 

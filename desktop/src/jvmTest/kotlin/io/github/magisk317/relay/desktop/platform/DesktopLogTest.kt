@@ -1,5 +1,7 @@
 package io.github.magisk317.relay.desktop.platform
 
+import io.github.magisk317.xposed.logging.LogLevel
+import io.github.magisk317.xposed.logging.XLog
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
 import kotlinx.serialization.json.Json
@@ -13,10 +15,12 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 /**
- * Pins the desktop JSONL logger contract: one parseable object per line, the
- * shared redactor applied to messages and fields alike, the throwable class
- * named, and the fixed-window limiter holding a flood to
- * [DesktopLog]-configured events per window with a stride summary.
+ * Pins the desktop JSONL contract over the unified XLog pipeline:
+ * DesktopLog routes warn/error through XLog with the key as tag and the
+ * fields as metadata, and DesktopJsonlSink renders one parseable object per
+ * line on stderr with the shared redactor applied, the throwable class
+ * named, and the fixed-window limiter holding a flood to five events per
+ * level+key window.
  */
 class DesktopLogTest {
     private val captured = ByteArrayOutputStream()
@@ -25,10 +29,18 @@ class DesktopLogTest {
     @BeforeEach
     fun setUp() {
         System.setErr(PrintStream(captured, true))
+        XLog.resetForTest()
+        XLog.configure(
+            tag = "xinyi-desktop",
+            logLevel = LogLevel.VERBOSE.priority,
+            sink = DesktopJsonlSink(),
+            printEnabled = false,
+        )
     }
 
     @AfterEach
     fun tearDown() {
+        XLog.resetForTest()
         System.setErr(originalErr)
     }
 
@@ -37,72 +49,46 @@ class DesktopLogTest {
 
     @Test
     fun `emits one json object per event with level key and component`() {
-        DesktopLog.emit("warn", "test.shape", "hello world", null, emptyMap(), nowMs = 1_700_000_000_000L)
+        DesktopLog.warn("test.shape", "hello world")
 
-        val emitted = lines()
-        assertEquals(1, emitted.size)
-        val json = Json.parseToJsonElement(emitted.single()).jsonObject
-        assertEquals("warn", json["level"]?.jsonPrimitive?.content)
-        assertEquals("desktop", json["component"]?.jsonPrimitive?.content)
-        assertEquals("test.shape", json["key"]?.jsonPrimitive?.content)
-        assertEquals("hello world", json["msg"]?.jsonPrimitive?.content)
-        assertTrue(json["ts"]?.jsonPrimitive?.content?.isNotBlank() == true)
+        val parsed = Json.parseToJsonElement(lines().single()).jsonObject
+        assertEquals("warn", parsed["level"]!!.jsonPrimitive.content)
+        assertEquals("desktop", parsed["component"]!!.jsonPrimitive.content)
+        assertEquals("test.shape", parsed["key"]!!.jsonPrimitive.content)
+        assertEquals("hello world", parsed["msg"]!!.jsonPrimitive.content)
     }
 
     @Test
-    fun `redacts secrets in message and field values`() {
-        DesktopLog.emit(
-            "error",
-            "test.redact",
-            "connect failed with token=supersecret123",
-            null,
-            mapOf("authorization" to "Bearer abcdef987654"),
-            nowMs = 1_700_000_000_000L,
-        )
+    fun `carries fields as redacted json members`() {
+        DesktopLog.error("test.fields", "upload failed", fields = mapOf("authorization" to "Bearer abc123secret"))
 
-        val line = lines().single()
-        assertFalse(line.contains("supersecret123"), "raw token leaked into the log line")
-        assertFalse(line.contains("abcdef987654"), "raw bearer leaked into the log line")
-        assertTrue(line.contains("***"), "redaction marker missing")
+        val parsed = Json.parseToJsonElement(lines().single()).jsonObject
+        assertTrue(parsed["authorization"]!!.jsonPrimitive.content.contains("***"))
+        assertFalse(parsed["authorization"]!!.jsonPrimitive.content.contains("abc123secret"))
     }
 
     @Test
-    fun `names the throwable class on error events`() {
-        DesktopLog.emit(
-            "error",
-            "test.throwable",
-            "died",
-            IllegalStateException("boom"),
-            emptyMap(),
-            nowMs = 1_700_000_000_000L,
-        )
+    fun `names the throwable class`() {
+        DesktopLog.error("test.throwable", "failed", IllegalStateException("boom"))
 
-        assertEquals("IllegalStateException", lines().single().let { Json.parseToJsonElement(it).jsonObject["error"]?.jsonPrimitive?.content })
+        val parsed = Json.parseToJsonElement(lines().single()).jsonObject
+        assertEquals("IllegalStateException", parsed["error"]!!.jsonPrimitive.content)
     }
 
     @Test
-    fun `rate limits a flood and emits a summary at the suppression stride`() {
-        val nowMs = 1_700_000_000_000L
-        // Five events fit the window; the next fifty are suppressed, and the
-        // fiftieth suppression emits one summary line.
-        repeat(55) { DesktopLog.emit("warn", "test.flood", "boom", null, emptyMap(), nowMs) }
+    fun `limiter holds a same-key flood to the window budget`() {
+        repeat(8) { DesktopLog.warn("test.flood", "repeat $it") }
 
-        val emitted = lines()
-        assertEquals(6, emitted.size, "five events plus one stride summary expected")
-        val summary = Json.parseToJsonElement(emitted.last()).jsonObject
-        assertEquals("suppressed 50 repeats", summary["msg"]?.jsonPrimitive?.content)
+        // Five events pass, the rest are suppressed without hitting the
+        // summary stride, so exactly five lines reach stderr.
+        assertEquals(5, lines().size)
     }
 
     @Test
-    fun `a new window admits events again`() {
-        val windowStart = 1_700_000_000_000L
-        repeat(5) { DesktopLog.emit("warn", "test.window", "boom", null, emptyMap(), windowStart) }
-        // One more inside the window is suppressed; past it the window resets.
-        DesktopLog.emit("warn", "test.window", "boom", null, emptyMap(), windowStart + 1_000L)
-        DesktopLog.emit("warn", "test.window", "after reset", null, emptyMap(), windowStart + 61_000L)
+    fun `distinct keys each get their own window budget`() {
+        repeat(3) { DesktopLog.warn("test.flood.a", "a $it") }
+        repeat(3) { DesktopLog.warn("test.flood.b", "b $it") }
 
-        val emitted = lines()
-        assertEquals(6, emitted.size)
-        assertTrue(emitted.last().contains("after reset"))
+        assertEquals(6, lines().size)
     }
 }

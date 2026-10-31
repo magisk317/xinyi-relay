@@ -1,6 +1,6 @@
 package io.github.magisk317.relay.desktop.remote
 
-import io.github.magisk317.relay.net.RelayHttpClients
+import io.github.magisk317.forward.net.RelayHttpClients
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
 import javax.net.ssl.SSLContext

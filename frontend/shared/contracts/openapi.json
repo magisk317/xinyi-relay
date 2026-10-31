@@ -1120,7 +1120,7 @@
   "info": {
     "description": "Contract for the Xinyi Relay backend, Android agent, Web console, and Desktop console.",
     "title": "Xinyi Relay Remote API",
-    "version": "0.4.1"
+    "version": "0.4.2"
   },
   "openapi": "3.1.0",
   "paths": {

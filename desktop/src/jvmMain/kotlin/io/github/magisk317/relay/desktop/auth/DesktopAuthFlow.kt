@@ -114,7 +114,7 @@ class DesktopAuthFlow(
         runCatching { java.awt.Desktop.getDesktop().browse(URI(url)) }.isSuccess
 
     fun close() {
-        runCatching { server.close() }
+        runCatching { server.close() }.onFailure { /* Teardown: nothing can act on a failure once we are here. */}
         listener?.interrupt()
         listener = null
     }

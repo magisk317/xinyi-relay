@@ -73,7 +73,7 @@ class AwtTray(
 
     override fun close() {
         icon?.let { existing ->
-            runCatching { tray?.remove(existing) }
+            runCatching { tray?.remove(existing) }.onFailure { /* Teardown: nothing can act on a failure once we are here. */}
             icon = null
         }
         installed = false

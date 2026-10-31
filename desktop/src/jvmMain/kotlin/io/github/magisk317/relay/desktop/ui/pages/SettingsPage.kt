@@ -1,7 +1,3 @@
-// Compose 1.x painterResource/TextField deprecations; migrate with Compose Resources and
-// the state-based text-field APIs in a dedicated pass.
-@file:Suppress("DEPRECATION")
-
 package io.github.magisk317.relay.desktop.ui.pages
 
 import androidx.compose.foundation.layout.Arrangement
@@ -39,6 +35,7 @@ import io.github.magisk317.relay.desktop.ui.RelaySelect
 import io.github.magisk317.relay.desktop.ui.SurfaceCard
 import io.github.magisk317.relay.desktop.ui.formatTimestamp
 import kotlinx.coroutines.launch
+import io.github.magisk317.relay.desktop.platform.DesktopLog
 
 /**
  * Desktop port of the webUI settings page: the config state of the selected
@@ -63,7 +60,18 @@ fun SettingsPage(
         LiveBadge(connected = feed.connected, locale = locale)
         ActionButton(
             text = DesktopMessages.t(locale, "settings.refresh"),
-            onClick = { scope.launch { runCatching { console.refreshConfig() } } },
+            onClick = {
+                scope.launch {
+                    runCatching { console.refreshConfig() }
+                    .onFailure { error ->
+                        DesktopLog.warn(
+                            key = "settings.refreshConfig",
+                            message = "config refresh from the settings page failed",
+                            fields = mapOf("error" to (error::class.simpleName ?: "Throwable")),
+                        )
+                        }
+                }
+            },
             tone = ActionTone.NEUTRAL,
         )
     }
@@ -200,20 +208,16 @@ fun SettingsPage(
             Row(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                OutlinedTextField(
+                PasswordField(
                     value = currentPassword,
                     onValueChange = { value -> currentPassword = value },
-                    label = { Text(DesktopMessages.t(locale, "settings.accountCurrentPassword")) },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
+                    label = DesktopMessages.t(locale, "settings.accountCurrentPassword"),
                     modifier = Modifier.weight(1f),
                 )
-                OutlinedTextField(
+                PasswordField(
                     value = newPassword,
                     onValueChange = { value -> newPassword = value },
-                    label = { Text(DesktopMessages.t(locale, "settings.accountNewPassword")) },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
+                    label = DesktopMessages.t(locale, "settings.accountNewPassword"),
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -246,4 +250,27 @@ fun SettingsPage(
             )
         }
     }
+}
+
+/**
+ * The string-based OutlinedTextField overload stays until desktop compose ships
+ * InputTransformation.password for the state-based API; the deprecation is pinned
+ * to this one helper instead of the whole file.
+ */
+@Suppress("DEPRECATION")
+@Composable
+private fun PasswordField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = { Text(label) },
+        singleLine = true,
+        visualTransformation = PasswordVisualTransformation(),
+        modifier = modifier,
+    )
 }

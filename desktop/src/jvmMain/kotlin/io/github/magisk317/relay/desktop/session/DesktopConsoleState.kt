@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonObject
+import io.github.magisk317.relay.desktop.platform.DesktopLog
 
 /**
  * Console device/config state mirroring the webUI DeviceConfigProvider:
@@ -68,6 +69,13 @@ class DesktopConsoleState(private val session: DesktopSessionState) {
     fun bootstrap() {
         scope.launch {
             runCatching { refreshDevices() }
+            .onFailure { error ->
+                DesktopLog.warn(
+                    key = "console.refreshDevices",
+                    message = "device list refresh failed at startup",
+                    fields = mapOf("error" to (error::class.simpleName ?: "Throwable")),
+                )
+                }
         }
     }
 
@@ -133,7 +141,16 @@ class DesktopConsoleState(private val session: DesktopSessionState) {
         selectedDeviceId = deviceId
         prefs.put(SELECTED_DEVICE_KEY, deviceId.toString())
         prefs.flush()
-        scope.launch { runCatching { refreshConfig() } }
+        scope.launch {
+            runCatching { refreshConfig() }
+            .onFailure { error ->
+                DesktopLog.warn(
+                    key = "console.selectDevice",
+                    message = "config refresh after switching device failed",
+                    fields = mapOf("error" to (error::class.simpleName ?: "Throwable")),
+                )
+                }
+        }
     }
 
     /** Queues a config command on the selected device and folds it into the local state. */

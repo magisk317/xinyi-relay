@@ -1,7 +1,3 @@
-// Compose 1.x painterResource/TextField deprecations; migrate with Compose Resources and
-// the state-based text-field APIs in a dedicated pass.
-@file:Suppress("DEPRECATION")
-
 package io.github.magisk317.relay.desktop
 
 import androidx.compose.ui.res.painterResource
@@ -11,7 +7,10 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import io.github.magisk317.relay.desktop.i18n.DesktopMessages
 import io.github.magisk317.relay.desktop.i18n.LocalePreference
+import io.github.magisk317.relay.desktop.platform.DesktopJsonlSink
 import io.github.magisk317.relay.desktop.platform.DesktopLog
+import io.github.magisk317.xposed.logging.LogLevel
+import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.desktop.platform.FileLockInstanceGuard
 import io.github.magisk317.relay.desktop.ui.DesktopApp
 import io.github.magisk317.relay.desktop.ui.XinyiDesktopTheme
@@ -25,7 +24,17 @@ import kotlin.system.exitProcess
  * releases it when the holder dies, so a crashed instance never wedges the
  * next launch the way a stale PID file would).
  */
+// Compose Resources are not wired for this module (no composeResources source set anywhere in the repo), so the classpath-resource overload stays; suppressed here rather than file-wide so every other deprecation in this file is still reported.
+@Suppress("DEPRECATION")
 fun main() {
+    // Sink-only logging: the JSONL capture on stderr is the single desktop
+    // rendering, so the platform print seam stays off (no double writes).
+    XLog.configure(
+        tag = "xinyi-desktop",
+        logLevel = LogLevel.INFO.priority,
+        sink = DesktopJsonlSink(),
+        printEnabled = false,
+    )
     // A GUI that dies on a background thread otherwise fails silently: route
     // every uncaught throwable through the structured desktop log first.
     Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
