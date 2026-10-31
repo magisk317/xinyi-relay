@@ -95,3 +95,6 @@ __pycache__/
 
 # CI input, not a merge artifact -- keep it tracked despite *.patch above
 !scripts/ci/rustls_pv_toolchain.patch
+
+# Local scratch working tree (untracked by design)
+/.wip/
