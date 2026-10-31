@@ -69,6 +69,15 @@ object ForwardDatabaseBootstrapper {
             failedKey = KEY_CONFIG_IMPORT
             importConfigIfNeeded(legacy, target)
             target.forwardMetaDao().remove(KEY_IMPORT_FAILURE)
+            // Mark the legacy source drainable. The next schema bump drops the
+            // legacy tables; that migration reads this marker, so a device that
+            // never completed the import keeps its source instead of losing it.
+            legacy.openHelper.writableDatabase.execSQL(
+                "CREATE TABLE IF NOT EXISTS legacy_import_done (proceed INTEGER NOT NULL)",
+            )
+            legacy.openHelper.writableDatabase.execSQL(
+                "INSERT OR REPLACE INTO legacy_import_done (proceed) VALUES (1)",
+            )
         }
         val error = result.exceptionOrNull() ?: return
         if (error is CancellationException) throw error
