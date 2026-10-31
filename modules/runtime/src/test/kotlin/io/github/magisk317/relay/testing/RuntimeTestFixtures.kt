@@ -15,7 +15,6 @@ import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastContract
 
 data class RuntimeDatabaseFixture(
     val database: AppDatabase,
-    val smsMsgDao: SmsMsgDao,
     val smsBlacklistHitDao: SmsBlacklistHitDao,
 )
 
@@ -86,13 +85,10 @@ fun runtimeForwardEvent(
 
 fun smsMsgDatabaseFixture(): RuntimeDatabaseFixture {
     val database = mockk<AppDatabase>(relaxed = true)
-    val smsMsgDao = mockk<SmsMsgDao>(relaxed = true)
     val smsBlacklistHitDao = mockk<SmsBlacklistHitDao>(relaxed = true)
-    every { database.smsMsgDao() } returns smsMsgDao
     every { database.smsBlacklistHitDao() } returns smsBlacklistHitDao
     return RuntimeDatabaseFixture(
         database = database,
-        smsMsgDao = smsMsgDao,
         smsBlacklistHitDao = smsBlacklistHitDao,
     )
 }

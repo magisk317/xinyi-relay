@@ -9,6 +9,8 @@ import io.github.magisk317.forward.db.ForwardEventEntity
 import io.github.magisk317.forward.db.ForwardAppInfoEntity
 import io.github.magisk317.forward.db.ForwardRuleEntity
 import io.github.magisk317.forward.db.SenderDispatchLogEntity
+import io.github.magisk317.relay.android.data.db.legacy.LegacyConfigRows
+import io.github.magisk317.relay.android.data.db.entity.SenderDispatchLog
 import io.github.magisk317.relay.android.data.db.legacy.entity.LegacyForwardFilterRule as ForwardFilterRule
 import io.github.magisk317.relay.android.data.db.legacy.entity.LegacyNotifyRouteRule as NotifyRouteRule
 import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySender as Sender
@@ -207,65 +209,105 @@ object ForwardLegacyImporter {
      * overwriting newer writes. Parity is proven per table by row count and by
      * legacy identity (primary key, or package name for app info).
      */
-    suspend fun importConfigIfNeeded(legacy: AppDatabase, target: ForwardDatabase): ConfigImportReport {
+    suspend fun importConfigIfNeeded(rows: LegacyConfigRows, target: ForwardDatabase): ConfigImportReport {
         val imported = mutableListOf<String>()
         val skipped = mutableListOf<String>()
         val mismatches = mutableListOf<String>()
 
-        suspend fun <T> applyCategory(
-            name: String,
-            rows: List<T>,
-            targetRows: suspend () -> List<T>,
-            write: suspend (List<T>) -> Unit,
-        ) {
-            when {
-                rows.isEmpty() -> Unit
-                targetRows().isNotEmpty() -> skipped += name
-                else -> {
-                    write(rows)
-                    val actual = targetRows()
-                    if (actual.toSet() == rows.toSet()) {
-                        imported += name
-                    } else {
-                        mismatches +=
-                            "$name parity expected=${rows.size} actual=${actual.size}"
-                    }
-                }
+        // Spelled out per category with no local lambdas: K2 2.5.0-Beta2 fails to
+        // infer through generic/suspend local helpers here (CANNOT_INFER_PARAMETER_TYPE
+        // even with explicit type arguments). The semantics are unchanged: import
+        // only while the forward table is still empty, then prove parity by row
+        // count and content.
+        val senders: List<ForwardSenderEntity> = rows.senders.map(::projectSender)
+        if (senders.isEmpty()) {
+            // nothing to import
+        } else if (target.forwardSenderDao().all().isNotEmpty()) {
+            skipped += "senders"
+        } else {
+            target.forwardSenderDao().upsertAll(senders)
+            if (senders.toSet() == target.forwardSenderDao().all().toSet()) {
+                imported += "senders"
+            } else {
+                mismatches += "senders parity expected=${senders.size} actual=${target.forwardSenderDao().all().size}"
             }
         }
 
-        val senders = legacy.senderDao().getAll().map { projectSender(it) }
-        applyCategory("senders", senders, { target.forwardSenderDao().all() }) {
-            target.forwardSenderDao().upsertAll(it)
+        val routes: List<ForwardRouteRuleEntity> = rows.routes.map(::projectRouteRule)
+        if (routes.isEmpty()) {
+            // nothing to import
+        } else if (target.forwardRouteRuleDao().all().isNotEmpty()) {
+            skipped += "routes"
+        } else {
+            target.forwardRouteRuleDao().upsertAll(routes)
+            if (routes.toSet() == target.forwardRouteRuleDao().all().toSet()) {
+                imported += "routes"
+            } else {
+                mismatches += "routes parity expected=${routes.size} actual=${target.forwardRouteRuleDao().all().size}"
+            }
         }
-        val routes = legacy.notifyRouteRuleDao().getAll().map { projectRouteRule(it) }
-        applyCategory("routes", routes, { target.forwardRouteRuleDao().all() }) {
-            target.forwardRouteRuleDao().upsertAll(it)
+
+        val filters: List<ForwardFilterRuleEntity> = rows.filters.map(::projectFilterRule)
+        if (filters.isEmpty()) {
+            // nothing to import
+        } else if (target.forwardFilterRuleDao().all().isNotEmpty()) {
+            skipped += "filters"
+        } else {
+            target.forwardFilterRuleDao().upsertAll(filters)
+            if (filters.toSet() == target.forwardFilterRuleDao().all().toSet()) {
+                imported += "filters"
+            } else {
+                mismatches += "filters parity expected=${filters.size} actual=${target.forwardFilterRuleDao().all().size}"
+            }
         }
-        val filters = legacy.forwardFilterRuleDao().getAll().map { projectFilterRule(it) }
-        applyCategory("filters", filters, { target.forwardFilterRuleDao().all() }) {
-            target.forwardFilterRuleDao().upsertAll(it)
+
+        val tasks: List<ForwardScheduledTaskEntity> = rows.tasks.map(::projectScheduledTask)
+        if (tasks.isEmpty()) {
+            // nothing to import
+        } else if (target.forwardScheduledTaskDao().all().isNotEmpty()) {
+            skipped += "scheduled"
+        } else {
+            target.forwardScheduledTaskDao().upsertAll(tasks)
+            if (tasks.toSet() == target.forwardScheduledTaskDao().all().toSet()) {
+                imported += "scheduled"
+            } else {
+                mismatches += "scheduled parity expected=${tasks.size} actual=${target.forwardScheduledTaskDao().all().size}"
+            }
         }
-        val tasks = legacy.scheduledTaskDao().getAll().map { projectScheduledTask(it) }
-        applyCategory("scheduled", tasks, { target.forwardScheduledTaskDao().all() }) {
-            target.forwardScheduledTaskDao().upsertAll(it)
+
+        val appInfos: List<ForwardAppInfoEntity> = rows.appInfos.map(::projectAppInfo)
+        if (appInfos.isEmpty()) {
+            // nothing to import
+        } else if (target.forwardAppInfoDao().all().isNotEmpty()) {
+            skipped += "appInfo"
+        } else {
+            target.forwardAppInfoDao().upsertAll(appInfos)
+            if (appInfos.toSet() == target.forwardAppInfoDao().all().toSet()) {
+                imported += "appInfo"
+            } else {
+                mismatches += "appInfo parity expected=${appInfos.size} actual=${target.forwardAppInfoDao().all().size}"
+            }
         }
-        val appInfos = legacy.appInfoDao().getAll().map { projectAppInfo(it) }
-        applyCategory("appInfo", appInfos, { target.forwardAppInfoDao().all() }) {
-            target.forwardAppInfoDao().upsertAll(it)
-        }
-        val rules = legacy.ruleDao().getAll().map { projectRule(it) }
-        applyCategory("rules", rules, { target.forwardRuleDao().all() }) {
-            target.forwardRuleDao().upsertAll(it)
+
+        val rules: List<ForwardRuleEntity> = rows.rules.map(::projectRule)
+        if (rules.isEmpty()) {
+            // nothing to import
+        } else if (target.forwardRuleDao().all().isNotEmpty()) {
+            skipped += "rules"
+        } else {
+            target.forwardRuleDao().upsertAll(rules)
+            if (rules.toSet() == target.forwardRuleDao().all().toSet()) {
+                imported += "rules"
+            } else {
+                mismatches += "rules parity expected=${rules.size} actual=${target.forwardRuleDao().all().size}"
+            }
         }
 
         return ConfigImportReport(imported = imported, skipped = skipped, mismatches = mismatches)
     }
 
     /** Room I/O shell: import everything and prove parity. Run once per empty target. */
-    suspend fun importAll(legacy: AppDatabase, target: ForwardDatabase): ImportReport {
-        val msgs = legacy.smsMsgDao().getAll()
-        val logs = legacy.senderDispatchLogDao().getAllForImport()
+    suspend fun importAll(msgs: List<SmsMsg>, logs: List<SenderDispatchLog>, target: ForwardDatabase): ImportReport {
         val events = msgs.map { projectEvent(it) }
         val legacyIds = msgs.mapNotNull { it.id }
         val insertedIds = target.forwardEventDao().insertAll(events)
