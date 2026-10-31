@@ -32,6 +32,7 @@
     ":desktop:core:jvmTest",
     ":desktop:data:jvmTest",
     "verifyStructureBoundaries",
+    "verifyGodFileLimits",
     "verifyModuleBoundaries",
     ":magisk-forward-core:contract:jvmTest",
     ":magisk-forward-core:capture:testDebugUnitTest",

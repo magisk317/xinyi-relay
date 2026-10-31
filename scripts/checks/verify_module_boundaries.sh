@@ -180,6 +180,10 @@ forbid_pattern "$MOBILE_FEATURE_DIR" '^\s*import\s+io\.github\.magisk317\.relay\
   "mobile feature modules must not import mobile/ui navigation contracts; receive callbacks from :mobile:ui instead"
 forbid_pattern "$MOBILE_FEATURE_DIR" '^\s*import\s+androidx\.navigation\.' \
   "mobile feature modules must not own navigation graphs or controllers; route composition stays in :mobile:ui"
+forbid_pattern "$MOBILE_FEATURE_DIR" '^\s*import\s+io\.github\.magisk317\.relay\.android\.data\.mapper\.' \
+  "mobile feature modules must not import platform DB mappers; repositories expose domain DTOs"
+forbid_pattern "$MOBILE_FEATURE_DIR" '^\s*import\s+io\.github\.magisk317\.relay\.android\.data\.db\.legacy\.entity\.' \
+  "mobile feature modules must not import legacy DB entities; repositories expose domain DTOs"
 forbid_pattern "$VERSION_CATALOG" '(^haze\s*=|^haze-|dev\.chrisbanes\.haze)' \
   "version catalog must not keep haze/blur aliases after the lightweight shell migration"
 # Entities are the shared smscode domain model (SmsMsg implements

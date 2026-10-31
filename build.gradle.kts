@@ -196,6 +196,20 @@ tasks.register<Exec>("verifyNoGlobalWarningMute") {
     commandLine("bash", "${rootProject.projectDir}/scripts/checks/verify_no_global_warning_mute.sh")
 }
 
+tasks.register<Exec>("reportGodFiles") {
+    group = "verification"
+    description = "Report large production Kotlin files outside shared-submodule roots."
+    workingDir = rootProject.projectDir
+    commandLine("bash", "${rootProject.projectDir}/scripts/checks/report_god_files.sh", "--report")
+}
+
+tasks.register<Exec>("verifyGodFileLimits") {
+    group = "verification"
+    description = "Fail when a production Kotlin god file is added, grows, or diverges from its reviewed limit."
+    workingDir = rootProject.projectDir
+    commandLine("bash", "${rootProject.projectDir}/scripts/checks/report_god_files.sh", "--verify")
+}
+
 tasks.register("check") {
     group = "verification"
     description = "Run root project architecture and localized dependency governance checks."
@@ -205,6 +219,7 @@ tasks.register("check") {
         "verifyEmbeddedSubmodules",
         "verifyDependencyGovernance",
         "verifyNoGlobalWarningMute",
+        "verifyGodFileLimits",
     )
 }
 
