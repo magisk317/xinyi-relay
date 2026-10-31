@@ -238,7 +238,6 @@ print("\n".join(sorted(expected - names)))
   echo "PASS: xinyi-e2ee-plugin $sdk_version has all ABI APKs and sha256 sidecars"
 }
 
-check_e2ee_plugin_published "$ROOT_DIR"
 
 # The base checks, the Play metadata checks and the project_checks dispatch all
 # live in the toolkit; scripts/config/release-policy.json drives what runs.

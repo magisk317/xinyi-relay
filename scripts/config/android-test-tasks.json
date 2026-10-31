@@ -19,18 +19,25 @@
     ":magisk-ui-kit:testAndroidHostTest",
     ":magisk-ui-kit:jvmTest",
     ":magisk-ui-kit:billing:testDebugUnitTest",
+    ":magisk-ui-kit:update:testGithubDebugUnitTest",
     ":policy:jvmTest",
+    ":relay:android:testGithubDebugUnitTest",
+    ":runtime:testGithubDebugUnitTest",
     ":relay:contract:jvmTest",
-    ":relay:engine:jvmTest",
+    ":magisk-forward-core:engine:jvmTest",
     ":relay:matrix-e2ee:jvmTest",
-    ":relay:net:jvmTest",
-    ":relay:sender:api:jvmTest",
-    ":relay:sender:testGithubDebugUnitTest",
+    ":magisk-forward-core:net:jvmTest",
     ":desktop:compileKotlinJvm",
     ":desktop:jvmTest",
     ":desktop:core:jvmTest",
     ":desktop:data:jvmTest",
-    "verifyStructureBoundaries"
+    "verifyStructureBoundaries",
+    "verifyGodFileLimits",
+    "verifyModuleBoundaries",
+    ":magisk-forward-core:contract:jvmTest",
+    ":magisk-forward-core:capture:testDebugUnitTest",
+    ":magisk-forward-core:runtime:testDebugUnitTest",
+    ":magisk-forward-core:db:testDebugUnitTest"
   ],
   "full_paths": [
     "build.gradle*",
@@ -55,11 +62,103 @@
   ],
   "unknown": "full",
   "rules": [
-    {"paths": ["smscode/*"], "tasks": [":smscode-core:contract:test", ":smscode-core:domain:test", ":smscode-core:verification:detekt", ":smscode-core:verification:test", ":smscode-core:rule:test"]},
-    {"paths": ["magisk-ui-kit/*"], "tasks": [":magisk-ui-kit:testAndroidHostTest", ":magisk-ui-kit:jvmTest", ":magisk-ui-kit:billing:testDebugUnitTest"]},
-    {"paths": ["desktop/*", "modules/desktop/*"], "tasks": [":desktop:compileKotlinJvm", ":desktop:jvmTest", ":desktop:core:jvmTest", ":desktop:data:jvmTest", "verifyStructureBoundaries"]},
-    {"paths": ["modules/policy/*", "modules/relay/contract/*", "modules/relay/engine/*", "modules/relay/matrix-e2ee/*", "modules/relay/net/*", "modules/relay/sender/api/*"], "tasks": [":app:testGithubDebugUnitTest", ":app:koverHtmlReportGithubDebug", ":mobile:feature:common:testGithubDebugUnitTest", ":mobile:feature:forward:testGithubDebugUnitTest", ":mobile:feature:overview:testGithubDebugUnitTest", ":mobile:feature:appconfig:testGithubDebugUnitTest", ":mobile:feature:record:testGithubDebugUnitTest", ":mobile:feature:settings:testGithubDebugUnitTest", ":mobile:feature:sender:testGithubDebugUnitTest", ":mobile:feature:verification:testGithubDebugUnitTest", ":mobile:ui:testGithubDebugUnitTest", ":policy:jvmTest", ":relay:contract:jvmTest", ":relay:engine:jvmTest", ":relay:matrix-e2ee:jvmTest", ":relay:net:jvmTest", ":relay:sender:api:jvmTest"]},
-    {"paths": ["modules/relay/sender/*"], "tasks": [":app:testGithubDebugUnitTest", ":app:koverHtmlReportGithubDebug", ":mobile:feature:common:testGithubDebugUnitTest", ":mobile:feature:forward:testGithubDebugUnitTest", ":mobile:feature:overview:testGithubDebugUnitTest", ":mobile:feature:appconfig:testGithubDebugUnitTest", ":mobile:feature:record:testGithubDebugUnitTest", ":mobile:feature:settings:testGithubDebugUnitTest", ":mobile:feature:sender:testGithubDebugUnitTest", ":mobile:feature:verification:testGithubDebugUnitTest", ":mobile:ui:testGithubDebugUnitTest", ":relay:sender:testGithubDebugUnitTest"]},
-    {"paths": ["app/*", "modules/*", "mobile/*", "features/*", "magisk-xposed-kit/*"], "tasks": [":app:testGithubDebugUnitTest", ":app:koverHtmlReportGithubDebug", ":mobile:feature:common:testGithubDebugUnitTest", ":mobile:feature:forward:testGithubDebugUnitTest", ":mobile:feature:overview:testGithubDebugUnitTest", ":mobile:feature:appconfig:testGithubDebugUnitTest", ":mobile:feature:record:testGithubDebugUnitTest", ":mobile:feature:settings:testGithubDebugUnitTest", ":mobile:feature:sender:testGithubDebugUnitTest", ":mobile:feature:verification:testGithubDebugUnitTest", ":mobile:ui:testGithubDebugUnitTest"]}
+    {
+      "paths": [
+        "smscode/*"
+      ],
+      "tasks": [
+        ":smscode-core:contract:test",
+        ":smscode-core:domain:test",
+        ":smscode-core:verification:detekt",
+        ":smscode-core:verification:test",
+        ":smscode-core:rule:test"
+      ]
+    },
+    {
+      "paths": [
+        "magisk-ui-kit/*"
+      ],
+      "tasks": [
+        ":magisk-ui-kit:testAndroidHostTest",
+        ":magisk-ui-kit:jvmTest",
+        ":magisk-ui-kit:billing:testDebugUnitTest",
+        ":magisk-ui-kit:update:testGithubDebugUnitTest"
+      ]
+    },
+    {
+      "paths": [
+        "desktop/*",
+        "modules/desktop/*"
+      ],
+      "tasks": [
+        ":desktop:compileKotlinJvm",
+        ":desktop:jvmTest",
+        ":desktop:core:jvmTest",
+        ":desktop:data:jvmTest",
+        "verifyStructureBoundaries"
+      ]
+    },
+    {
+      "paths": [
+        "modules/policy/*",
+        "modules/relay/contract/*",
+        "modules/relay/matrix-e2ee/*"
+      ],
+      "tasks": [
+        ":app:testGithubDebugUnitTest",
+        ":app:koverHtmlReportGithubDebug",
+        ":mobile:feature:common:testGithubDebugUnitTest",
+        ":mobile:feature:forward:testGithubDebugUnitTest",
+        ":mobile:feature:overview:testGithubDebugUnitTest",
+        ":mobile:feature:appconfig:testGithubDebugUnitTest",
+        ":mobile:feature:record:testGithubDebugUnitTest",
+        ":mobile:feature:settings:testGithubDebugUnitTest",
+        ":mobile:feature:sender:testGithubDebugUnitTest",
+        ":mobile:feature:verification:testGithubDebugUnitTest",
+        ":mobile:ui:testGithubDebugUnitTest",
+        ":policy:jvmTest",
+        ":relay:contract:jvmTest",
+        ":magisk-forward-core:engine:jvmTest",
+        ":relay:matrix-e2ee:jvmTest",
+        ":magisk-forward-core:net:jvmTest"
+      ]
+    },
+    {
+      "paths": [
+        "app/*",
+        "modules/*",
+        "mobile/*",
+        "features/*",
+        "magisk-xposed-kit/*",
+        "modules/relay/android/*"
+      ],
+      "tasks": [
+        ":app:testGithubDebugUnitTest",
+        ":app:koverHtmlReportGithubDebug",
+        ":mobile:feature:common:testGithubDebugUnitTest",
+        ":mobile:feature:forward:testGithubDebugUnitTest",
+        ":mobile:feature:overview:testGithubDebugUnitTest",
+        ":mobile:feature:appconfig:testGithubDebugUnitTest",
+        ":mobile:feature:record:testGithubDebugUnitTest",
+        ":mobile:feature:settings:testGithubDebugUnitTest",
+        ":mobile:feature:sender:testGithubDebugUnitTest",
+        ":mobile:feature:verification:testGithubDebugUnitTest",
+        ":mobile:ui:testGithubDebugUnitTest",
+        ":relay:android:testGithubDebugUnitTest"
+      ]
+    },
+    {
+      "paths": [
+        "forward/core/*"
+      ],
+      "tasks": [
+        ":magisk-forward-core:contract:jvmTest",
+        ":magisk-forward-core:capture:testDebugUnitTest",
+        ":magisk-forward-core:runtime:testDebugUnitTest",
+        ":magisk-forward-core:engine:jvmTest",
+        ":magisk-forward-core:net:jvmTest",
+        ":magisk-forward-core:db:testDebugUnitTest"
+      ]
+    }
   ]
 }

@@ -1,0 +1,12 @@
+# Production Kotlin god-file review debt (xinyi-relay).
+# Format: PATH|EXACT_LINES|REVIEW_REASON
+# This is not a growth budget: verifyGodFileLimits requires exact counts and rejects
+# new entries unless the architecture review explicitly updates this file.
+# Mirrors XposedSmsCode scripts/checks/report_god_files.sh semantics.
+desktop/src/jvmMain/kotlin/io/github/magisk317/relay/desktop/i18n/Messages.kt|1366|Generated-style i18n message table for the desktop shell; strings live in one reviewable block
+modules/relay/matrix-e2ee/src/androidMain/kotlin/io/github/magisk317/relay/matrix/e2ee/MatrixE2eeVerificationRuntime.kt|1274|E2EE verification state machine; split requires an architecture review of the runtime contract
+modules/relay/matrix-e2ee/src/androidMain/kotlin/io/github/magisk317/relay/matrix/e2ee/MatrixE2eeRuntime.kt|1237|E2EE runtime facade over the vendor SDK; split requires an architecture review of the runtime contract
+modules/relay/android/src/main/kotlin/io/github/magisk317/relay/android/data/db/AppDatabase.kt|1187|Room database facade with legacy migration/DAO wiring; platform adapter scheduled for the record-domain split
+mobile/feature/sender/src/main/kotlin/io/github/magisk317/relay/ui/sender/forms/MatrixConfigForm.kt|1108|Matrix sender form fields; split candidate tracked with the sender-forms rework
+desktop/src/jvmMain/kotlin/io/github/magisk317/relay/desktop/ui/pages/SendersPage.kt|967|Desktop senders page; split candidate tracked with the desktop UI rework
+mobile/ui/src/main/kotlin/io/github/magisk317/relay/ui/home/MainScreen.kt|952|Shell navigation host across record pages; split tracked with the navigation contract work

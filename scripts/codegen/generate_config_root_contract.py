@@ -20,13 +20,13 @@ SOURCES = [
         "LocalConfigMirrorPayload.kt",
     ),
     resolve_source(
-        "modules/relay/contract",
-        f"{CONTRACT_PACKAGE}/model",
+        "forward/core/contract",
+        "io/github/magisk317/forward/contract/model",
         "SenderActiveSchedule.kt",
     ),
     resolve_source(
-        "modules/relay/contract",
-        f"{CONTRACT_PACKAGE}/model",
+        "forward/core/contract",
+        "io/github/magisk317/forward/contract/model",
         "ForwardCommonConfig.kt",
     ),
     resolve_source(
