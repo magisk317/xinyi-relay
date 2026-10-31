@@ -173,11 +173,11 @@ jobs:
     if: needs.release-eligibility.outputs.proceed == 'true'
     permissions:
       contents: write
-    uses: magisk317/magisk-ci-toolkit/.github/workflows/release-android.yml@53268e1ba18fe05dd0f2824502241d83c32523bd
+    uses: magisk317/magisk-ci-toolkit/.github/workflows/release-android.yml@8678b50afcf1c2b1b5d76d68dd6c64e110fea3eb
     with:
       # Must equal the ref above, MAGISK_CI_TOOLKIT_REF and every GitLab
       # include.ref; ci/verify_toolkit_pin.sh in the toolkit checks it.
-      toolkit_ref: 53268e1ba18fe05dd0f2824502241d83c32523bd
+      toolkit_ref: 8678b50afcf1c2b1b5d76d68dd6c64e110fea3eb
       release_tag: ${{ inputs.release_tag }}
       package_name: io.github.magisk317.xinyi.relay
       release_cert_sha256: 027b936e1d82a606d83599548b8b11e49a2c8ae2588c4a9fbe8311e2c54f103a
