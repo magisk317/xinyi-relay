@@ -8,6 +8,7 @@ import android.net.Uri
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.forward.engine.service.SenderRuntimeServiceRegistry
+import io.github.magisk317.forward.db.ForwardDatabase
 import io.github.magisk317.relay.runtime.BuildConfig
 import io.github.magisk317.xposed.logging.MagiskOtel
 import io.github.magisk317.smscode.runtime.common.backup.BackupDatabaseHooks
@@ -46,6 +47,10 @@ object BackupManager {
         backupFileNamePrefix = "Relay-",
         databaseFileName = "relay_room.db",
         fileProviderAuthority = "${BuildConfig.APPLICATION_ID}.files",
+        // The forward domain (senders, rules, records, dispatch logs) lives in
+        // forward.db since the forward-database cutover; a database backup that
+        // only carried relay_room.db would drop all of it on restore.
+        extraDatabaseFileNames = listOf(ForwardDatabase.NAME),
     )
 
     private val databaseHooks = BackupDatabaseHooks(
@@ -54,6 +59,13 @@ object BackupManager {
                 AppDatabase.getInstance(context).openHelper.writableDatabase.execSQL("PRAGMA wal_checkpoint(FULL)")
             }.onFailure {
                 XLog.w("wal checkpoint before snapshot failed: ${it.message}", it)
+            }
+            runCatching {
+                ForwardDatabase.build(context).use { forwardDb ->
+                    forwardDb.openHelper.writableDatabase.execSQL("PRAGMA wal_checkpoint(FULL)")
+                }
+            }.onFailure {
+                XLog.w("forward.db wal checkpoint before snapshot failed: ${it.message}", it)
             }
         },
         beforeDatabaseRestore = {
