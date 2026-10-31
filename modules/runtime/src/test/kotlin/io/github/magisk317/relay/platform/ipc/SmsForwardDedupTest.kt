@@ -1,8 +1,8 @@
 package io.github.magisk317.relay.platform.ipc
 
 import io.github.magisk317.xposed.contract.dedup.RecentEventDeduplicator
-import io.github.magisk317.xposed.contract.dedup.SmsForwardDedupKeyFactory
-import io.github.magisk317.xposed.contract.dedup.SmsForwardDedupSpec
+import io.github.magisk317.xposed.contract.dedup.CapturedEventDedupKeyFactory
+import io.github.magisk317.xposed.contract.dedup.CapturedEventDedupSpec
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -13,8 +13,8 @@ class SmsForwardDedupTest {
 
     @Test
     fun build_prefersEventIdWhenPresent() {
-        val key = SmsForwardDedupKeyFactory.build(
-            SmsForwardDedupSpec(
+        val key = CapturedEventDedupKeyFactory.build(
+            CapturedEventDedupSpec(
                 eventId = "sms_abc123",
                 sender = "1068",
                 body = "code 123456",
@@ -27,8 +27,8 @@ class SmsForwardDedupTest {
 
     @Test
     fun build_fallsBackToSmsFingerprintWhenEventIdMissing() {
-        val key = SmsForwardDedupKeyFactory.build(
-            SmsForwardDedupSpec(
+        val key = CapturedEventDedupKeyFactory.build(
+            CapturedEventDedupSpec(
                 sender = "1068",
                 body = "code 123456",
                 timestamp = 1_700_000_000_000L,

@@ -21,8 +21,8 @@ import io.github.magisk317.relay.xp.hook.SmsHookRuntimeSession
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
 import io.github.magisk317.xposed.contract.dedup.RecentEventDeduplicator
-import io.github.magisk317.xposed.contract.dedup.SmsForwardDedupKeyFactory
-import io.github.magisk317.xposed.contract.dedup.SmsForwardDedupSpec
+import io.github.magisk317.xposed.contract.dedup.CapturedEventDedupKeyFactory
+import io.github.magisk317.xposed.contract.dedup.CapturedEventDedupSpec
 import io.github.magisk317.smscode.runtime.verification.SmsIntentHookSupport
 import io.github.magisk317.xposed.HookHelpers
 import io.github.magisk317.xposed.BaseHook
@@ -607,8 +607,8 @@ class SmsForwardHook : BaseHook() {
         body: String?,
         timestamp: Long,
     ): String {
-        return SmsForwardDedupKeyFactory.build(
-            SmsForwardDedupSpec(
+        return CapturedEventDedupKeyFactory.build(
+            CapturedEventDedupSpec(
                 eventId = "",
                 sender = sender,
                 body = body,
