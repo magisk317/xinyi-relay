@@ -3,6 +3,17 @@
 本日志记录了项目近期的主要变更。 
 
 ---
+## [v0.4.2] - 2026-10-31
+- 版本：`versionCode 55` / `versionName 0.4.2`。
+- `[db]` 转发数据一次性迁移至独立转发库，升级后自动清除遗留表
+- `[backup]` 备份归档纳入转发数据库，换机恢复不丢转发数据
+- `[refactor]` 记录与配置数据改经仓库 DTO，记录页拆分重构
+- `[gate]` 模块边界与神文件门禁纳入 CI
+- `[deps]` 升级 Gradle 9.9.0-rc-1、AGP 9.5.0，共享库 pin 对齐
+
+> Full Changelog: https://gitlab.com/magisk3171/xinyi-relay/-/compare/v0.4.1...v0.4.2
+
+---
 ## [v0.4.1] - 2026-10-24
 - 版本：`versionCode 54` / `versionName 0.4.1`。
 - `[log]` 日志策略随构建类型：正式版脱敏且不导出，debug 版保留并导出。
