@@ -68,14 +68,8 @@ include(
     ":mobile:feature:rule",
     ":mobile:feature:backup",
     ":relay:android",
-    ":relay:security",
-    ":relay:sender:api",
-    ":relay:sender",
     ":relay:matrix-e2ee",
     ":relay:contract",
-    ":relay:net",
-    ":relay:engine",
-    ":relay:engine:api",
     ":xpbridge:core",
     ":xpbridge:android:api",
     ":smscode-core:hook",
@@ -89,9 +83,23 @@ include(
     ":magisk-ui-kit:billing",
     ":magisk-ui-kit:update",
     ":magisk-xposed-kit",
+    ":magisk-xposed-kit:contract",
     ":magisk-xposed-kit:logging",
-    ":magisk-xposed-kit:logging-core",
     ":magisk-xposed-kit:diagnostics",
+    ":magisk-xposed-kit:capability",
+    ":magisk-xposed-kit:runtime",
+    ":magisk-xposed-kit:capture",
+    ":magisk-forward-core:contract",
+    ":magisk-forward-core:capture",
+    ":magisk-forward-core:runtime",
+    ":magisk-forward-core:engine",
+    ":magisk-forward-core:engine:api",
+    ":magisk-forward-core:sender:api",
+    ":magisk-forward-core:net",
+    ":magisk-forward-core:security",
+    ":magisk-forward-core:sender",
+    ":magisk-forward-core:db",
+    ":magisk-forward-core",
     ":magisk-xposed-kit:permission",
     ":magisk-xposed-kit:entitlement",
     ":magisk-xposed-kit:keepalive",
@@ -108,9 +116,23 @@ project(":smscode-core:runtime").projectDir = file("smscode/core/runtime")
 project(":smscode-core:verification").projectDir = file("smscode/core/verification")
 project(":smscode-core:db").projectDir = file("smscode/core/db")
 project(":smscode-core").projectDir = file("smscode/core")
+project(":magisk-xposed-kit:contract").projectDir = file("magisk-xposed-kit/contract")
 project(":magisk-xposed-kit:logging").projectDir = file("magisk-xposed-kit/logging")
-project(":magisk-xposed-kit:logging-core").projectDir = file("magisk-xposed-kit/logging-core")
+project(":magisk-xposed-kit:capture").projectDir = file("magisk-xposed-kit/capture")
 project(":magisk-xposed-kit:diagnostics").projectDir = file("magisk-xposed-kit/diagnostics")
+project(":magisk-xposed-kit:capability").projectDir = file("magisk-xposed-kit/capability")
+project(":magisk-xposed-kit:runtime").projectDir = file("magisk-xposed-kit/runtime")
+project(":magisk-forward-core:contract").projectDir = file("forward/core/contract")
+project(":magisk-forward-core:capture").projectDir = file("forward/core/capture")
+project(":magisk-forward-core:runtime").projectDir = file("forward/core/runtime")
+project(":magisk-forward-core:engine").projectDir = file("forward/core/engine")
+project(":magisk-forward-core:engine:api").projectDir = file("forward/core/engine/api")
+project(":magisk-forward-core:sender:api").projectDir = file("forward/core/sender/api")
+project(":magisk-forward-core:net").projectDir = file("forward/core/net")
+project(":magisk-forward-core:security").projectDir = file("forward/core/security")
+project(":magisk-forward-core:sender").projectDir = file("forward/core/sender")
+project(":magisk-forward-core:db").projectDir = file("forward/core/db")
+project(":magisk-forward-core").projectDir = file("forward/core")
 project(":magisk-xposed-kit:permission").projectDir = file("magisk-xposed-kit/permission")
 project(":magisk-xposed-kit:entitlement").projectDir = file("magisk-xposed-kit/entitlement")
 project(":magisk-xposed-kit:keepalive").projectDir = file("magisk-xposed-kit/keepalive")
@@ -121,14 +143,8 @@ project(":magisk-ui-kit:update").projectDir = file("magisk-ui-kit/update")
 project(":policy").projectDir = file("modules/policy")
 project(":hook:entry").projectDir = file("modules/hook/entry")
 project(":relay:android").projectDir = file("modules/relay/android")
-project(":relay:sender:api").projectDir = file("modules/relay/sender/api")
-project(":relay:security").projectDir = file("modules/relay/security")
-project(":relay:sender").projectDir = file("modules/relay/sender")
 project(":relay:matrix-e2ee").projectDir = file("modules/relay/matrix-e2ee")
 project(":relay:contract").projectDir = file("modules/relay/contract")
-project(":relay:net").projectDir = file("modules/relay/net")
-project(":relay:engine").projectDir = file("modules/relay/engine")
-project(":relay:engine:api").projectDir = file("modules/relay/engine/api")
 project(":runtime").projectDir = file("modules/runtime")
 project(":xpbridge:core").projectDir = file("modules/xpbridge/core")
 project(":xpbridge:android:api").projectDir = file("modules/xpbridge/android/api")
