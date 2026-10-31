@@ -1,7 +1,3 @@
-// Compose 1.x painterResource/TextField deprecations; migrate with Compose Resources and
-// the state-based text-field APIs in a dedicated pass.
-@file:Suppress("DEPRECATION")
-
 package io.github.magisk317.relay.desktop.ui
 
 import androidx.compose.foundation.BorderStroke
@@ -145,6 +141,8 @@ fun AppShellScreen(
 }
 
 @Composable
+// Compose Resources are not wired for this module (no composeResources source set anywhere in the repo), so the classpath-resource overload stays; suppressed here rather than file-wide so every other deprecation in this file is still reported.
+@Suppress("DEPRECATION")
 private fun Header(
     session: DesktopSessionState,
     linkOpener: DesktopLinkOpener,

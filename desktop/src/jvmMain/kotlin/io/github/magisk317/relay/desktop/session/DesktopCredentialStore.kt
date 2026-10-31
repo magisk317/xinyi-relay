@@ -2,6 +2,7 @@ package io.github.magisk317.relay.desktop.session
 
 import java.io.IOException
 import java.nio.charset.StandardCharsets
+import io.github.magisk317.relay.desktop.platform.DesktopLog
 
 /** A pair of bearer credentials kept outside the profile metadata file. */
 data class DesktopCredentials(
@@ -58,13 +59,37 @@ class SystemCredentialStore(
             write(secretAccount(profileId, REFRESH_SUFFIX), credentials.refreshToken)
         } catch (failure: RuntimeException) {
             runCatching { delete(secretAccount(profileId, ACCESS_SUFFIX)) }
+
+            .onFailure { error ->
+                DesktopLog.warn(
+                    key = "credentials.rollback",
+                    message = "rollback delete of the access secret failed",
+                    fields = mapOf("error" to (error::class.simpleName ?: "Throwable")),
+                )
+                }
             throw failure
         }
     }
 
     override fun clear(profileId: String) {
         runCatching { delete(secretAccount(profileId, ACCESS_SUFFIX)) }
+
+        .onFailure { error ->
+            DesktopLog.warn(
+                key = "credentials.clear.access",
+                message = "stored access secret survived a credential clear",
+                fields = mapOf("error" to (error::class.simpleName ?: "Throwable")),
+            )
+            }
         runCatching { delete(secretAccount(profileId, REFRESH_SUFFIX)) }
+
+        .onFailure { error ->
+            DesktopLog.warn(
+                key = "credentials.clear.refresh",
+                message = "stored refresh secret survived a credential clear",
+                fields = mapOf("error" to (error::class.simpleName ?: "Throwable")),
+            )
+            }
     }
 
     private fun read(account: SecretAccount): String? {
