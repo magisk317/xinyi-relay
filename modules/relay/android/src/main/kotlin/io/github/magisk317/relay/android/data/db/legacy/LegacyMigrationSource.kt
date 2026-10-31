@@ -12,7 +12,6 @@ import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySender
 import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySmsMsg
 import io.github.magisk317.relay.android.data.db.entity.SenderDispatchLog
 import io.github.magisk317.xposed.contract.sim.SmsRoutingMetadata
-import io.github.magisk317.xposed.logging.XLog
 
 /** Rows read from the legacy relay_room.db tables, ready for the importer projections. */
 data class LegacyConfigRows(
@@ -54,8 +53,6 @@ interface LegacyMigrationSource : AutoCloseable {
 }
 
 class LegacyRawSource(private val context: Context) : LegacyMigrationSource {
-    private val logTag = "LegacyMigration"
-
     @Volatile
     private var openedDb: SQLiteDatabase? = null
 
@@ -63,7 +60,6 @@ class LegacyRawSource(private val context: Context) : LegacyMigrationSource {
         get() = openedDb ?: synchronized(this) {
             openedDb ?: run {
                 val path = context.getDatabasePath(DATABASE_FILE).absolutePath
-                XLog.w(message = "$logTag: opening legacy relay_room.db raw (rw) at %s", path)
                 SQLiteDatabase.openDatabase(path, null, SQLiteDatabase.OPEN_READWRITE, null)
                     .also { openedDb = it }
             }
@@ -200,16 +196,13 @@ class LegacyRawSource(private val context: Context) : LegacyMigrationSource {
     override fun markDrained() {
         db.execSQL("CREATE TABLE IF NOT EXISTS legacy_import_done (proceed INTEGER NOT NULL)")
         db.execSQL("INSERT OR REPLACE INTO legacy_import_done (proceed) VALUES (1)")
-        XLog.w(message = "$logTag: drain marker written")
     }
 
     override fun dropLegacyTables() {
         LEGACY_DRAINABLE_TABLES.forEach { table ->
             db.execSQL("DROP TABLE IF EXISTS `$table`")
-            XLog.w(message = "$logTag: dropped table %s", table)
         }
         db.execSQL("DROP TABLE IF EXISTS legacy_import_done")
-        XLog.w(message = "$logTag: legacy tables dropped")
     }
 
     override fun close() {
@@ -222,14 +215,10 @@ class LegacyRawSource(private val context: Context) : LegacyMigrationSource {
             .use { it.count > 0 }
 
     private fun <T> readRows(table: String, map: (Cursor) -> T): List<T> {
-        if (!tableExists(table)) {
-            XLog.w(message = "$logTag: table %s absent (fresh schema or already drained)", table)
-            return emptyList()
-        }
+        if (!tableExists(table)) return emptyList()
         return db.query(table, null, null, null, null, null, null).use { c ->
             val rows = mutableListOf<T>()
             while (c.moveToNext()) rows += map(c)
-            XLog.w(message = "$logTag: read %s rows=%d", table, rows.size)
             rows
         }
     }

@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 object ForwardDatabaseBootstrapper {
 
-    private const val LOG_TAG = "LegacyMigration"
     private const val KEY_EVENT_IMPORT = "legacy_event_import"
     private const val KEY_CONFIG_IMPORT = "legacy_config_import"
     private const val KEY_IMPORT_FAILURE = "legacy_import_failure"
@@ -50,7 +49,6 @@ object ForwardDatabaseBootstrapper {
             val result = runCatching {
                 sourceFactory(appContext).use { source ->
                     if (!source.legacyFileExists()) {
-                        XLog.w(message = "$LOG_TAG: no legacy relay_room.db; fresh install, nothing to import")
                         return@launch
                     }
                     val target = ForwardDatabase.build(appContext)
@@ -94,7 +92,6 @@ object ForwardDatabaseBootstrapper {
             // Dropping is best-effort cosmetic: a failure here leaves dead
             // tables behind, it can never lose data.
             runCatching { source.dropLegacyTables() }
-                .onFailure { XLog.w(message = "$LOG_TAG: legacy table drop failed (cosmetic): %s", it.message) }
             return
         }
         if (error is CancellationException) throw error
@@ -114,12 +111,10 @@ object ForwardDatabaseBootstrapper {
 
     private suspend fun importEventsIfNeeded(source: LegacyMigrationSource, target: ForwardDatabase) {
         if (target.forwardEventDao().count() > 0) {
-            XLog.w(message = "$LOG_TAG: forward_event already populated; event import skipped")
             return
         }
         val msgs = source.readSmsMsgs()
         if (msgs.isEmpty()) {
-            XLog.w(message = "$LOG_TAG: legacy sms_msg empty or absent; event import skipped")
             return
         }
         val logs = source.readDispatchLogs()
@@ -145,7 +140,6 @@ object ForwardDatabaseBootstrapper {
 
     private suspend fun importConfigIfNeeded(source: LegacyMigrationSource, target: ForwardDatabase) {
         if (target.forwardMetaDao().get(KEY_CONFIG_IMPORT) == STATE_OK) {
-            XLog.w(message = "$LOG_TAG: config import already marked ok; skipped")
             return
         }
         val report = ForwardLegacyImporter.importConfigIfNeeded(source.readConfig(), target)
