@@ -25,8 +25,12 @@ import kotlinx.coroutines.launch
  * Legacy startup permission prompt, kept for users who accepted privacy before
  * the setup wizard existed. The collection logic itself lives in
  * [StartupPermissionCollector] (shared with the setup wizard), so both flows
- * ask for exactly the same set.
+ * ask for exactly the same set — except the battery-optimization exemption:
+ * firing ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS at every app start and
+ * then warning about it in a snackbar read as a nag, so the early prompt
+ * leaves it to the setup wizard and the settings permission page.
  */
+private val earlyPromptExcludedKeys = setOf(PermissionRequirement.BATTERY_OPTIMIZATION_KEY)
 @Composable
 fun StartupPermissionPrompt(enabled: Boolean) {
     val context = LocalContext.current
@@ -42,6 +46,7 @@ fun StartupPermissionPrompt(enabled: Boolean) {
     fun finishPrompt() {
         StartupPromptStore.markPromptedForCurrentVersion(context)
         val stillMissing = StartupPermissionCollector.collectMissing(context, config)
+            .filterNot { it.key in earlyPromptExcludedKeys }
         if (stillMissing.isNotEmpty()) {
             scope.launch {
                 snackbarHostState.showLatestSnackbar(
@@ -93,6 +98,7 @@ fun StartupPermissionPrompt(enabled: Boolean) {
         }
         promptStarted = true
         val missing = StartupPermissionCollector.collectMissing(context, config)
+            .filterNot { it.key in earlyPromptExcludedKeys }
         if (missing.isEmpty()) {
             StartupPromptStore.markPromptedForCurrentVersion(context)
             return
