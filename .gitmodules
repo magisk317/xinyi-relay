@@ -1,5 +1,6 @@
 [submodule "smscode-core"]
 	path = smscode/core
+	branch = main
 	url = https://gitlab.com/magisk3171/shared/magisk-smscode-core.git
 [submodule "magisk-ui-kit"]
 	path = magisk-ui-kit
@@ -16,3 +17,6 @@
 [submodule "magisk-xposed-kit"]
 	path = magisk-xposed-kit
 	url = https://gitlab.com/magisk3171/shared/magisk-xposed-kit.git
+[submodule "forward/core"]
+	path = forward/core
+	url = https://gitlab.com/magisk3171/shared/magisk-forward-core.git
