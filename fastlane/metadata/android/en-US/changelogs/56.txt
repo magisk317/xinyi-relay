@@ -1,0 +1,1 @@
+Senders gain mTLS client certificates; logging is now gated by the build channel to reduce plaintext logs in release builds.
