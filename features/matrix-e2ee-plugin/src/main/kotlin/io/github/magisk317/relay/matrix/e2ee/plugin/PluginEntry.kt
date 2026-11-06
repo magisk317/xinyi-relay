@@ -31,6 +31,8 @@ object PluginEntry {
         MatrixE2eePlatform.initialize(context)
         MatrixE2eeSenderProvider.install(MatrixE2eeRuntime)
         MatrixE2eeVerificationProvider.install(MatrixE2eeVerificationRuntime)
-        Log.i(TAG, "Matrix E2EE plugin installed (sdk=" + BuildConfig.VERSION_NAME + ")")
+        if (BuildConfig.DEBUG || BuildConfig.IS_CI_BUILD) {
+            Log.i(TAG, "Matrix E2EE plugin installed (sdk=" + BuildConfig.VERSION_NAME + ")")
+        }
     }
 }

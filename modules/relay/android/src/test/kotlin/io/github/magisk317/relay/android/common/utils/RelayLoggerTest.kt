@@ -5,19 +5,27 @@ import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
 import io.github.magisk317.xposed.runtime.contract.logging.LogRoute
 import io.github.magisk317.xposed.logging.LogEvent
 import io.github.magisk317.xposed.logging.LogSink
+import io.github.magisk317.xposed.logging.MagiskLogPolicy
 import io.github.magisk317.xposed.logging.XLog as ContractXLog
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
 class RelayLoggerTest {
+
+    @BeforeEach
+    fun setUp() {
+        MagiskLogPolicy.install(isDiagnosticBuild = true)
+    }
 
     @AfterEach
     fun tearDown() {
         ContractXLog.resetForTest()
         RelayLogger.setRuntimeSinkForTest(null)
+        MagiskLogPolicy.install(isDiagnosticBuild = false)
     }
 
     @Test
@@ -32,7 +40,7 @@ class RelayLoggerTest {
     }
 
     @Test
-    fun xLogTestSinkReceivesSanitizedFormattedMessage() {
+    fun xLogTestSinkReceivesBoundedPlaintextInDiagnosticBuild() {
         var captured: Pair<Int, String>? = null
         ContractXLog.setLogLevel(2)
         ContractXLog.setTestSink { priority, message -> captured = priority to message }
@@ -40,14 +48,13 @@ class RelayLoggerTest {
         ContractXLog.i(message = "token=%s body=%s", "secret123", "验证码123456")
 
         assertEquals(4, captured?.first)
-        assertTrue(captured?.second.orEmpty().contains("token=***"))
-        assertTrue(captured?.second.orEmpty().contains("body=payload["))
-        assertFalse(captured?.second.orEmpty().contains("secret123"))
-        assertFalse(captured?.second.orEmpty().contains("验证码123456"))
+        assertTrue(captured?.second.orEmpty().contains("token=secret123"))
+        assertTrue(captured?.second.orEmpty().contains("body=验证码123456"))
+        assertTrue(captured?.second.orEmpty().length <= 80)
     }
 
     @Test
-    fun relayLoggerRuntimeSinkReceivesSanitizedRouteEvent() {
+    fun relayLoggerRuntimeSinkReceivesBoundedPlaintextRouteEventInDiagnosticBuild() {
         var captured: CapturedRuntimeLog? = null
         ContractXLog.setLogLevel(2)
         RelayLogger.setRuntimeSinkForTest(
@@ -69,9 +76,34 @@ class RelayLoggerTest {
 
         assertEquals(6, captured?.priority)
         assertEquals("xinyi", captured?.tag)
-        assertFalse(captured?.message.orEmpty().contains("13800138000"))
+        assertTrue(captured?.message.orEmpty().contains("13800138000"))
+        assertTrue(captured?.message.orEmpty().length <= 80)
         assertTrue(captured?.force ?: false)
         assertEquals(RuntimeLogStore.ROUTE_APP, captured?.route)
+    }
+
+    @Test
+    fun releasePolicyDropsRelayLoggerEvents() {
+        var sinkCalls = 0
+        RelayLogger.setRuntimeSinkForTest(
+            object : RelayLogger.RuntimeSink {
+                override fun append(
+                    priority: Int,
+                    tag: String,
+                    message: String,
+                    force: Boolean,
+                    route: String?,
+                    throwableText: String?,
+                ) {
+                    sinkCalls += 1
+                }
+            },
+        )
+        MagiskLogPolicy.install(isDiagnosticBuild = false)
+
+        RelayLogger.e("body=plaintext")
+
+        assertEquals(0, sinkCalls)
     }
 
     @Test

@@ -29,16 +29,19 @@ object AppInfrastructureCoordinator {
         ForwardIngressEnvironment.register(RelayForwardIngressEnvironment(application))
         ForwardDatabaseBootstrapper.scheduleLegacyImport(application)
         AnalyticsTracker.init(application)
-        RuntimeDiagnosticsBridge.ensureInstalled()
-        RuntimeLogStore.initialize(application, enableDetailedLogs = MagiskLogPolicy.current().verboseLogging)
         SenderRuntimeBridge.install(application)
-        SenderLogBridge.install()
-        io.github.magisk317.xposed.logging.XLog.configure(
-            tag = io.github.magisk317.relay.android.BuildConfig.LOG_TAG,
-            logLevel = io.github.magisk317.relay.android.BuildConfig.LOG_LEVEL,
-            logToXposed = io.github.magisk317.relay.android.BuildConfig.LOG_TO_XPOSED,
-        )
-        installVerificationLogSink()
+        val logPolicy = MagiskLogPolicy.current()
+        RuntimeDiagnosticsBridge.ensureInstalled()
+        if (logPolicy.loggingEnabled) {
+            RuntimeLogStore.initialize(application, enableDetailedLogs = logPolicy.verboseLogging)
+            SenderLogBridge.install()
+            io.github.magisk317.xposed.logging.XLog.configure(
+                tag = io.github.magisk317.relay.android.BuildConfig.LOG_TAG,
+                logLevel = io.github.magisk317.relay.android.BuildConfig.LOG_LEVEL,
+                logToXposed = io.github.magisk317.relay.android.BuildConfig.LOG_TO_XPOSED,
+            )
+            installVerificationLogSink()
+        }
         SmsCodeXposedRuntimeBridge.install(shouldSuppressSystemHooks)
         if (io.github.magisk317.relay.runtime.BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())

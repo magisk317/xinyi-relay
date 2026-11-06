@@ -5,14 +5,16 @@ import android.util.Log
 import io.github.magisk317.relay.android.BuildConfig
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
 import io.github.magisk317.xposed.logging.LogEvent
+import io.github.magisk317.xposed.logging.DefaultLogSanitizer
 import io.github.magisk317.xposed.logging.LogFormatter
 import io.github.magisk317.xposed.logging.LogLevel
+import io.github.magisk317.xposed.logging.MagiskLogPolicy
 import io.github.magisk317.xposed.runtime.contract.logging.LogRoute
 
 object RelayLogger {
 
     private val LOG_TAG = BuildConfig.LOG_TAG
-    private const val LOG_TO_XPOSED = BuildConfig.LOG_TO_XPOSED
+    private val BUILD_LOGGING_ENABLED = BuildConfig.DEBUG || BuildConfig.IS_CI_BUILD
 
     @Volatile
     private var logLevel = BuildConfig.LOG_LEVEL
@@ -104,27 +106,21 @@ object RelayLogger {
         vararg args: Any?,
     ) {
         if (priority < logLevel) return
+        if (!BUILD_LOGGING_ENABLED && testSink == null) return
+        if (!MagiskLogPolicy.current().loggingEnabled && testSink == null) return
 
         val formattedMessage = LogFormatter.formatArgs(message, args)
-        val throwableText = (args.lastOrNull() as? Throwable)?.stackTraceToString()
+        val throwableText = (args.lastOrNull() as? Throwable)?.stackTraceToString()?.let(
+            DefaultLogSanitizer::sanitizeIfEnabled,
+        )
         val logMessage = if (sensitive) {
             SensitiveLogPolicy.sanitizeLogMessage(formattedMessage)
         } else {
-            formattedMessage
+            DefaultLogSanitizer.limitForLog(formattedMessage)
         }
         testSink?.let { sink ->
             sink(priority, logMessage)
             return
-        }
-
-        runCatching { Log.println(priority, LOG_TAG, logMessage) }.onFailure {
-            // best-effort: nothing here can act on the failure
-        }
-
-        if (LOG_TO_XPOSED) {
-            runCatching { Log.println(priority, "LSPosed-Bridge", "$LOG_TAG: $logMessage") }.onFailure {
-                // best-effort: nothing here can act on the failure
-            }
         }
 
         val resolvedRoute = route ?: RuntimeLogStore.ROUTE_APP

@@ -43,8 +43,7 @@ class SmsCodeApplication : Application() {
         MagiskLogPolicy.install(
             // -PminifyDebug makes the debug variant non-debuggable, which clears
             // BuildConfig.DEBUG; the build type still identifies the capture channel.
-            isDebugBuild = BuildConfig.BUILD_TYPE == "debug",
-            allowPlaintextLogs = BuildConfig.ALLOW_PLAINTEXT_LOGS,
+            isDiagnosticBuild = BuildConfig.DEBUG || BuildConfig.IS_CI_BUILD,
         )
         RuntimeCrashLogs.install(this)
         AppPreferencesDataStore.install(RelayPreferenceHooks)
@@ -70,7 +69,7 @@ class SmsCodeApplication : Application() {
         }
 
         startKoin {
-            androidLogger()
+            if (MagiskLogPolicy.current().loggingEnabled) androidLogger()
             androidContext(this@SmsCodeApplication)
             modules(coreModule, billingModule, uiModule, appDependencyModule)
         }

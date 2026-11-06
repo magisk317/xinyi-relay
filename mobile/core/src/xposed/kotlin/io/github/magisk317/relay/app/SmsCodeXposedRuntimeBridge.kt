@@ -14,6 +14,7 @@ import io.github.magisk317.xposed.capability.runtime.CoreRuntime
 import io.github.magisk317.xposed.capability.runtime.CoreRuntimeAccess
 import io.github.magisk317.relay.android.otel.MagiskOtelBootstrap
 import io.github.magisk317.xposed.logging.MagiskOtel
+import io.github.magisk317.xposed.logging.MagiskLogPolicy
 import io.github.magisk317.xposed.logging.AnonymousInstallationId
 
 object SmsCodeXposedRuntimeBridge {
@@ -66,21 +67,23 @@ object SmsCodeXposedRuntimeBridge {
             override val applicationId: String = io.github.magisk317.relay.runtime.BuildConfig.APPLICATION_ID
             override val actionNamespace: String = AutoInputActions.ACTION_NAMESPACE
         })
-        CoreLogSinkHolder.install(object : CoreLogSink {
-            override fun append(
-                priority: Int,
-                tag: String,
-                message: String,
-                force: Boolean,
-                route: String?,
-                sensitive: Boolean,
-                throwableText: String?,
-            ) {
-                val safeMessage = if (sensitive) SensitiveLogPolicy.sanitizeLogMessage(message) else message
-                RuntimeDiagnosticsBridge.ensureInstalled()
-                RuntimeLogStore.append(priority, tag, safeMessage, force, route, throwableText)
-            }
-        })
+        if (MagiskLogPolicy.current().loggingEnabled) {
+            CoreLogSinkHolder.install(object : CoreLogSink {
+                override fun append(
+                    priority: Int,
+                    tag: String,
+                    message: String,
+                    force: Boolean,
+                    route: String?,
+                    sensitive: Boolean,
+                    throwableText: String?,
+                ) {
+                    val safeMessage = if (sensitive) SensitiveLogPolicy.sanitizeLogMessage(message) else message
+                    RuntimeDiagnosticsBridge.ensureInstalled()
+                    RuntimeLogStore.append(priority, tag, safeMessage, force, route, throwableText)
+                }
+            })
+        }
         CoreHookPolicyHolder.install(object : CoreHookPolicy {
             override fun shouldSuppressSystemHooks(context: Context?, source: String): Boolean {
                 return shouldSuppressSystemHooks(context, source)

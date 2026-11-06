@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.net.Uri
 import android.os.Binder
+import io.github.magisk317.relay.android.BuildConfig
 import io.github.magisk317.relay.android.common.utils.SensitiveLogPolicy
 import io.github.magisk317.relay.android.diagnostics.RuntimeDiagnosticsBridge
 import io.github.magisk317.relay.android.platform.ipc.ProviderCallerPolicy
@@ -15,6 +16,7 @@ import io.github.magisk317.xposed.logging.MagiskLogPolicy
 import io.github.magisk317.xposed.logging.XposedLogEvent
 
 class RelayXposedLogProvider : BaseXposedLogProvider() {
+    private val buildLoggingEnabled = BuildConfig.DEBUG || BuildConfig.IS_CI_BUILD
     override val ingressPolicy: LogProviderQuotaPolicy = LogProviderQuotaPolicy(
         LogProviderQuotaConfig(
             maxEventsPerWindow = MAX_EVENTS_PER_MINUTE,
@@ -31,6 +33,7 @@ class RelayXposedLogProvider : BaseXposedLogProvider() {
     }
 
     override fun onCreate(): Boolean {
+        if (!buildLoggingEnabled) return true
         val ctx = context?.applicationContext ?: return false
         quota = runCatching {
             PersistentUidQuota(
@@ -44,6 +47,7 @@ class RelayXposedLogProvider : BaseXposedLogProvider() {
     }
 
     override fun insert(uri: Uri, values: ContentValues?): Uri? {
+        if (!buildLoggingEnabled) return null
         val ctx = context?.applicationContext ?: return null
         if (uri.authority != authority || uri.lastPathSegment != "entry") return null
 
@@ -60,6 +64,7 @@ class RelayXposedLogProvider : BaseXposedLogProvider() {
         ProviderCallerPolicy.isSelfOrSystemScope(context)
 
     override fun appendLog(event: XposedLogEvent) {
+        if (!buildLoggingEnabled || !MagiskLogPolicy.current().loggingEnabled) return
         val ctx = context?.applicationContext ?: return
         RuntimeDiagnosticsBridge.ensureInstalled()
         RuntimeLogStore.initialize(ctx, enableDetailedLogs = MagiskLogPolicy.current().verboseLogging)

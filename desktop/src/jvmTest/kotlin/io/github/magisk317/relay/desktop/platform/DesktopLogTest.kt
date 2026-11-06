@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.desktop.platform
 
 import io.github.magisk317.xposed.logging.LogLevel
+import io.github.magisk317.xposed.logging.MagiskLogPolicy
 import io.github.magisk317.xposed.logging.XLog
 import java.io.ByteArrayOutputStream
 import java.io.PrintStream
@@ -18,7 +19,7 @@ import org.junit.jupiter.api.Test
  * Pins the desktop JSONL contract over the unified XLog pipeline:
  * DesktopLog routes warn/error through XLog with the key as tag and the
  * fields as metadata, and DesktopJsonlSink renders one parseable object per
- * line on stderr with the shared redactor applied, the throwable class
+ * line on stderr with diagnostic plaintext bounded to 80 characters, the throwable class
  * named, and the fixed-window limiter holding a flood to five events per
  * level+key window.
  */
@@ -30,6 +31,7 @@ class DesktopLogTest {
     fun setUp() {
         System.setErr(PrintStream(captured, true))
         XLog.resetForTest()
+        MagiskLogPolicy.install(isDiagnosticBuild = true)
         XLog.configure(
             tag = "xinyi-desktop",
             logLevel = LogLevel.VERBOSE.priority,
@@ -41,6 +43,7 @@ class DesktopLogTest {
     @AfterEach
     fun tearDown() {
         XLog.resetForTest()
+        MagiskLogPolicy.install(isDiagnosticBuild = false)
         System.setErr(originalErr)
     }
 
@@ -59,12 +62,12 @@ class DesktopLogTest {
     }
 
     @Test
-    fun `carries fields as redacted json members`() {
+    fun `carries bounded plaintext fields in diagnostic builds`() {
         DesktopLog.error("test.fields", "upload failed", fields = mapOf("authorization" to "Bearer abc123secret"))
 
         val parsed = Json.parseToJsonElement(lines().single()).jsonObject
-        assertTrue(parsed["authorization"]!!.jsonPrimitive.content.contains("***"))
-        assertFalse(parsed["authorization"]!!.jsonPrimitive.content.contains("abc123secret"))
+        assertTrue(parsed["authorization"]!!.jsonPrimitive.content.contains("abc123secret"))
+        assertTrue(parsed["authorization"]!!.jsonPrimitive.content.length <= 80)
     }
 
     @Test

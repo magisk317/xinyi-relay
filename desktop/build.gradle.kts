@@ -5,12 +5,62 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+import org.gradle.api.DefaultTask
+import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.provider.Property
+import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.OutputDirectory
+import org.gradle.api.tasks.TaskAction
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+
+val desktopDiagnosticBuild = providers.gradleProperty("isCiBuild")
+    .orElse(providers.environmentVariable("MAGISK_IS_CI_BUILD"))
+    .map { value -> value.toBooleanStrictOrNull() ?: false }
+    .orElse(!providers.gradleProperty("desktopVersion").isPresent)
+val generatedDesktopBuildConfig = layout.buildDirectory.dir("generated/source/desktopBuildConfig")
+/**
+ * A custom task class keeps this task configuration-cache clean: a registered
+ * task with a doLast closure captures Gradle script object references, which
+ * fails configuration cache store on cold builds (first seen on the tag
+ * pipeline's desktop packaging jobs, 2026-11-06; local gates run with
+ * org.gradle.configuration-cache=false via the shared global gradle
+ * properties, so only CI exposes the violation).
+ */
+abstract class GenerateDesktopBuildConfigTask : DefaultTask() {
+    @get:Input
+    abstract val diagnosticBuild: Property<Boolean>
+
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
+
+    @TaskAction
+    fun generate() {
+        val packageDir = outputDir.get().dir("io/github/magisk317/relay/desktop").asFile
+        packageDir.mkdirs()
+        packageDir.resolve("DesktopBuildConfig.kt").writeText(
+            """
+            package io.github.magisk317.relay.desktop
+
+            internal object DesktopBuildConfig {
+                const val DIAGNOSTIC_LOGGING: Boolean = ${diagnosticBuild.get()}
+            }
+            """.trimIndent() + "\n",
+        )
+    }
+}
+
+val generateDesktopBuildConfig = tasks.register<GenerateDesktopBuildConfigTask>("generateDesktopBuildConfig") {
+    diagnosticBuild.set(desktopDiagnosticBuild)
+    outputDir.set(generatedDesktopBuildConfig)
+}
 
 kotlin {
     jvm()
 
     sourceSets {
+        named("jvmMain") {
+            kotlin.srcDir(generatedDesktopBuildConfig)
+        }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.compose.desktop.material3)
@@ -30,6 +80,10 @@ kotlin {
             runtimeOnly(libs.junit.platform.launcher)
         }
     }
+}
+
+tasks.named("compileKotlinJvm").configure {
+    dependsOn(generateDesktopBuildConfig)
 }
 
 tasks.withType<org.gradle.api.tasks.testing.Test>().configureEach {
