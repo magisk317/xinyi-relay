@@ -33,7 +33,7 @@
 | **Analytics** | `AnalyticsPage.tsx` | `ui/pages/AnalyticsPage.kt` | 待执行命令清单、分类计数、审计流水展示 |
 | **Apps** | `AppsPage.tsx` | `ui/pages/AppsPage.kt` | 应用包级转发/通知开关、模板失焦持久化、过滤器 chip |
 | **Records** | `RecordsPage.tsx` | `ui/pages/RecordsPage.kt` | 四类记录 Tab、元数据解析（SIM/联系人/公司折叠）、验证码一键复制 |
-| **Senders** | `SendersPage.tsx` | `ui/pages/SendersPage.kt` | 19 种通道结构化表单、排程规则编辑、变更同步下发 |
+| **Senders** | `SendersPage.tsx` | `ui/pages/SendersPage.kt` + `ui/pages/SenderActiveScheduleEditor.kt` | 19 种通道结构化表单、排程规则编辑、变更同步下发 |
 | **Settings** | `SettingsPage.tsx` | `ui/pages/SettingsPage.kt` | 运行模式切换（Remote/Local/Hybrid）、管理员改密表单 |
 | **Advanced** | `AdvancedPage.tsx` | `ui/pages/AdvancedPage.kt` | 绑定码生成与二维码展示、设备重命名/停用/吊销、本地同步与数据库维护卡 |
 | **ScheduledTasks** | `ScheduledTasksPage.tsx` | `ui/pages/ScheduledTasksPage.kt` | 定时任务列表与移动端添加引导卡 |

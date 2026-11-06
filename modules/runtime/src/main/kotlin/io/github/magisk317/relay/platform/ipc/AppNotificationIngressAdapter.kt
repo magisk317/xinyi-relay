@@ -4,6 +4,9 @@ import android.app.Notification
 import android.content.Context
 import android.content.pm.PackageManager
 import android.service.notification.StatusBarNotification
+import io.github.magisk317.xposed.capture.CapturedNotification
+import io.github.magisk317.xposed.capture.DefaultNotificationCapturePolicy
+import io.github.magisk317.xposed.capture.NotificationContentResolver
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.android.sms.SmsCodeUtils
 import io.github.magisk317.smscode.rule.model.SmsCodeParseSource
@@ -13,6 +16,10 @@ import io.github.magisk317.forward.runtime.ingress.ForwardBroadcastPayload
 
 object AppNotificationIngressAdapter {
     private const val NANOS_PER_MILLI = 1_000_000L
+
+    // Shared capture skip policy; xinyi adds no priority routes here, so every
+    // notification goes through the non-priority guard set.
+    private val capturePolicy = DefaultNotificationCapturePolicy()
 
     fun toPayload(
         context: Context,
@@ -39,9 +46,9 @@ object AppNotificationIngressAdapter {
         }
         val title = notification.extras.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty()
         val text = notification.extras.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty()
-        val expandedText = resolveExpandedText(notification)
+        val expandedText = NotificationContentResolver.resolveExpandedText(notification)
         val tickerText = notification.tickerText?.toString().orEmpty()
-        val body = resolveNotificationBody(
+        val body = NotificationContentResolver.resolvePreferredBody(
             text = text,
             expandedText = expandedText,
             tickerText = tickerText,
@@ -112,7 +119,7 @@ object AppNotificationIngressAdapter {
         val notification = sbn.notification
         val title = notification.extras.getCharSequence(Notification.EXTRA_TITLE)?.toString() ?: ""
         val text = notification.extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
-        val expandedText = resolveExpandedText(notification)
+        val expandedText = NotificationContentResolver.resolveExpandedText(notification)
         val tickerText = notification.tickerText?.toString() ?: ""
         val content = buildNotificationParseContent(
             title = title,
@@ -149,53 +156,19 @@ object AppNotificationIngressAdapter {
         body: String,
         notifyChannelId: String,
     ): String? {
-        val flags = notification.flags
-        val normalizedChannel = notifyChannelId.trim().lowercase()
-        val normalizedText = buildString {
-            append(title.trim())
-            append('\n')
-            append(body.trim())
-        }.lowercase()
-
-        return when {
-            (flags and Notification.FLAG_FOREGROUND_SERVICE) != 0 -> "foreground_service"
-            (flags and Notification.FLAG_ONGOING_EVENT) != 0 -> "ongoing_event"
-            notification.category == Notification.CATEGORY_SERVICE -> "category_service"
-            (flags and Notification.FLAG_GROUP_SUMMARY) != 0 -> "group_summary"
-            normalizedChannel == "voicemail" || normalizedChannel == "voice_mail" -> "channel_voicemail"
-            normalizedChannel.contains("foreground_service") ||
-                normalizedChannel.contains("foregroundservice") -> "channel_foreground_service"
-            normalizedChannel.contains("fgs") -> "channel_fgs"
-            normalizedChannel.contains("low_importance_service") -> "channel_low_importance_service"
-            normalizedChannel.contains("service_channel") ||
-                normalizedChannel.contains("servicechannel") -> "channel_service"
-            normalizedChannel.contains(".hide") ||
-                normalizedChannel.endsWith("_hide") ||
-                normalizedChannel.contains("_hide_") -> "channel_hidden"
-            normalizedChannel.contains("silent") -> "channel_silent"
-            normalizedText.contains("正在运行") -> "content_running"
-            normalizedText.contains("前台服务") ||
-                normalizedText.contains("foreground service") -> "content_foreground_service"
-            normalizedText.contains("正在检查应用更新") ||
-                normalizedText.contains("checking app updates") -> "content_checking_updates"
-            else -> null
-        }
-    }
-
-    internal fun resolveNotificationBody(
-        text: String,
-        expandedText: String,
-        tickerText: String,
-    ): String {
-        val normalizedText = text.trim()
-        val normalizedExpanded = expandedText.trim()
-        val normalizedTicker = tickerText.trim()
-        return when {
-            shouldPreferExpandedText(normalizedText, normalizedExpanded) -> normalizedExpanded
-            normalizedText.isNotEmpty() -> normalizedText
-            normalizedExpanded.isNotEmpty() -> normalizedExpanded
-            else -> normalizedTicker
-        }
+        return capturePolicy.skipReason(
+            capture = CapturedNotification(
+                packageName = "",
+                title = title,
+                body = body,
+                tickerText = "",
+                expandedText = "",
+                channelId = notifyChannelId,
+                category = notification.category,
+                flags = notification.flags,
+            ),
+            isPriorityRoute = false,
+        )
     }
 
     internal fun buildNotificationParseContent(
@@ -210,52 +183,6 @@ object AppNotificationIngressAdapter {
             .filter { it.isNotEmpty() }
             .distinct()
             .joinToString("\n")
-    }
-
-    private fun resolveExpandedText(notification: Notification): String {
-        val extras = notification.extras
-        val bigText = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString().orEmpty()
-        val subText = extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString().orEmpty()
-        val lines = extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)
-            ?.mapNotNull { it?.toString()?.trim() }
-            ?.filter { it.isNotEmpty() }
-            ?.joinToString("\n")
-            .orEmpty()
-        return listOf(bigText, lines, subText)
-            .map { it.trim() }
-            .firstOrNull { it.isNotEmpty() }
-            .orEmpty()
-    }
-
-    private fun shouldPreferExpandedText(
-        text: String,
-        expandedText: String,
-    ): Boolean {
-        if (expandedText.isBlank()) return false
-        if (text.isBlank()) return true
-        if (looksTruncated(text) && expandedText.length >= text.length) return true
-        val comparableText = stripEdgeEllipsis(text)
-        if (comparableText.isNotEmpty() && expandedText.contains(comparableText) && expandedText.length > comparableText.length) {
-            return true
-        }
-        return expandedText.length >= text.length + 8
-    }
-
-    private fun looksTruncated(text: String): Boolean {
-        val normalized = text.trim()
-        return normalized.startsWith("...") ||
-            normalized.startsWith("…") ||
-            normalized.endsWith("...") ||
-            normalized.endsWith("…")
-    }
-
-    private fun stripEdgeEllipsis(text: String): String {
-        return text.trim()
-            .removePrefix("...")
-            .removePrefix("…")
-            .removeSuffix("...")
-            .removeSuffix("…")
-            .trim()
     }
 
     internal fun shouldSkipRelayOwnedTelephonyNotification(

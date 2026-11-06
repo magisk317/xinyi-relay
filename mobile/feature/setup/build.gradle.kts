@@ -16,6 +16,7 @@ android {
 
 dependencies {
     implementation(project(":magisk-xposed-kit:logging"))
+    implementation(project(":magisk-xposed-kit:permission"))
     implementation(project(":relay:contract"))
     implementation(project(":mobile:core"))
     implementation(project(":runtime"))

@@ -16,7 +16,7 @@ import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.relay.mobilefeature.settings.BuildConfig
 import io.github.magisk317.relay.ui.permission.PermissionRequirement
 import io.github.magisk317.relay.ui.permission.StartupPermissionCollector
-import io.github.magisk317.relay.ui.permission.StartupPromptStore
+import io.github.magisk317.xposed.permission.StartupPromptStore
 import io.github.magisk317.relay.ui.permission.startupPermissionConfig
 import io.github.magisk317.uikit.foundation.LocalSnackbarHostState
 import kotlinx.coroutines.launch

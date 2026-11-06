@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.contract.xpbridge
 
 import android.content.Context
+import io.github.magisk317.smscode.verification.SmsDuplicateCheckResult
 
 interface XpRecordRuntimeBridge {
     suspend fun isDuplicateSms(
@@ -9,7 +10,7 @@ interface XpRecordRuntimeBridge {
         body: String?,
         date: Long,
         msgType: Int = XpSmsRecord.MSG_TYPE_SMS,
-    ): Boolean
+    ): SmsDuplicateCheckResult
 
     suspend fun findSmsRecordIdByFingerprint(
         context: Context,
@@ -123,7 +124,7 @@ object NoopXpRecordRuntimeBridge : XpRecordRuntimeBridge {
         body: String?,
         date: Long,
         msgType: Int,
-    ): Boolean = false
+    ): SmsDuplicateCheckResult = SmsDuplicateCheckResult.UNAVAILABLE
 
     override suspend fun findSmsRecordIdByFingerprint(
         context: Context,

@@ -34,7 +34,7 @@ internal data class OverviewRuntimeUiState(
     val frameworkVersion: String = "",
     val hasRootAccess: Boolean = false,
     val appVersionName: String = "",
-    val appVersionCode: String = "",
+    val commitInfo: String = "",
 )
 
 internal fun parseCardList(value: String): List<String> =

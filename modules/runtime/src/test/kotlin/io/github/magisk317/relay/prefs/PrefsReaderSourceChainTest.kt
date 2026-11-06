@@ -11,6 +11,7 @@ import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -81,7 +82,7 @@ class PrefsReaderSourceChainTest {
     }
 
     @Test
-    fun resolveBoolean_fallsThroughAfterRemoteMiss() {
+    fun resolveBoolean_remoteMissIsAuthoritative() {
         val context = mockk<Context>(relaxed = true)
         val remoteMiss = fakeSource(name = "remote", boolResult = PrefRead.Miss)
         val fallback = fakeSource(
@@ -96,12 +97,14 @@ class PrefsReaderSourceChainTest {
             sources = listOf(remoteMiss, fallback),
         )
 
-        assertTrue(result.value)
-        assertEquals("fallback", result.source)
+        // The remote source is reachable and misses the key, so it is authoritative:
+        // the stale snapshot fallback must not resurrect a value the user turned off.
+        assertFalse(result.value)
+        assertEquals("default", result.source)
     }
 
     @Test
-    fun resolveString_fallbackToProviderWhenRemoteMisses() {
+    fun resolveString_remoteMissIsAuthoritative() {
         val context = mockk<Context>(relaxed = true)
         val remote = fakeSource(name = "remote", stringResult = PrefRead.Miss)
         val provider = fakeSource(
@@ -116,8 +119,8 @@ class PrefsReaderSourceChainTest {
             sources = listOf(remote, provider),
         )
 
-        assertEquals("v_from_provider", result.value)
-        assertEquals("provider", result.source)
+        assertEquals("default", result.value)
+        assertEquals("default", result.source)
     }
 
     @Test

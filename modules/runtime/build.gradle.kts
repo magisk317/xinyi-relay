@@ -51,6 +51,7 @@ dependencies {
     implementation(project(":magisk-xposed-kit:runtime"))
     implementation(project(":magisk-xposed-kit:contract"))
     implementation(project(":magisk-xposed-kit:logging"))
+    implementation(project(":magisk-xposed-kit:capture"))
     implementation(project(":magisk-xposed-kit:runtime"))
     implementation(libs.androidx.work.runtime.ktx)
     implementation(project(":relay:contract"))

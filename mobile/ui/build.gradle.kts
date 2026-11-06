@@ -41,6 +41,8 @@ android {
 dependencies {
     implementation(libs.okhttp)
     implementation(project(":magisk-xposed-kit:logging"))
+    implementation(project(":magisk-xposed-kit:runtime"))
+    implementation(project(":magisk-xposed-kit:permission"))
     implementation(project(":mobile:core"))
     implementation(project(":mobile:feature:common"))
     implementation(project(":mobile:feature:setup"))

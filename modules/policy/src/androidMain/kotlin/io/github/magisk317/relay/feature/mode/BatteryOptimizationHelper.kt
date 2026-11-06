@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.feature.mode
 
 import android.content.ActivityNotFoundException
+import io.github.magisk317.xposed.permission.isExemptedFromBatteryOptimization
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -8,10 +9,7 @@ import android.os.PowerManager
 import android.provider.Settings
 
 object BatteryOptimizationHelper {
-    fun isExempted(context: Context): Boolean {
-        val pm = context.getSystemService(Context.POWER_SERVICE) as PowerManager
-        return pm.isIgnoringBatteryOptimizations(context.packageName)
-    }
+    fun isExempted(context: Context): Boolean = context.isExemptedFromBatteryOptimization()
 
     fun requestExemption(context: Context) {
         val requestIntent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {

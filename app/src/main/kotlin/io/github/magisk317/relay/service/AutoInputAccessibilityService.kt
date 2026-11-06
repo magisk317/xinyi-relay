@@ -17,6 +17,7 @@ import android.view.accessibility.AccessibilityEvent
 import androidx.core.content.ContextCompat
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
+import io.github.magisk317.smscode.runtime.verification.AutoInputExecutionOrchestrator
 import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.relay.receiver.AutoInputActions
 import io.github.magisk317.xposed.runtime.contract.autoinput.AutoInputFallbackPolicy
@@ -151,9 +152,7 @@ class AutoInputAccessibilityService : AccessibilityService() {
         }
         val homePackages = resolveHomePackages()
         val targetPackageHint = resolveTargetPackageHint()
-        return AutoInputFallbackPolicy.runWithRetries(
-            maxAttempts = MAX_WINDOW_SETTLE_ATTEMPTS,
-            delayMs = WINDOW_SETTLE_RETRY_DELAY_MS,
+        return autoInputOrchestrator.execute(
             perform = { attempt ->
                 val result = performAutoInput(code, autoEnter)
                 if (attempt < MAX_WINDOW_SETTLE_ATTEMPTS - 1 &&
@@ -188,9 +187,15 @@ class AutoInputAccessibilityService : AccessibilityService() {
                     homePackages = homePackages,
                 )
             },
-            sleeper = SystemClock::sleep,
         )
     }
+
+    private val autoInputOrchestrator =
+        AutoInputExecutionOrchestrator(
+            maxAttempts = MAX_WINDOW_SETTLE_ATTEMPTS,
+            retryDelayMs = WINDOW_SETTLE_RETRY_DELAY_MS,
+            sleeper = SystemClock::sleep,
+        )
 
     private fun performAutoInput(
         code: String,

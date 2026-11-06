@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.platform.ipc
 
 import android.app.Notification
+import io.github.magisk317.xposed.capture.NotificationContentResolver
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -116,7 +117,7 @@ class AppNotificationIngressAdapterTest {
     fun resolveNotificationBody_prefersExpandedTextWhenTextLooksTruncated() {
         assertEquals(
             "【潇湘一卡通】尊敬的用户:您的登录验证码是230244，5分钟内有效",
-            AppNotificationIngressAdapter.resolveNotificationBody(
+            NotificationContentResolver.resolvePreferredBody(
                 text = "...登录验证码是230244，5分钟内有效",
                 expandedText = "【潇湘一卡通】尊敬的用户:您的登录验证码是230244，5分钟内有效",
                 tickerText = "",
@@ -128,7 +129,7 @@ class AppNotificationIngressAdapterTest {
     fun resolveNotificationBody_fallsBackToTickerWhenTextMissing() {
         assertEquals(
             "ticker-body",
-            AppNotificationIngressAdapter.resolveNotificationBody(
+            NotificationContentResolver.resolvePreferredBody(
                 text = "",
                 expandedText = "",
                 tickerText = "ticker-body",

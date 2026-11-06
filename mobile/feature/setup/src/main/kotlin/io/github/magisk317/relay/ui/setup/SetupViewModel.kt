@@ -9,10 +9,10 @@ import io.github.magisk317.relay.mobilefeature.setup.BuildConfig
 import io.github.magisk317.relay.ui.permission.PermissionRequirement
 import io.github.magisk317.relay.ui.permission.PermissionStatus
 import io.github.magisk317.relay.ui.permission.StartupPermissionCollector
-import io.github.magisk317.relay.ui.permission.StartupPermissionConfig
-import io.github.magisk317.relay.ui.permission.StartupPromptStore
-import io.github.magisk317.relay.ui.permission.SetupProgress
-import io.github.magisk317.relay.ui.permission.SetupProgressStore
+import io.github.magisk317.xposed.permission.StartupPermissionConfig
+import io.github.magisk317.xposed.permission.StartupPromptStore
+import io.github.magisk317.xposed.permission.SetupProgress
+import io.github.magisk317.xposed.permission.SetupProgressStore
 import io.github.magisk317.relay.ui.permission.runRootGrants
 import io.github.magisk317.relay.ui.permission.startupPermissionConfig
 import io.github.magisk317.xposed.logging.XLog
@@ -62,8 +62,8 @@ data class SetupUiState(
 }
 
 /**
- * Drives the setup wizard: privacy acceptance, root probing, the one-tap root
- * grant, and the manual leftovers.
+ * Drives the setup wizard: privacy acceptance, root probing, and one permission
+ * list that chooses between the root bridge and manual grants.
  *
  * Every blocking step (root probe, root grant, permission collection) runs on
  * [Dispatchers.IO]; the state flow is the only thing the screen observes, so the
@@ -111,14 +111,11 @@ class SetupViewModel(
 
     private suspend fun probeRootAndContinue() {
         SetupProgressStore.mark(context(), SetupProgress.ROOT_PENDING)
-        _uiState.update { it.copy(step = SetupStep.ROOT, rootProbing = true) }
         val rootAvailable = withContext(Dispatchers.IO) {
             runCatching { RootShell.canUseRoot() }.getOrDefault(false)
         }
         _uiState.update { it.copy(rootProbing = false, rootAvailable = rootAvailable) }
-        if (!rootAvailable) {
-            proceedToGrants(forceManual = true)
-        }
+        proceedToGrants(forceManual = !rootAvailable)
     }
 
     /** Persists the refusal; the caller finishes the activity. */
@@ -143,9 +140,7 @@ class SetupViewModel(
                 completeSetup()
                 return@launch
             }
-            _uiState.update {
-                it.copy(step = if (rootSelected) SetupStep.GRANT_ROOT else SetupStep.GRANT_MANUAL)
-            }
+            _uiState.update { it.copy(step = SetupStep.GRANT_MANUAL) }
         }
     }
 
@@ -197,8 +192,7 @@ class SetupViewModel(
             val previous = when (current.step) {
                 SetupStep.ROOT -> SetupStep.WELCOME
                 SetupStep.GRANT_ROOT -> SetupStep.ROOT
-                SetupStep.GRANT_MANUAL ->
-                    if (current.rootAvailable) SetupStep.ROOT else SetupStep.WELCOME
+                SetupStep.GRANT_MANUAL -> current.step
                 SetupStep.WELCOME, SetupStep.DONE -> current.step
             }
             current.copy(step = previous)
@@ -236,7 +230,7 @@ class SetupViewModel(
             _uiState.update {
                 it.copy(
                     rootAvailable = rootAvailable,
-                    step = if (rootSelected) SetupStep.GRANT_ROOT else SetupStep.GRANT_MANUAL,
+                    step = SetupStep.GRANT_MANUAL,
                 )
             }
         }

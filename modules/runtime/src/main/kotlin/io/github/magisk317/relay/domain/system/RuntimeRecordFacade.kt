@@ -25,7 +25,7 @@ import io.github.magisk317.relay.android.data.mapper.toForwardEventEntity
 class RuntimeRecordFacade(
     context: Context,
     private val db: AppDatabase = AppDatabase.getInstance(context),
-    private val forwardDb: ForwardDatabase = ForwardDatabase.build(context),
+    private val forwardDb: ForwardDatabase = ForwardDatabase.build(context.applicationContext ?: context),
     relayRecordRepository: MessageRecordRepository? = null,
     private val recordInserter: (suspend (SmsMsg, Boolean) -> Long?)? = null,
     private val smsBlacklistHitInserter: (suspend (SmsBlacklistHit) -> Long?)? = null,

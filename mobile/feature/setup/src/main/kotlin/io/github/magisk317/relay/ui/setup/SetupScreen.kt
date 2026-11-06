@@ -50,8 +50,8 @@ import io.github.magisk317.uikit.theme.appColor
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
- * Setup wizard: privacy agreement, optional root probe, one-tap root grant,
- * then whatever root cannot cover.
+ * Setup wizard: privacy agreement followed by a permission list that uses the
+ * root bridge when available and keeps manual grants as the fallback.
  *
  * The first screen is the original privacy dialog: accepting jumps straight to
  * the permission steps, declining finishes the activity, and viewing details
@@ -310,8 +310,12 @@ private fun GrantManualStep(
             },
         ),
         granted = state.rootAvailable,
-        actionText = stringResource(R.string.setup_permission_request),
-        onClick = { if (!state.rootAvailable) onGrantRoot() },
+        actionText = if (state.rootAvailable) {
+            stringResource(R.string.setup_done_item_granted)
+        } else {
+            stringResource(R.string.setup_root_unavailable_action)
+        },
+        onClick = {},
     )
     AppText(
         text = stringResource(R.string.setup_root_hint),
@@ -319,11 +323,36 @@ private fun GrantManualStep(
         modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 8.dp),
     )
 
+    if (state.rootAvailable && state.missing.isNotEmpty()) {
+        AppPrimaryButton(
+            text = if (state.granting) {
+                stringResource(R.string.setup_one_tap_granting)
+            } else {
+                stringResource(R.string.setup_one_tap_grant)
+            },
+            onClick = onGrantRoot,
+            enabled = !state.granting,
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+    if (state.grantLog.isNotEmpty()) {
+        AppCard {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                state.grantLog.forEach { line ->
+                    AppText(text = line, role = AppTextRole.Footnote)
+                }
+            }
+        }
+    }
+
     val runtimeStatuses = state.allStatuses.filterNot { it.requirement.isSpecial }
     if (runtimeStatuses.isNotEmpty()) {
         SectionHeading(title = stringResource(R.string.setup_runtime_permissions))
         val runtimeMissing = runtimeStatuses.filter { !it.granted }
-        if (runtimeMissing.isNotEmpty()) {
+        if (!state.rootAvailable && runtimeMissing.isNotEmpty()) {
             AppPrimaryButton(
                 text = stringResource(R.string.setup_manual_grant),
                 onClick = {

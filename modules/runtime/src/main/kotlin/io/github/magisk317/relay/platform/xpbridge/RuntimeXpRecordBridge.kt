@@ -10,6 +10,11 @@ import io.github.magisk317.relay.contract.xpbridge.XpSmsBlacklistHitRecord
 import io.github.magisk317.relay.contract.xpbridge.XpSmsRecord
 import io.github.magisk317.relay.domain.system.RuntimeRecordFacade
 import io.github.magisk317.relay.platform.ipc.BlacklistHitBroadcast
+import io.github.magisk317.relay.android.prefs.PrefsReader
+import io.github.magisk317.smscode.common.utils.ProviderIpcTokenCodec
+import io.github.magisk317.smscode.runtime.common.provider.HookFingerprintQuery
+import io.github.magisk317.smscode.verification.SmsDuplicateCheckResult
+import io.github.magisk317.xposed.logging.XLog
 
 object RuntimeXpRecordBridge : XpRecordRuntimeBridge {
     override suspend fun isDuplicateSms(
@@ -18,8 +23,26 @@ object RuntimeXpRecordBridge : XpRecordRuntimeBridge {
         body: String?,
         date: Long,
         msgType: Int,
-    ): Boolean {
-        return RuntimeRecordFacade(context).isDuplicateSms(sender, body, date, msgType)
+    ): SmsDuplicateCheckResult {
+        val token = PrefsReader.getIpcToken(context)
+        return HookFingerprintQuery.query(
+            context = context,
+            uri = ProviderIpcTokenCodec.attachToken(
+                DBProvider.smsMsgContentUri(context),
+                token,
+            ),
+            sender = sender,
+            body = body.orEmpty(),
+            date = date,
+            msgType = msgType,
+            onFailure = { error ->
+                XLog.e(
+                    message = "SMS duplicate Provider query failed: ${error.javaClass.name}: " +
+                        (error.message ?: "<no-message>"),
+                    error,
+                )
+            },
+        )
     }
 
     override suspend fun findSmsRecordIdByFingerprint(
@@ -39,7 +62,17 @@ object RuntimeXpRecordBridge : XpRecordRuntimeBridge {
         codeLength: Int,
         attemptAt: Long,
     ): Long {
-        return RuntimeRecordFacade(context).insertAutoInputAttempt(recordId, packageName, codeLength, attemptAt)
+        val uri = ProviderIpcTokenCodec.attachToken(
+            DBProvider.autoInputEventContentUri(context),
+            PrefsReader.getIpcToken(context),
+        )
+        val values = ContentValues().apply {
+            recordId?.let { put("record_id", it) }
+            packageName?.let { put("package_name", it) }
+            put("code_length", codeLength)
+            put("attempt_at", attemptAt)
+        }
+        return context.contentResolver.insert(uri, values)?.lastPathSegment?.toLongOrNull() ?: 0L
     }
 
     override suspend fun updateAutoInputResult(

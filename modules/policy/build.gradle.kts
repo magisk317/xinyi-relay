@@ -29,6 +29,7 @@ kotlin {
 dependencies {
     add("jvmTestImplementation", libs.junit.jupiter)
     add("jvmTestImplementation", libs.kotest.property)
+    add("androidMainImplementation", project(":magisk-xposed-kit:permission"))
     add("jvmTestImplementation", libs.mockk)
     add("jvmTestRuntimeOnly", libs.junit.platform.launcher)
 }

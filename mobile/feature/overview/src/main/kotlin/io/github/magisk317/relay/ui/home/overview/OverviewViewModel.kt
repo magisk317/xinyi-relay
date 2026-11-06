@@ -173,7 +173,9 @@ private suspend fun loadOverviewRuntimeUiState(
     coroutineScope {
         val frameworkInfoDeferred = async { relayPackageActions.getLsposedModuleInfo(context) }
         val hasRootAccessDeferred = async { relayPackageActions.hasRootAccess() }
-        val appVersionDeferred = async { relayPackageActions.getPackageVersion(context, context.packageName) }
+        val appVersionNameDeferred = async {
+            relayPackageActions.getPackageVersion(context, context.packageName)?.first
+        }
 
         val frameworkInfo = frameworkInfoDeferred.await()
         val frameworkType = frameworkInfo?.first ?: context.getString(io.github.magisk317.relay.mobile.core.R.string.unknown)
@@ -189,16 +191,15 @@ private suspend fun loadOverviewRuntimeUiState(
                 else -> context.getString(io.github.magisk317.relay.mobile.core.R.string.not_installed)
             }
         }
-        val appVersion = appVersionDeferred.await()
         OverviewRuntimeUiState(
             frameworkType = frameworkType,
             frameworkVersion = frameworkVersion,
             hasRootAccess = hasRootAccessDeferred.await(),
-            appVersionName = appVersion?.first?.takeIf { it.isNotBlank() }
+            appVersionName = appVersionNameDeferred.await()?.takeIf { it.isNotBlank() }
                 ?: context.getString(io.github.magisk317.relay.mobile.core.R.string.unknown),
-            appVersionCode = io.github.magisk317.relay.mobile.core.BuildConfig.COMMIT_HASH.takeIf { it.isNotBlank() && it != "unknown" }
-                ?: (appVersion?.second?.toString()
-                ?: context.getString(io.github.magisk317.relay.mobile.core.R.string.unknown)),
+            commitInfo = io.github.magisk317.relay.mobile.core.BuildConfig.COMMIT_HASH
+                .takeIf { it.isNotBlank() && it != "unknown" }
+                ?: context.getString(io.github.magisk317.relay.mobile.core.R.string.unknown),
         )
     }
 }

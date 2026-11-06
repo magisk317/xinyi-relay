@@ -42,6 +42,7 @@ import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.smscode.runtime.common.utils.FrameworkCompatibilityMonitor
 import io.github.magisk317.xposed.logging.XLog
+import io.github.magisk317.xposed.runtime.contract.startup.StartupConflictGuards
 import io.github.magisk317.relay.common.utils.relayPackageActions
 import io.github.magisk317.relay.common.utils.RelayBindLink
 import io.github.magisk317.relay.ui.nav.RemoteAgentRoute
@@ -78,8 +79,8 @@ import io.github.magisk317.relay.ui.home.settings.SettingsViewModel
 import io.github.magisk317.relay.ui.home.settings.SettingsEvent
 import io.github.magisk317.relay.ui.setup.SetupScreen
 import io.github.magisk317.relay.ui.setup.SetupViewModel
-import io.github.magisk317.relay.ui.permission.SetupProgressPolicy
-import io.github.magisk317.relay.ui.permission.SetupProgressStore
+import io.github.magisk317.xposed.permission.SetupProgressPolicy
+import io.github.magisk317.xposed.permission.SetupProgressStore
 
 class MainActivity : ComponentActivity() {
 
@@ -468,11 +469,13 @@ class MainActivity : ComponentActivity() {
      * clean; the conflict-bypass build flag only skips the package check.
      */
     private suspend fun inspectStartupCompatibility(context: Context): BlockingStartupDialog? {
-        if (BuildConfig.ALLOW_CONFLICT_BYPASS) {
-            XLog.w(
-                "SmsCode conflict guard bypassed by build flag allowConflictBypass=true",
-            )
-        } else if (relayPackageActions.isPackageInstalled(context, Const.XPOSED_SMSCODE_PACKAGE_NAME)) {
+        val peerInstalled = StartupConflictGuards.shouldBlockForInstalledPeer(
+            bypassedByBuildFlag = BuildConfig.ALLOW_CONFLICT_BYPASS,
+            productName = "Relay",
+            isPeerInstalled = { relayPackageActions.isPackageInstalled(context, Const.XPOSED_SMSCODE_PACKAGE_NAME) },
+            warn = { XLog.w(it) },
+        )
+        if (peerInstalled) {
             return BlockingStartupDialog.SmsCodeConflict
         }
         val frameworkIssue = withContext(Dispatchers.IO) {

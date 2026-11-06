@@ -2,6 +2,7 @@ package io.github.magisk317.relay.platform.ipc
 
 import android.content.Intent
 import io.github.magisk317.xposed.logging.XLog
+import io.github.magisk317.smscode.runtime.verification.SmsIntentHookSupport
 import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySmsMsg as SmsMsg
 import java.util.UUID
 import kotlin.math.abs
@@ -161,10 +162,8 @@ object ForwardPayloadFactory {
         return "mms_${Integer.toUnsignedString(stableParts.joinToString("|").hashCode(), EVENT_ID_HASH_RADIX)}"
     }
 
-    private fun stableSmsEventId(stableParts: List<String>, fallbackSeed: String): String {
-        val seed = stableParts.takeIf { it.isNotEmpty() }?.joinToString("|") ?: fallbackSeed
-        return "sms_${Integer.toUnsignedString(seed.hashCode(), EVENT_ID_HASH_RADIX)}"
-    }
+    private fun stableSmsEventId(stableParts: List<String>, fallbackSeed: String): String =
+        SmsIntentHookSupport.stableSmsEventId(stableParts, fallbackSeed, EVENT_ID_HASH_RADIX)
 
     private fun SmsMsg.stableSmsEventParts(): List<String> {
         return listOfNotNull(
