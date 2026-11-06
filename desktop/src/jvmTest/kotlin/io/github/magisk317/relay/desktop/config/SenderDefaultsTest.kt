@@ -3,6 +3,7 @@ package io.github.magisk317.relay.desktop.config
 import io.github.magisk317.forward.contract.model.SenderActiveScheduleRule
 import io.github.magisk317.relay.contract.model.SnapshotSender
 import io.github.magisk317.relay.desktop.i18n.DesktopLocale
+import io.github.magisk317.forward.sender.SenderSettingFieldType
 import io.github.magisk317.forward.sender.SenderSettingSchemas
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -61,6 +62,30 @@ class SenderDefaultsTest {
         assertEquals(
             "Direct",
             resolveSenderText(DesktopLocale.EN, proxy.options[0].label),
+        )
+    }
+
+    @Test
+    fun secretFields_usePasswordInputs() {
+        SenderSettingSchemas.all.forEach { contract ->
+            val fields = getSenderFieldSchemas(contract.senderType).associateBy { it.key }
+            contract.fields
+                .filter { it.type == SenderSettingFieldType.SECRET }
+                .forEach { field ->
+                    assertEquals(
+                        SenderFieldKind.PASSWORD,
+                        fields[field.name]?.kind,
+                        "${contract.senderType}.${field.name}",
+                    )
+                }
+        }
+        assertEquals(
+            SenderFieldKind.PASSWORD,
+            getSenderFieldSchemas(3).first { it.key == "clientCertPassword" }.kind,
+        )
+        assertEquals(
+            SenderFieldKind.PASSWORD,
+            getSenderFieldSchemas(16).first { it.key == "clientCertPassword" }.kind,
         )
     }
 

@@ -33,6 +33,24 @@ private val NtfyVisibleFields = listOf(
         labelRes = R.string.sender_form_label_tags_optional,
         supportingTextRes = R.string.sender_form_label_tags_example,
     ),
+    SchemaSenderFormFieldSpec(
+        name = "clientCert",
+        labelRes = R.string.sender_form_label_client_cert_optional,
+        supportingTextRes = R.string.sender_form_client_cert_example,
+        minLines = 4,
+    ),
+    SchemaSenderFormFieldSpec(
+        name = "clientCertPassword",
+        labelRes = R.string.sender_form_label_client_cert_password,
+        visible = { it.string("clientCert").isNotBlank() },
+        isSecret = true,
+    ),
+    SchemaSenderFormFieldSpec(
+        name = "caCert",
+        labelRes = R.string.sender_form_label_ca_cert_optional,
+        supportingTextRes = R.string.sender_form_ca_cert_example,
+        minLines = 3,
+    ),
 )
 
 @Composable

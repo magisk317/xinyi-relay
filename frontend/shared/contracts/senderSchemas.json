@@ -486,6 +486,24 @@
           "z"
         ],
         "requiredForEnable": false
+      },
+      {
+        "name": "clientCert",
+        "type": "TEXT",
+        "aliases": [],
+        "requiredForEnable": false
+      },
+      {
+        "name": "clientCertPassword",
+        "type": "SECRET",
+        "aliases": [],
+        "requiredForEnable": false
+      },
+      {
+        "name": "caCert",
+        "type": "TEXT",
+        "aliases": [],
+        "requiredForEnable": false
       }
     ]
   },
@@ -1471,6 +1489,24 @@
         "aliases": [
           "t"
         ],
+        "requiredForEnable": false
+      },
+      {
+        "name": "clientCert",
+        "type": "TEXT",
+        "aliases": [],
+        "requiredForEnable": false
+      },
+      {
+        "name": "clientCertPassword",
+        "type": "SECRET",
+        "aliases": [],
+        "requiredForEnable": false
+      },
+      {
+        "name": "caCert",
+        "type": "TEXT",
+        "aliases": [],
         "requiredForEnable": false
       }
     ]

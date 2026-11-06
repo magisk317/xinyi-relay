@@ -324,6 +324,8 @@
     <string name="pref_relay_records_title">轉發記錄</string>
     <string name="pref_relay_records_summary">查看和管理簡訊、通知與來電記錄</string>
     <string name="pref_sms_forward_dedup_window_title">簡訊去重視窗</string>
+    <string name="pref_forward_content_mask_title">轉發內容脫敏</string>
+    <string name="pref_forward_content_mask_summary">發送前打碼寄件人與驗證碼，正文保持原樣</string>
     <string name="pref_sms_forward_dedup_window_summary">%d 秒</string>
     <string name="pref_sms_forward_dedup_window_hint">相同驗證碼在此視窗內不會重複轉發（預設60秒），如果有收到重複轉發，可適當增加此值</string>
     <string name="pref_sms_forward_dedup_window_error">請輸入 %1$d 到 %2$d 之間的整數</string>
@@ -424,7 +426,7 @@
     <string name="scheduled_task_test_succeeded">測試簡訊發送成功</string>
     <string name="scheduled_task_test_failed">測試簡訊發送失敗：%1$s</string>
     <string name="scheduled_task_short_code_bypass_title">跳過短碼發送確認</string>
-    <string name="scheduled_task_short_code_bypass_summary">透過 Root 寫入 sms_short_code_confirmation=0；關閉時寫入 1，恢復系統確認。</string>
+    <string name="scheduled_task_short_code_bypass_summary">僅 xinyi 略過 HyperOS 確認彈窗；關閉後 Hook 不接管系統原生確認。</string>
     <string name="scheduled_task_short_code_bypass_enabled">已開啟短碼確認繞過</string>
     <string name="scheduled_task_short_code_bypass_disabled">已恢復系統短碼確認</string>
     <string name="scheduled_task_short_code_bypass_failed">更新短碼確認失敗：%1$s</string>
@@ -444,6 +446,7 @@
     <string name="setup_root_available_title">已取得 Root 權限</string>
     <string name="setup_root_available_summary">可一鍵授予所需權限。</string>
     <string name="setup_root_unavailable_title">未取得 Root 權限</string>
+    <string name="setup_root_unavailable_action">不可用</string>
     <string name="setup_root_unavailable_summary">仍可逐項手動授予權限。</string>
     <string name="setup_one_tap_grant">一鍵授予</string>
     <string name="setup_one_tap_granting">授予中…</string>
@@ -703,7 +706,7 @@
     <string name="settings_track_ci_builds_title">偵測CI建置</string>
     <string name="settings_auto_check_on_start_summary">啟動應用時自動檢查更新。關閉後只有手動檢查會觸發。</string>
     <string name="settings_auto_check_wifi_only_summary">自動檢查僅在 Wi-Fi 下進行，行動網路不會自行觸發檢查。</string>
-    <string name="settings_track_ci_builds_summary">開啟後同時偵測 beta 分支的 CI 建置（可能彈出強制更新）；關閉後只跟隨正式版，CI 建置會等到下一個正式版發布後接上。</string>
+    <string name="settings_track_ci_builds_summary">開啟後同時偵測 beta 分支的 CI 建置；關閉後只跟隨正式版，CI 建置會等到下一個正式版發布後接上。</string>
     <!-- check update end -->
 
 
@@ -891,7 +894,6 @@
     <string name="unknown">未知</string>
     <string name="not_installed">未安裝</string>
     <string name="version_name">版本名稱</string>
-    <string name="version_code">版本代碼</string>
     <string name="root_permission_hint">需要 Root 權限才能讀取</string>
     <string name="framework_type">框架類型</string>
     <string name="framework_version">框架版本</string>
@@ -1215,6 +1217,11 @@
     <string name="sender_form_label_custom_webparams_optional">自定義 WebParams / JSON 請求體（選填）</string>
     <string name="sender_form_label_custom_headers_json_optional">自定義請求頭 JSON（選填）</string>
     <string name="sender_form_label_custom_headers_json_example">例如 {\"Authorization\":\"Bearer xxx\"}</string>
+    <string name="sender_form_label_client_cert_optional">用戶端憑證（mTLS，選填）</string>
+    <string name="sender_form_client_cert_example">PEM（憑證+私鑰放在同一個檔案），或 Base64 編碼的 PKCS#12</string>
+    <string name="sender_form_label_client_cert_password">憑證口令（僅 PKCS#12 需要）</string>
+    <string name="sender_form_label_ca_cert_optional">私有 CA 憑證（選填）</string>
+    <string name="sender_form_ca_cert_example">留空時只信任系統憑證</string>
     <string name="sender_form_label_corp_id">CorpID</string>
     <string name="sender_form_label_secret">Secret</string>
     <string name="sender_form_label_to_user">ToUser</string>

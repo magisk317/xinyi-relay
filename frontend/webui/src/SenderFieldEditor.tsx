@@ -152,7 +152,7 @@ function renderField(
   return (
     <input
       className="relay-input"
-      type={field.kind === 'number' ? 'number' : 'text'}
+      type={field.kind === 'number' ? 'number' : field.kind === 'password' ? 'password' : 'text'}
       placeholder={field.placeholder ? resolveSenderText(locale, field.placeholder) : undefined}
       value={field.kind === 'number' ? String(value ?? '') : (typeof value === 'string' ? value : '')}
       onChange={(event) => onChange(field.kind === 'number' ? event.target.value : event.target.value)}

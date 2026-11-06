@@ -5,7 +5,7 @@ import {
 } from './senderActiveSchedule'
 
 export type SenderUiLocale = 'en' | 'zh-CN' | 'zh-TW'
-export type SenderFieldKind = 'text' | 'textarea' | 'number' | 'boolean' | 'select' | 'json'
+export type SenderFieldKind = 'text' | 'password' | 'textarea' | 'number' | 'boolean' | 'select' | 'json'
 export type SenderSettingContractFieldType =
   | 'TEXT'
   | 'SECRET'
@@ -145,6 +145,9 @@ const SENDER_FIELD_SCHEMAS: Record<number, SenderFieldSchema[]> = {
     field('proxyPassword', 'text', '代理密码', 'Proxy password'),
     field('webParams', 'textarea', '请求参数', 'Request params', { rows: 4, fullWidth: true }),
     field('headers', 'json', '请求头 JSON', 'Headers JSON', { rows: 4, fullWidth: true }),
+    field('clientCert', 'textarea', '客户端证书（mTLS）', 'Client certificate (mTLS)', { rows: 4, fullWidth: true }),
+    field('clientCertPassword', 'text', '证书口令（PKCS#12）', 'Certificate password (PKCS#12)'),
+    field('caCert', 'textarea', '私有 CA 证书', 'Private CA certificate', { rows: 3, fullWidth: true }),
   ],
   4: [
     field('webHook', 'text', '机器人 WebHook', 'Robot WebHook'),
@@ -282,6 +285,9 @@ const SENDER_FIELD_SCHEMAS: Record<number, SenderFieldSchema[]> = {
     field('title', 'text', '标题', 'Title'),
     field('priority', 'text', '优先级', 'Priority'),
     field('tags', 'text', '标签', 'Tags'),
+    field('clientCert', 'textarea', '客户端证书（mTLS）', 'Client certificate (mTLS)', { rows: 4, fullWidth: true }),
+    field('clientCertPassword', 'text', '证书口令（PKCS#12）', 'Certificate password (PKCS#12)'),
+    field('caCert', 'textarea', '私有 CA 证书', 'Private CA certificate', { rows: 3, fullWidth: true }),
   ],
   17: [
     field('token', 'text', 'Token', 'Token'),
@@ -403,12 +409,21 @@ export function getSenderFieldSchemas(type: number): SenderFieldSchema[] {
   const contractFields = getSenderSettingContractFields(type)
   return (SENDER_FIELD_SCHEMAS[type] ?? []).map((field) => {
     const contractField = contractFields.find((item) => item.name === field.key)
-    if (!contractField?.options?.length) return field
+    if (!contractField) return field
+
+    const kind = contractField.type === 'SECRET'
+      ? 'password'
+      : contractField.options?.length
+        ? 'select'
+        : field.kind
+    if (!contractField.options?.length) {
+      return kind === field.kind ? field : { ...field, kind }
+    }
 
     const existingLabels = new Map((field.options ?? []).map((option) => [option.value, option.label]))
     return {
       ...field,
-      kind: 'select',
+      kind,
       options: contractField.options.map((option) => ({
         value: option.value,
         label: existingLabels.get(option.value) ?? {

@@ -15,7 +15,7 @@ const HIDDEN_COMPAT_FIELDS: Record<number, string[]> = {
 
 const EXPECTED_UI_KINDS: Record<SenderSettingContractFieldType, SenderFieldKind[]> = {
   TEXT: ['text', 'textarea', 'select'],
-  SECRET: ['text'],
+  SECRET: ['password'],
   BOOLEAN: ['boolean'],
   INTEGER: ['number'],
   STRING_MAP: ['json'],
@@ -36,6 +36,20 @@ describe('shared sender schema contract', () => {
         expect(EXPECTED_UI_KINDS[contractField.type]).toContain(uiField?.kind)
       }
     }
+  })
+
+  it('maps every secret contract field to a password input', () => {
+    for (const contract of getSenderSettingSchemaContracts()) {
+      const fields = getSenderFieldSchemas(contract.senderType)
+      for (const contractField of contract.fields.filter((field) => field.type === 'SECRET')) {
+        expect(
+          fields.find((field) => field.key === contractField.name)?.kind,
+          `${contract.senderType}.${contractField.name}`
+        ).toBe('password')
+      }
+    }
+    expect(getSenderFieldSchemas(3).find((field) => field.key === 'clientCertPassword')?.kind).toBe('password')
+    expect(getSenderFieldSchemas(16).find((field) => field.key === 'clientCertPassword')?.kind).toBe('password')
   })
 
   it('keeps hidden compatibility fields limited to non-required fields', () => {

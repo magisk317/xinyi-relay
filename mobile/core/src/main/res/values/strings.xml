@@ -327,6 +327,8 @@
     <string name="pref_relay_records_title">Relay records</string>
     <string name="pref_relay_records_summary">View and manage SMS, app, and call records</string>
     <string name="pref_sms_forward_dedup_window_title">SMS dedup window</string>
+    <string name="pref_forward_content_mask_title">Mask forwarded content</string>
+    <string name="pref_forward_content_mask_summary">Mask the sender and verification code before sending; the body stays as-is</string>
     <string name="pref_sms_forward_dedup_window_summary">%d seconds</string>
     <string name="pref_sms_forward_dedup_window_hint">Same verification code within this window will not be forwarded again (default 60s)</string>
     <string name="pref_sms_forward_dedup_window_error">Please enter an integer between %1$d and %2$d</string>
@@ -427,7 +429,7 @@
     <string name="scheduled_task_test_succeeded">Test SMS sent successfully</string>
     <string name="scheduled_task_test_failed">Test SMS failed: %1$s</string>
     <string name="scheduled_task_short_code_bypass_title">Skip short-code confirmation</string>
-    <string name="scheduled_task_short_code_bypass_summary">Uses root to write sms_short_code_confirmation=0. Turning it off writes 1 to restore system confirmation.</string>
+    <string name="scheduled_task_short_code_bypass_summary">Only xinyi bypasses the HyperOS confirmation dialog. Turning it off leaves the native system path untouched.</string>
     <string name="scheduled_task_short_code_bypass_enabled">Short-code confirmation bypass enabled</string>
     <string name="scheduled_task_short_code_bypass_disabled">Short-code confirmation restored</string>
     <string name="scheduled_task_short_code_bypass_failed">Failed to update short-code confirmation: %1$s</string>
@@ -447,6 +449,7 @@
     <string name="setup_root_available_title">Root access available</string>
     <string name="setup_root_available_summary">Permissions can be granted in one tap.</string>
     <string name="setup_root_unavailable_title">Root access unavailable</string>
+    <string name="setup_root_unavailable_action">Unavailable</string>
     <string name="setup_root_unavailable_summary">You can still grant permissions manually, one page at a time.</string>
     <string name="setup_one_tap_grant">One-tap grant</string>
     <string name="setup_one_tap_granting">Granting…</string>
@@ -733,7 +736,7 @@
     <string name="settings_track_ci_builds_title">Detect CI builds</string>
     <string name="settings_auto_check_on_start_summary">Check for updates when the app starts. Off means only the manual check runs.</string>
     <string name="settings_auto_check_wifi_only_summary">Restrict the automatic check to Wi-Fi. Cellular never starts a check on its own.</string>
-    <string name="settings_track_ci_builds_summary">Also probe beta-branch CI builds (a mandatory-update prompt is possible). Off follows official releases only; a CI build then waits for the next release to catch up.</string>
+    <string name="settings_track_ci_builds_summary">Also probe beta-branch CI builds. Off follows official releases only; a CI build then waits for the next release to catch up.</string>
     <!-- check update end -->
 
 
@@ -918,7 +921,6 @@
     <string name="unknown">Unknown</string>
     <string name="not_installed">Not installed</string>
     <string name="version_name">Version name</string>
-    <string name="version_code">Version code</string>
     <string name="root_permission_hint">Root permission required to read</string>
     <string name="framework_type">Framework type</string>
     <string name="framework_version">Framework version</string>
@@ -1247,6 +1249,11 @@
     <string name="sender_form_label_custom_webparams_optional">Custom WebParams / JSON body (Optional)</string>
     <string name="sender_form_label_custom_headers_json_optional">Custom headers JSON (Optional)</string>
     <string name="sender_form_label_custom_headers_json_example">e.g. {\"Authorization\":\"Bearer xxx\"}</string>
+    <string name="sender_form_label_client_cert_optional">Client certificate (mTLS, optional)</string>
+    <string name="sender_form_client_cert_example">PEM bundle with certificate and key, or Base64 PKCS#12</string>
+    <string name="sender_form_label_client_cert_password">Certificate password (PKCS#12 only)</string>
+    <string name="sender_form_label_ca_cert_optional">Private CA certificate (optional)</string>
+    <string name="sender_form_ca_cert_example">Left blank, only the system certificates are trusted</string>
     <string name="sender_form_label_corp_id">CorpID</string>
     <string name="sender_form_label_secret">Secret</string>
     <string name="sender_form_label_to_user">ToUser</string>

@@ -25,7 +25,7 @@ import kotlinx.serialization.json.JsonPrimitive
  */
 
 /** Editing kinds the webUI sender field editor renders. */
-enum class SenderFieldKind { TEXT, TEXTAREA, NUMBER, BOOLEAN, SELECT, JSON }
+enum class SenderFieldKind { TEXT, PASSWORD, TEXTAREA, NUMBER, BOOLEAN, SELECT, JSON }
 
 /** Locale triple mirroring the webUI's LocalizedText. */
 data class SenderLocalizedText(val en: String, val zhCn: String, val zhTw: String = zhCn)
@@ -160,6 +160,9 @@ private val SENDER_FIELD_SCHEMAS: Map<Int, List<SenderFieldSchema>> = mapOf(
         field("proxyPassword", SenderFieldKind.TEXT, "代理密码", "Proxy password"),
         field("webParams", SenderFieldKind.TEXTAREA, "请求参数", "Request params", rows = 4, fullWidth = true),
         field("headers", SenderFieldKind.JSON, "请求头 JSON", "Headers JSON", rows = 4, fullWidth = true),
+        field("clientCert", SenderFieldKind.TEXTAREA, "客户端证书（mTLS）", "Client certificate (mTLS)", rows = 4, fullWidth = true),
+        field("clientCertPassword", SenderFieldKind.TEXT, "证书口令（PKCS#12）", "Certificate password (PKCS#12)"),
+        field("caCert", SenderFieldKind.TEXTAREA, "私有 CA 证书", "Private CA certificate", rows = 3, fullWidth = true),
     ),
     4 to listOf(
         field("webHook", SenderFieldKind.TEXT, "机器人 WebHook", "Robot WebHook"),
@@ -305,6 +308,9 @@ private val SENDER_FIELD_SCHEMAS: Map<Int, List<SenderFieldSchema>> = mapOf(
         field("title", SenderFieldKind.TEXT, "标题", "Title"),
         field("priority", SenderFieldKind.TEXT, "优先级", "Priority"),
         field("tags", SenderFieldKind.TEXT, "标签", "Tags"),
+        field("clientCert", SenderFieldKind.TEXTAREA, "客户端证书（mTLS）", "Client certificate (mTLS)", rows = 4, fullWidth = true),
+        field("clientCertPassword", SenderFieldKind.TEXT, "证书口令（PKCS#12）", "Certificate password (PKCS#12)"),
+        field("caCert", SenderFieldKind.TEXTAREA, "私有 CA 证书", "Private CA certificate", rows = 3, fullWidth = true),
     ),
     17 to listOf(
         field("token", SenderFieldKind.TEXT, "Token", "Token"),
@@ -410,13 +416,18 @@ private fun defaultValueForContractField(field: SenderSettingFieldMetadata): Jso
 fun getSenderFieldSchemas(type: Int): List<SenderFieldSchema> {
     val contractFields = SenderSettingSchemas.fieldsFor(type).associateBy { it.name }
     return SENDER_FIELD_SCHEMAS[type].orEmpty().map { schema ->
-        val contractField = contractFields[schema.key]
-        if (contractField == null || contractField.options.isEmpty()) {
-            schema
+        val contractField = contractFields[schema.key] ?: return@map schema
+        val kind = when {
+            contractField.type == SenderSettingFieldType.SECRET -> SenderFieldKind.PASSWORD
+            contractField.options.isNotEmpty() -> SenderFieldKind.SELECT
+            else -> schema.kind
+        }
+        if (contractField.options.isEmpty()) {
+            if (kind == schema.kind) schema else schema.copy(kind = kind)
         } else {
             val existingLabels = schema.options.associateBy { it.value }
             schema.copy(
-                kind = SenderFieldKind.SELECT,
+                kind = kind,
                 options = contractField.options.map { contractOption ->
                     SenderSelectOption(
                         value = contractOption.value,
@@ -558,7 +569,7 @@ private fun normalizeFormValue(
         else -> defaultValue
     }
 
-    SenderFieldKind.TEXT, SenderFieldKind.TEXTAREA ->
+    SenderFieldKind.PASSWORD, SenderFieldKind.TEXT, SenderFieldKind.TEXTAREA ->
         JsonPrimitive(candidate.stringOrNull() ?: defaultValue.stringOrNull().orEmpty())
 }
 
