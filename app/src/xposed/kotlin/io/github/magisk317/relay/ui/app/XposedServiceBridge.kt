@@ -3,7 +3,6 @@ package io.github.magisk317.relay.ui.app
 import android.os.Handler
 import android.os.Looper
 import io.github.libxposed.service.XposedService
-import io.github.libxposed.service.XposedServiceHelper
 import io.github.magisk317.relay.android.platform.ipc.ProviderCallerPolicy
 import io.github.magisk317.relay.app.InfrastructureInitializer
 import io.github.magisk317.relay.app.XposedServiceRuntimeCoordinator
@@ -14,14 +13,18 @@ import io.github.magisk317.relay.domain.diagnostics.XposedScopeAccessHolder
 import io.github.magisk317.relay.domain.diagnostics.XposedScopeState
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.xposed.logging.XLog
+import io.github.magisk317.xposed.service.FrameworkHookTargets
+import io.github.magisk317.xposed.service.ServiceState
+import io.github.magisk317.xposed.service.XposedServiceBridge as KitServiceBridge
 import java.util.concurrent.Executor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
+/**
+ * The kit owns the libxposed listener and its bind/retract state; this object only maps each
+ * transition onto the effects the app has always performed on them.
+ */
 internal object XposedServiceBridge {
-    @Volatile
-    private var currentService: XposedService? = null
-
     private lateinit var application: SmsCodeApplication
     private lateinit var applicationScope: CoroutineScope
 
@@ -39,14 +42,14 @@ internal object XposedServiceBridge {
         XposedScopeAccessHolder.install(
             object : XposedScopeAccess {
                 override fun refresh() {
-                    currentService?.let(::publishScope)
+                    KitServiceBridge.currentService?.let(::publishScope)
                 }
 
                 override fun requestMissing(
                     packages: List<String>,
                     onResult: (ScopeRequestOutcome) -> Unit,
                 ) {
-                    val service = currentService
+                    val service = KitServiceBridge.currentService
                     if (service == null) {
                         onResult(ScopeRequestOutcome.Unavailable("框架服务未连接"))
                         return
@@ -93,33 +96,56 @@ internal object XposedServiceBridge {
                 }
             },
         )
-        runCatching<Unit> {
-            XposedServiceHelper.registerListener(
-                object : XposedServiceHelper.OnServiceListener {
-                    override fun onServiceBind(service: XposedService) {
-                        currentService = service
-                        publishScope(service)
-                        val mode = XposedServiceRuntimeCoordinator.handleServiceBound(
-                            application = application,
-                            applicationScope = applicationScope,
-                            remotePrefsProvider = { service.getRemotePreferences(RelayPrefConst.REMOTE_PREFS_GROUP) },
-                            frameworkName = service.frameworkName,
-                            frameworkVersion = service.frameworkVersion,
-                        )
-                        InfrastructureInitializer.markEnvironmentSettled()
-                        PhoneProcessRestartCoordinator.requestAfterInstallOrUpdate(application, applicationScope)
-                    }
+        val registered = KitServiceBridge.register(
+            onError = { operation, error ->
+                XLog.w(
+                    message = "Xposed service bridge failed during %s: %s",
+                    operation,
+                    error.message ?: error.javaClass.simpleName,
+                )
+                XposedServiceRuntimeCoordinator.logRegistrationFailure(error)
+            },
+        )
+        if (registered) {
+            XLog.i(message = "XposedServiceHelper.registerListener() succeeded")
+        }
+        applicationScope.launch {
+            KitServiceBridge.state.collect { state ->
+                when (state) {
+                    is ServiceState.Bound -> onBound(application, applicationScope, state.service)
+                    ServiceState.Retracted -> onRetracted(application)
+                    ServiceState.Waiting -> Unit
+                }
+            }
+        }
+    }
 
-                    override fun onServiceDied(service: XposedService) {
-                        currentService = null
-                        ProviderCallerPolicy.updateLiveScope(emptyList())
-                        XposedScopeAccessHolder.update(XposedScopeState())
-                        val mode = XposedServiceRuntimeCoordinator.handleServiceDied(application)
-                        InfrastructureInitializer.markEnvironmentSettled()
-                    }
-                },
-            )
-        }.onFailure(XposedServiceRuntimeCoordinator::logRegistrationFailure)
+    private fun onBound(
+        application: SmsCodeApplication,
+        applicationScope: CoroutineScope,
+        service: XposedService,
+    ) {
+        publishScope(service)
+        // The framework is the only side that knows which processes carry the module, so this keeps
+        // the activation status independent from the hook having to reach the app through a
+        // content provider the system may refuse to start.
+        FrameworkHookTargets.record(application, service)
+        XposedServiceRuntimeCoordinator.handleServiceBound(
+            application = application,
+            applicationScope = applicationScope,
+            remotePrefsProvider = { service.getRemotePreferences(RelayPrefConst.REMOTE_PREFS_GROUP) },
+            frameworkName = service.frameworkName,
+            frameworkVersion = service.frameworkVersion,
+        )
+        InfrastructureInitializer.markEnvironmentSettled()
+        PhoneProcessRestartCoordinator.requestAfterInstallOrUpdate(application, applicationScope)
+    }
+
+    private fun onRetracted(application: SmsCodeApplication) {
+        ProviderCallerPolicy.updateLiveScope(emptyList())
+        XposedScopeAccessHolder.update(XposedScopeState())
+        XposedServiceRuntimeCoordinator.handleServiceDied(application)
+        InfrastructureInitializer.markEnvironmentSettled()
     }
 
     private fun publishScope(service: XposedService) {

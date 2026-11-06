@@ -52,13 +52,8 @@ class AutoInputAction(
             attemptRecorder = { smsMsg, foregroundPackage ->
                 runCatching {
                     runBlocking {
-                        val recordId = runtimeRecordFacade.findSmsRecordIdByFingerprint(
-                            sender = smsMsg.sender,
-                            body = smsMsg.body,
-                            date = smsMsg.date,
-                        )
                         runtimeRecordFacade.insertAutoInputAttempt(
-                            recordId = recordId,
+                            recordId = null,
                             packageName = foregroundPackage,
                             codeLength = smsMsg.smsCode?.length ?: 0,
                         )

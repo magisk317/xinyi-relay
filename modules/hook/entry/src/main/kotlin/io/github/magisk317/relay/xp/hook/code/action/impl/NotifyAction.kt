@@ -4,6 +4,7 @@ import android.app.Notification
 import android.app.PendingIntent
 import android.content.Context
 import android.os.Bundle
+import androidx.core.app.NotificationCompat
 import io.github.magisk317.relay.hookentry.R
 import io.github.magisk317.relay.xp.hook.code.CodeNotificationBroadcastContract
 import io.github.magisk317.relay.xp.hook.code.CopyCodeReceiver
@@ -47,7 +48,7 @@ class NotifyAction(
         modulePackageName = modulePackageName(),
         primaryChannelId = XpNotificationBridge.CHANNEL_ID_RELAY_NOTIFICATION,
         fallbackChannelId = XpNotificationBridge.CHANNEL_ID_RELAY_NOTIFICATION_FALLBACK,
-        channelName = mPhoneContext.getString(R.string.channel_name_relay_notification),
+        channelName = mPluginContext.getString(R.string.channel_name_relay_notification),
     )
 
     override fun action(): Bundle? {
@@ -129,24 +130,37 @@ class NotifyAction(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-        return CodeNotificationDeliveryHelper.buildCodeNotification(
-            context = mPhoneContext,
-            visualConfig = CodeNotificationDeliveryHelper.VisualConfig(
-                channelId = channelId,
-                groupKey = XpNotificationBridge.GROUP_KEY_RELAY_NOTIFICATION,
-                smallIconResId = R.drawable.ic_app_icon,
-                largeIconResId = R.drawable.ic_app_icon,
-                accentColorResId = R.color.ic_launcher_background,
-            ),
-            title = mPhoneContext.getString(R.string.app_name),
-            smsCode = request.smsMsg.smsCode,
-            contentIntent = pendingIntent,
-            contentTextProvider = { code ->
-                mPhoneContext.getString(R.string.code_notification_content, code)
-            },
-            autoCancelEnabled = request.autoCancelEnabled,
-            retentionTimeMs = request.retentionTimeMs,
-        )
+        val smallIcon = runCatching {
+            androidx.core.graphics.drawable.IconCompat.createWithResource(
+                mPluginContext,
+                R.drawable.ic_app_icon,
+            )
+        }.getOrNull()
+        val builder = NotificationCompat.Builder(mPhoneContext, channelId)
+            .setContentTitle(mPluginContext.getString(R.string.app_name))
+            .setContentText(
+                mPluginContext.getString(
+                    R.string.code_notification_content,
+                    request.smsMsg.smsCode,
+                ),
+            )
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .setWhen(System.currentTimeMillis())
+            .setShowWhen(true)
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setDefaults(NotificationCompat.DEFAULT_ALL)
+        if (smallIcon != null) {
+            builder.setSmallIcon(smallIcon)
+        } else {
+            builder.setSmallIcon(android.R.drawable.stat_notify_chat)
+        }
+        if (request.autoCancelEnabled && request.retentionTimeMs > 0L) {
+            builder.setTimeoutAfter(request.retentionTimeMs)
+        }
+        return builder.build()
     }
 
     private fun modulePackageName(): String =

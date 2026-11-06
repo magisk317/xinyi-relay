@@ -97,3 +97,6 @@ data class XpSmsMessage(
         }
     }
 }
+
+
+typealias SmsMsg = XpSmsMessage

@@ -19,6 +19,7 @@ import io.github.magisk317.relay.xp.hook.mms.MmsMessagesHook
 import io.github.magisk317.relay.xp.hook.helper.XinyiHookHostCapabilities
 import io.github.magisk317.relay.xp.hook.keepalive.RelayKeepAliveHook
 import io.github.magisk317.relay.xp.hook.telephony.SmsProviderHook
+import io.github.magisk317.relay.xp.hook.telephony.SmsConsentBypassHook
 import io.github.magisk317.relay.xp.runtime.RuntimeBridgeFactory
 import io.github.magisk317.relay.xpbridge.XpAppConfigFacade
 import io.github.magisk317.relay.xpbridge.XpClipboard
@@ -39,6 +40,7 @@ import io.github.magisk317.xposed.BaseHook
 import io.github.magisk317.xposed.BaseLibXposedEntry
 import io.github.magisk317.xposed.logging.MagiskLogPolicy
 import io.github.magisk317.xposed.logging.MagiskOtel
+import io.github.magisk317.xposed.logging.StageEventEmitter
 import io.github.magisk317.xposed.LibXposedHookApi
 import io.github.magisk317.xposed.LoadParam
 
@@ -61,23 +63,25 @@ class LibXposedEntry : BaseLibXposedEntry {
         SystemInputInjectorHook(),
         RelayNotificationCaptureHook(XinyiHookHostCapabilities),
         SmsProviderHook(),
+        SmsConsentBypassHook(),
         RelayKeepAliveHook(),
     )
 
     override fun installModuleRuntime(module: XposedModule, hookApi: LibXposedHookApi) {
         // The hook process is its own JVM: nothing installed in the app process reaches it,
         // so the policy has to be evaluated from these build flags before the first hook log.
-        MagiskLogPolicy.install(
-            isDebugBuild = BuildConfig.BUILD_TYPE == "debug",
-            allowPlaintextLogs = BuildConfig.ALLOW_PLAINTEXT_LOGS,
+        val logPolicy = MagiskLogPolicy.install(
+            isDiagnosticBuild = BuildConfig.DEBUG || BuildConfig.IS_CI_BUILD,
         )
         installCoreRuntime()
         XpHookDiagnostics.installRuntimeBridge(AndroidXpDiagnosticsBridge)
-        XpHookDiagnostics.configureLogClient(
-            authority = "${BuildConfig.APPLICATION_ID}.xposed.log",
-            source = "xinyi",
-        )
-        XpHookDiagnostics.installXposedRuntimeLogSink()
+        if (logPolicy.loggingEnabled) {
+            XpHookDiagnostics.configureLogClient(
+                authority = "${BuildConfig.APPLICATION_ID}.xposed.log",
+                source = "xinyi",
+            )
+            XpHookDiagnostics.installXposedRuntimeLogSink()
+        }
         XpAppConfigFacade.installRuntimeBridge(RuntimeXpAppConfigBridge)
         XpRecordFacade.installRuntimeBridge(RuntimeXpRecordBridge)
         XpDispatchCoordinator.installRuntimeBridge(RuntimeXpSmsDispatchBridge)
@@ -92,17 +96,12 @@ class LibXposedEntry : BaseLibXposedEntry {
         } catch (t: Throwable) {
             XLog.e("", t)
         }
-        MagiskOtel.event(
+        StageEventEmitter.emit(
             name = "hook.load",
-            attributes = mapOf(
-                "result" to "ok",
-                "duration_ms" to "0",
-                "process" to "hook",
-                "stage" to "module_runtime",
-                "reason" to "installed",
-                "source" to "xinyi-relay",
-            ),
-            statusOk = true,
+            result = "ok",
+            stage = "module_runtime",
+            reason = "installed",
+            source = "xinyi-relay",
         )
     }
 
@@ -126,7 +125,7 @@ class LibXposedEntry : BaseLibXposedEntry {
      */
     private fun reportHookProcessOnlineOnce(loadParam: LoadParam) {
         if (!processOnlineReported.compareAndSet(false, true)) return
-        val context = HookTargetDiagnostics.resolveModuleContext() ?: return
+        val context = HookTargetDiagnostics.resolveProcessContext() ?: return
         val processName = loadParam.processName.ifBlank { loadParam.packageName }
         runCatching {
             XpHookDiagnostics.recordSmsHookHeartbeat(

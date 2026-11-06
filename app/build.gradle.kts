@@ -202,6 +202,9 @@ dependencies {
         add("${flavor}Implementation", project(":hook:entry"))
         add("${flavor}Implementation", project(":xpbridge:core"))
         add("${flavor}Implementation", libs.libxposed.service)
+        // The Xposed service bridge lives in the shared kit: every host talks to the framework
+        // through the same bridge, so the framework hook targets land in the same store.
+        add("${flavor}Implementation", project(":magisk-xposed-kit:service"))
         // The Xposed service bridge (src/xposed) consumes the runtime scope API;
         // other flavors keep their runtime classpath strictly behind mobile:core.
         add("${flavor}Implementation", project(":runtime"))

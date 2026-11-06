@@ -29,6 +29,7 @@ internal object SmsBlockEvaluator {
         },
         blockSmsEnabledReader = XpPrefs::blockSmsEnabled,
         smsCodeParser = { context, body -> XpSmsCodeParser.parseSmsCodeIfExists(context, body) },
+        entitlementReader = XpPrefs::mobileAutomationAllowed,
     )
 
     fun evaluate(
@@ -43,15 +44,16 @@ internal object SmsBlockEvaluator {
             eventId = eventId,
             source = source,
         ) ?: return null
-        val mobileAutomationAllowed = XpPrefs.mobileAutomationAllowed(pluginContext)
+        // The entitlement gate lives in the shared evaluator now; its outcome is already
+        // reflected in the withheld block reason and delete-only flag.
         return Result(
             smsMsg = result.smsMsg,
-            blockReason = result.blockReasonWireValue.takeIf { mobileAutomationAllowed },
-            blacklistDeleteOnly = result.blacklistDeleteOnly && mobileAutomationAllowed,
+            blockReason = result.blockReasonWireValue,
+            blacklistDeleteOnly = result.blacklistDeleteOnly,
             blacklistResult = result.blacklistResult,
             decision = SmsHandlerDispatchDecision.Decision(
-                shouldDeleteByBlacklist = result.blacklistDeleteOnly && mobileAutomationAllowed,
-                blockReason = result.blockReason.takeIf { mobileAutomationAllowed },
+                shouldDeleteByBlacklist = result.blacklistDeleteOnly,
+                blockReason = result.blockReason,
             ),
         )
     }

@@ -206,7 +206,7 @@ class RelayManifestContractTest {
     }
 
     @Test
-    fun `libxposed entrypoint and dynamic scope metadata remain declared`() {
+    fun `libxposed entrypoint and scope metadata remain declared`() {
         assertEquals(
             "io.github.magisk317.relay.xp.LibXposedEntry",
             resolveProjectFile("modules/hook/entry/src/main/resources/META-INF/xposed/java_init.list").readText().trim(),
@@ -217,10 +217,22 @@ class RelayManifestContractTest {
         assertTrue("targetApiVersion=102" in moduleProps)
         assertTrue("staticScope=false" in moduleProps)
         assertTrue("autoHotReload=true" in moduleProps)
-        val scopeList = runCatching {
-            resolveProjectFile("modules/hook/entry/src/main/resources/META-INF/xposed/scope.list")
-        }.getOrNull()
-        assertTrue(scopeList == null || !scopeList.exists(), "dynamic scope must not ship a scope.list")
+
+        // `staticScope=false` and a shipped scope.list are not mutually exclusive, which
+        // is what the old "dynamic scope must not ship a scope.list" assertion assumed:
+        // the flag says the runtime may request missing packages through the libxposed
+        // service, while scope.list is what the framework reads at install time to offer
+        // the recommended scope. Dropping the file is exactly how the v34 migration left
+        // the manager's recommended-scope list empty, so assert it is present and still
+        // names the telephony processes the forwarding pipeline needs.
+        val scopeList = resolveProjectFile("modules/hook/entry/src/main/resources/META-INF/xposed/scope.list")
+            .readLines()
+            .map { line -> line.trim() }
+            .filter { line -> line.isNotEmpty() }
+        assertTrue(scopeList.isNotEmpty(), "scope.list declares no recommended packages")
+        REQUIRED_RECOMMENDED_PACKAGES.forEach { name ->
+            assertTrue(name in scopeList, "$name dropped from scope.list")
+        }
     }
 
     @Test
@@ -294,6 +306,13 @@ class RelayManifestContractTest {
     }
 
     private companion object {
+        /** Packages the forwarding pipeline needs, and that LSPosed offers at install. */
+        val REQUIRED_RECOMMENDED_PACKAGES = listOf(
+            "android",
+            "com.android.phone",
+            "com.android.providers.telephony",
+        )
+
         const val ANDROID_NS = "http://schemas.android.com/apk/res/android"
         const val TOOLS_NS = "http://schemas.android.com/tools"
         const val AUTO_INPUT_SERVICE = "io.github.magisk317.relay.service.AutoInputAccessibilityService"

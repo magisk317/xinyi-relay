@@ -1,10 +1,12 @@
 package io.github.magisk317.relay.xp
 
 import android.content.Context
+import android.os.Process
 import io.github.magisk317.relay.hookentry.BuildConfig
 import io.github.magisk317.relay.xp.hook.PhoneHookTargetPackages
-import io.github.magisk317.relay.xpbridge.XpPrefs
+import io.github.magisk317.xposed.capability.helper.ModuleContextResolver
 import io.github.magisk317.xposed.LoadParam
+import io.github.magisk317.xposed.logging.MagiskLogPolicy
 import io.github.magisk317.xposed.logging.XLog
 import java.util.concurrent.ConcurrentHashMap
 
@@ -68,8 +70,7 @@ internal object HookTargetDiagnostics {
     }
 
     fun logPackageReadyProbeIfVerbose(loadParam: LoadParam) {
-        val pluginContext = resolveModuleContext() ?: return
-        if (!isVerboseEnabled(pluginContext)) return
+        if (resolveModuleContext() == null || !isVerboseEnabled()) return
         val processName = loadParam.processName.ifBlank { loadParam.packageName }
         val probe = describePackageProbe(loadParam.packageName, processName)
         if (!probe.isCandidate) return
@@ -132,8 +133,7 @@ internal object HookTargetDiagnostics {
         loadParam: LoadParam,
         targetPackage: String,
     ) {
-        val pluginContext = resolveModuleContext() ?: return
-        if (!isVerboseEnabled(pluginContext)) return
+        if (resolveModuleContext() == null || !isVerboseEnabled()) return
         XLog.w(
             message = "Diag target process hit: hook=%s pkg=%s process=%s expectedPkg=%s loader=%s",
             hookName,
@@ -150,8 +150,7 @@ internal object HookTargetDiagnostics {
         reason: String,
         detail: String? = null,
     ) {
-        val pluginContext = resolveModuleContext() ?: return
-        if (!isVerboseEnabled(pluginContext)) return
+        if (resolveModuleContext() == null || !isVerboseEnabled()) return
         XLog.w(
             message = "Diag target miss: hook=%s pkg=%s process=%s reason=%s detail=%s",
             hookName,
@@ -162,24 +161,22 @@ internal object HookTargetDiagnostics {
         )
     }
 
-    private fun isVerboseEnabled(pluginContext: Context): Boolean {
-        return runCatching { XpPrefs.isVerboseLogMode(pluginContext) }.getOrDefault(false)
-    }
+    private fun isVerboseEnabled(): Boolean = MagiskLogPolicy.current().verboseLogging
 
-    internal fun resolveModuleContext(): Context? {
-        val baseContext = resolveAnyProcessContext() ?: return null
-        val appContext = baseContext.applicationContext ?: baseContext
-        if (appContext.packageName == BuildConfig.APPLICATION_ID) {
-            return appContext
+    internal fun resolveModuleContext(): Context? =
+        ModuleContextResolver.resolve(BuildConfig.APPLICATION_ID)
+
+    internal fun resolveProcessContext(
+        fallback: Context? = null,
+        processUid: Int = Process.myUid(),
+    ): Context? {
+        fun usable(context: Context?): Context? {
+            val appContext = context?.applicationContext ?: context ?: return null
+            return appContext.takeIf { it.applicationInfo?.uid == processUid }
         }
-        return runCatching {
-            appContext.createPackageContext(BuildConfig.APPLICATION_ID, Context.CONTEXT_IGNORE_SECURITY)
-        }.getOrNull()
-    }
-
-    private fun resolveAnyProcessContext(): Context? {
-        resolveCurrentApplication()?.let { return it }
-        return resolveSystemContext()
+        usable(fallback)?.let { return it }
+        usable(resolveCurrentApplication())?.let { return it }
+        return usable(resolveSystemContext())
     }
 
     private fun resolveCurrentApplication(): Context? = runCatching {

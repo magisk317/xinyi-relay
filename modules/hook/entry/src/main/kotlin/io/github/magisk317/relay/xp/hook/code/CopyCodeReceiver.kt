@@ -11,6 +11,7 @@ import io.github.magisk317.smscode.xposed.hook.telephony.CopyCodeReceiverRegistr
 import io.github.magisk317.smscode.runtime.verification.CodeNotificationActionHandler
 import io.github.magisk317.smscode.runtime.verification.CodeNotificationActionPayload
 import io.github.magisk317.xposed.logging.MagiskOtel
+import io.github.magisk317.xposed.logging.XLog
 
 /**
  * Receiver for copy code when notification clicked
@@ -26,26 +27,36 @@ class CopyCodeReceiver : BroadcastReceiver() {
             )
             return
         }
-        MagiskOtel.event(
-            name = "sms.copy",
-            attributes = mapOf(
-                "result" to "ok",
-                "duration_ms" to "0",
-                "process" to "hook",
-                "stage" to "receiver",
-                "reason" to "copy_click",
-            ),
-            statusOk = true,
-        )
-        CodeNotificationActionHandler.handleCopyCodeReceiverIntent(
-            context = context,
-            intent = intent,
-            expectedAction = ACTION_COPY_CODE,
-            copyCode = { smsCode ->
-                XpClipboard.copyToClipboard(context, smsCode)
-                showToast(context, smsCode)
-            },
-        )
+        try {
+            CodeNotificationActionHandler.handleCopyCodeReceiverIntent(
+                context = context,
+                intent = intent,
+                expectedAction = ACTION_COPY_CODE,
+                copyCode = { smsCode ->
+                    val copied = runCatching {
+                        XpClipboard.copyToClipboard(context, smsCode)
+                    }.getOrDefault(false)
+                    MagiskOtel.event(
+                        name = "sms.copy",
+                        attributes = mapOf(
+                            "result" to if (copied) "ok" else "error",
+                            "duration_ms" to "0",
+                            "process" to "hook",
+                            "stage" to "receiver",
+                            "reason" to if (copied) "copy_click" else "write_not_confirmed",
+                            "code_length" to smsCode.length.toString(),
+                        ),
+                        statusOk = copied,
+                    )
+                    if (!copied) {
+                        throw IllegalStateException("Clipboard write was not confirmed")
+                    }
+                    showToast(context, smsCode)
+                },
+            )
+        } catch (error: IllegalStateException) {
+            XLog.w(message = "Copy code receiver failed: %s", error.message ?: "unknown")
+        }
     }
 
     private fun showToast(context: Context, smsCode: String) {

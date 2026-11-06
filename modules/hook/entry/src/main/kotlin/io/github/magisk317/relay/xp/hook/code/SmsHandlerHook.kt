@@ -17,13 +17,14 @@ import io.github.magisk317.smscode.runtime.verification.SmsDispatchIntentDedupli
 import io.github.magisk317.smscode.runtime.verification.SmsIntentHookSupport
 import io.github.magisk317.xposed.runtime.contract.sim.SmsRoutingIntentExtras
 import io.github.magisk317.smscode.runtime.verification.PendingSmsReplayQueue
+import io.github.magisk317.smscode.xposed.hook.telephony.HookInstallClaim
 import io.github.magisk317.smscode.xposed.hook.telephony.InboundSmsHookClaim
 import io.github.magisk317.smscode.xposed.hook.telephony.InboundSmsHookInstaller
 import io.github.magisk317.smscode.xposed.hook.telephony.InboundSmsBlocker
 import io.github.magisk317.relay.xp.hook.PhoneHookTargetPackages
 import io.github.magisk317.relay.xp.hook.helper.XinyiHookHostCapabilities
-import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
-import io.github.magisk317.relay.xp.hook.SmsHookRuntimeSession
+import io.github.magisk317.smscode.xposed.hook.telephony.SmsHookRuntimeContext
+import io.github.magisk317.smscode.xposed.hook.telephony.SmsHookRuntimeSession
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
@@ -35,6 +36,7 @@ import io.github.magisk317.xposed.MethodHook
 import io.github.magisk317.xposed.LoadParam
 import io.github.magisk317.xposed.MethodHookParam
 import io.github.magisk317.xposed.logging.MagiskOtel
+import io.github.magisk317.xposed.logging.StageEventEmitter
 import io.github.magisk317.xposed.runtime.contract.logging.LogRoute
 import java.lang.reflect.Method
 import java.util.Collections
@@ -44,7 +46,7 @@ import java.util.concurrent.Executors
  */
 class SmsHandlerHook : BaseHook() {
     private val smsOperationExecutor = Executors.newSingleThreadExecutor()
-    private val runtimeSession = SmsHookRuntimeSession(SMSCODE_PACKAGE)
+    private val runtimeSession: SmsHookRuntimeSession = XinyiHookHostCapabilities.smsHookRuntimeSession
     private val inboundSmsBlocker = InboundSmsBlocker(SMS_HANDLER_CLASS)
     private val parsedCodeSmsForwarder = ParsedCodeSmsForwarder()
     private val constructorInitializer = createRelayConstructorInitializer(
@@ -90,34 +92,40 @@ class SmsHandlerHook : BaseHook() {
             // libxposed gives each process its own classloader, so several processes
             // loading the telephony package would install these hooks more than once.
             // Claim the install through a system property, shared across classloaders.
-            val hookKey = hookClaim.key("hook_init", lpparam.packageName, lpparam.processName)
-            val existingClaimAge = hookClaim.claim(hookKey, HOOK_INIT_WINDOW_MS)
-            if (existingClaimAge != null) {
-                XLog.w(
-                    message = "SmsHandlerHook already initialized in this process, skip: pkg=%s process=%s ageMs=%d",
-                    lpparam.packageName,
-                    lpparam.processName,
-                    existingClaimAge,
-                )
-                emitHandler(
-                    result = "skip",
-                    reason = "already_initialized",
-                    stage = "hook_install",
-                )
-                return
-            }
-            if (!hookClaim.markInstalled(hookKey)) {
-                XLog.w(
-                    message = "SmsHandlerHook duplicate load skipped: pkg=%s process=%s",
-                    lpparam.packageName,
-                    lpparam.processName,
-                )
-                emitHandler(
-                    result = "skip",
-                    reason = "already_initialized",
-                    stage = "hook_install",
-                )
-                return
+            val installClaim = hookClaim.claimInstall(
+                packageName = lpparam.packageName,
+                processName = lpparam.processName,
+            )
+            when (installClaim) {
+                is HookInstallClaim.AlreadyClaimed -> {
+                    XLog.w(
+                        message = "SmsHandlerHook shared init skip: pkg=%s process=%s pid=%d ageMs=%d",
+                        lpparam.packageName,
+                        lpparam.processName,
+                        android.os.Process.myPid(),
+                        installClaim.ageMs,
+                    )
+                    emitHandler(
+                        result = "skip",
+                        reason = "already_initialized",
+                        stage = "hook_install",
+                    )
+                    return
+                }
+                HookInstallClaim.AlreadyInstalled -> {
+                    XLog.w(
+                        message = "SmsHandlerHook duplicate load skipped: pkg=%s process=%s",
+                        lpparam.packageName,
+                        lpparam.processName,
+                    )
+                    emitHandler(
+                        result = "skip",
+                        reason = "already_initialized",
+                        stage = "hook_install",
+                    )
+                    return
+                }
+                is HookInstallClaim.Proceed -> {}
             }
             XLog.i("SmsCode initializing")
             printDeviceInfo()
@@ -634,35 +642,29 @@ class SmsHandlerHook : BaseHook() {
         eventId: String,
         action: String?,
     ): Boolean {
-        val result = dispatchIntentDeduplicator.shouldSkipInMemory(eventId, action)
+        val result = dispatchIntentDeduplicator.shouldSkipEverywhere(
+            eventId = eventId,
+            action = action,
+            claimShared = { key, windowMs, maxEntries ->
+                val shared = XpSharedRuntimeGate.claimWithinWindow(
+                    context = pluginContext,
+                    fileName = SmsDispatchIntentDeduplicator.DEFAULT_FILE_NAME,
+                    key = key,
+                    windowMs = windowMs,
+                    maxEntries = maxEntries,
+                )
+                SmsDispatchIntentDeduplicator.SharedClaimResult(claimed = shared.claimed, ageMs = shared.ageMs)
+            },
+        )
         if (result.shouldSkip) {
             XLog.d(
-                message = "Diag SMS dispatch duplicate skip (memory): event_id=%s action=%s ageMs=%d",
+                message = "Diag SMS dispatch duplicate skip: event_id=%s action=%s ageMs=%d",
                 eventId,
                 action,
                 result.ageMs ?: 0L,
             )
             return true
         }
-
-        val key = result.key ?: return false
-        val shared = XpSharedRuntimeGate.claimWithinWindow(
-            context = pluginContext,
-            fileName = SmsDispatchIntentDeduplicator.DEFAULT_FILE_NAME,
-            key = key,
-            windowMs = SmsDispatchIntentDeduplicator.DEFAULT_WINDOW_MS,
-            maxEntries = SmsDispatchIntentDeduplicator.DEFAULT_MAX_ENTRIES,
-        )
-        if (!shared.claimed) {
-            XLog.d(
-                message = "Diag SMS dispatch duplicate skip (provider): event_id=%s action=%s ageMs=%d",
-                eventId,
-                action,
-                shared.ageMs ?: 0L,
-            )
-            return true
-        }
-
         return false
     }
 
@@ -681,9 +683,14 @@ class SmsHandlerHook : BaseHook() {
     }
 
     override fun onHotReloading() {
+        hookClaim.reset()
         smsInboxObserver?.unregister()
         smsInboxObserver = null
         smsOperationExecutor.shutdownNow()
+        // Release the runtime-registered receiver before libxposed swaps the module
+        // ClassLoader; leaving it registered keeps the stale receiver alive across reloads.
+        runtimeSession.currentOrResolve()?.let { CopyCodeReceiver.unregisterMe(it.phoneContext) }
+        runtimeSession.reset()
     }
 
 
@@ -695,29 +702,28 @@ class SmsHandlerHook : BaseHook() {
         statusOk: Boolean = true,
         errorClass: String? = null,
     ) {
-        val attrs = mutableMapOf(
-            "result" to result,
-            "duration_ms" to "0",
-            "process" to "hook",
-            "stage" to stage,
-            "reason" to reason,
-            "source" to "sms_handler",
-            "msg_type" to "sms",
+        val extra = buildMap {
+            if (!errorClass.isNullOrBlank()) {
+                put("error_class", errorClass)
+            }
+        }
+        StageEventEmitter.emit(
+            name = "sms.process",
+            result = result,
+            stage = stage,
+            reason = reason,
+            source = "sms_handler",
+            msgType = "sms",
+            eventIdPresent = eventIdPresent,
+            statusOk = statusOk,
+            extra = extra,
         )
-        if (eventIdPresent) {
-            attrs["event_id_present"] = "true"
-        }
-        if (!errorClass.isNullOrBlank()) {
-            attrs["error_class"] = errorClass
-        }
-        MagiskOtel.event(name = "sms.process", attributes = attrs, statusOk = statusOk)
     }
 
     companion object {
         private val hookClaim = InboundSmsHookClaim()
 
-        private const val HOOK_INIT_WINDOW_MS = 5 * 60 * 1000L
-
+    
         private const val TELEPHONY_PACKAGE = "com.android.internal.telephony"
         private const val SMS_HANDLER_CLASS = "$TELEPHONY_PACKAGE.InboundSmsHandler"
         private const val DISPATCH_HANDLER_KEY = "sms_handler"

@@ -7,6 +7,8 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
+private const val NOW = 1_762_000_000_000L
+
 class ObservedInboxScannerTest {
 
     @Test
@@ -28,25 +30,26 @@ class ObservedInboxScannerTest {
                         smsId = 10L,
                         sender = "1068",
                         body = "otp 123456",
-                        date = 100L,
+                        date = NOW - 1_000L,
                         read = false,
                     ),
                     ObservedInboxScanner.InboxRow(
                         smsId = 10L,
                         sender = "1068",
                         body = "otp 123456",
-                        date = 101L,
+                        date = NOW - 1_000L,
                         read = false,
                     ),
                     ObservedInboxScanner.InboxRow(
                         smsId = 11L,
                         sender = "10086",
                         body = "hello",
-                        date = 102L,
+                        date = NOW - 1_000L,
                         read = true,
                     ),
                 )
             },
+            currentTimeMillis = { NOW },
         )
 
         val result = scanner.scan(triggerUri = "", recentSmsWindowMs = 60_000L)
@@ -72,11 +75,12 @@ class ObservedInboxScannerTest {
                         smsId = 12L,
                         sender = "bank",
                         body = "otp",
-                        date = 200L,
+                        date = NOW - 1_000L,
                         read = false,
                     ),
                 )
             },
+            currentTimeMillis = { NOW },
         )
 
         val result = scanner.scan(triggerUri = "content://sms/inbox/12", recentSmsWindowMs = 60_000L)
@@ -102,11 +106,12 @@ class ObservedInboxScannerTest {
                         smsId = 66L,
                         sender = "bank",
                         body = "otp 888888",
-                        date = 300L,
+                        date = NOW - 1_000L,
                         read = false,
                     ),
                 )
             },
+            currentTimeMillis = { NOW },
         )
 
         val result = scanner.scan(triggerUri = "content://sms/66", recentSmsWindowMs = 60_000L)

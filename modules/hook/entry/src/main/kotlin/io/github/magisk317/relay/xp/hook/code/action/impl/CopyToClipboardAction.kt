@@ -23,7 +23,11 @@ class CopyToClipboardAction(
             CopyToClipboardActionHelper.copyCode(
                 phoneContext = mPhoneContext,
                 smsCode = mSmsMsg.smsCode,
-                copyAction = XpClipboard::copyToClipboard,
+                copyAction = { context, code ->
+                    if (!XpClipboard.copyToClipboard(context, code)) {
+                        throw IllegalStateException("Clipboard write was not confirmed")
+                    }
+                },
             )
         }
         return null

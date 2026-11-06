@@ -6,6 +6,7 @@ import io.github.magisk317.relay.contract.xpbridge.XpDiagnosticsRuntimeBridge
 import io.github.magisk317.xposed.capability.runtime.CoreLogSink
 import io.github.magisk317.xposed.capability.runtime.CoreLogSinkHolder
 import io.github.magisk317.xposed.logging.XposedLogClient
+import io.github.magisk317.xposed.logging.MagiskLogPolicy
 
 object XpHookDiagnostics {
     @Volatile
@@ -16,10 +17,12 @@ object XpHookDiagnostics {
     }
 
     fun configureLogClient(authority: String, source: String = "xinyi") {
+        if (!MagiskLogPolicy.current().loggingEnabled) return
         XposedLogClient.configure(authority = authority, source = source)
     }
 
     fun installXposedRuntimeLogSink() {
+        if (!MagiskLogPolicy.current().loggingEnabled) return
         CoreLogSinkHolder.install(object : CoreLogSink {
             override fun append(
                 priority: Int,
@@ -39,7 +42,9 @@ object XpHookDiagnostics {
         context: Context,
         verboseLogging: Boolean,
     ) {
-        XposedLogClient.attachContext(context)
+        if (MagiskLogPolicy.current().loggingEnabled) {
+            XposedLogClient.attachContext(context)
+        }
         runtimeBridge.bindRuntimeLogContext(context, verboseLogging)
     }
 

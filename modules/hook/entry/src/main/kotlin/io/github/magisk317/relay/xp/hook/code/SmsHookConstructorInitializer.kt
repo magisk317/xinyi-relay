@@ -1,7 +1,7 @@
 package io.github.magisk317.relay.xp.hook.code
 
 import android.content.Context
-import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
+import io.github.magisk317.smscode.xposed.hook.telephony.SmsHookRuntimeContext
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
 import io.github.magisk317.relay.xpbridge.XpPrefs

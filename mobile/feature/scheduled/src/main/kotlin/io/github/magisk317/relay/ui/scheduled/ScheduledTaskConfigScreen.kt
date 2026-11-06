@@ -2,7 +2,6 @@ package io.github.magisk317.relay.ui.scheduled
 
 import io.github.magisk317.uikit.common.AppSnackbarHostState
 import io.github.magisk317.uikit.common.showLatestSnackbar
-import android.provider.Settings
 import androidx.annotation.StringRes
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -23,11 +22,11 @@ import io.github.magisk317.relay.ui.common.SegmentedOption
 import io.github.magisk317.relay.ui.common.SingleChoiceSegmentedSelector
 import io.github.magisk317.relay.ui.common.ActiveScheduleTimeValueButton
 import io.github.magisk317.relay.ui.common.ActiveScheduleWeekdayRow
-import kotlinx.coroutines.Dispatchers
+import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
+import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
+import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.IOException
-import java.util.concurrent.TimeUnit
+import org.koin.compose.koinInject
 import io.github.magisk317.uikit.preference.AppSwitch
 import io.github.magisk317.uikit.surface.AppTextField
 import io.github.magisk317.uikit.surface.AppDropdownField
@@ -59,6 +58,7 @@ fun ScheduledTaskConfigScreen(
     viewModel: ScheduledTaskViewModel = org.koin.compose.viewmodel.koinViewModel()
 ) {
     val context = LocalContext.current
+    val preferenceDataSource: PreferenceDataSource = koinInject()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { AppSnackbarHostState() }
     var name by remember(taskId) { mutableStateOf("") }
@@ -129,8 +129,10 @@ fun ScheduledTaskConfigScreen(
     }
 
     LaunchedEffect(Unit) {
-        shortCodeConfirmationBypassed =
-            ScheduledTaskRootDebugTools.isShortCodeConfirmationBypassed(context.applicationContext)
+        shortCodeConfirmationBypassed = preferenceDataSource.getBoolean(
+            PrefConst.KEY_SMS_SHORT_CODE_CONFIRMATION_BYPASS,
+            PrefConst.SMS_SHORT_CODE_CONFIRMATION_BYPASS_DEFAULT,
+        )
     }
 
     fun validateSmsFieldsForTest(): Int? {
@@ -189,7 +191,15 @@ fun ScheduledTaskConfigScreen(
         if (shortCodeConfirmationUpdating) return
         scope.launch {
             shortCodeConfirmationUpdating = true
-            val result = ScheduledTaskRootDebugTools.setShortCodeConfirmationBypassed(enabled)
+            val result = runCatching {
+                preferenceDataSource.setBoolean(
+                    PrefConst.KEY_SMS_SHORT_CODE_CONFIRMATION_BYPASS,
+                    enabled,
+                )
+                check(HookPreferenceMirror.publish(context.applicationContext)) {
+                    "远程偏好发布失败"
+                }
+            }
             shortCodeConfirmationUpdating = false
             result.onSuccess {
                 shortCodeConfirmationBypassed = enabled
@@ -776,57 +786,5 @@ private fun ScheduledTaskDebugSection(
                 )
             }
         }
-    }
-}
-
-private object ScheduledTaskRootDebugTools {
-    private const val SHORT_CODE_CONFIRMATION_SETTING = "sms_short_code_confirmation"
-    private const val ROOT_COMMAND_TIMEOUT_SEC = 10L
-
-    fun isShortCodeConfirmationBypassed(context: android.content.Context): Boolean {
-        return Settings.Global.getString(context.contentResolver, SHORT_CODE_CONFIRMATION_SETTING) == "0"
-    }
-
-    suspend fun setShortCodeConfirmationBypassed(enabled: Boolean): Result<Unit> {
-        return withContext(Dispatchers.IO) {
-            val value = if (enabled) "0" else "1"
-            val result = runSuCommand("settings put global $SHORT_CODE_CONFIRMATION_SETTING $value")
-            if (result.success) {
-                Result.success(Unit)
-            } else {
-                Result.failure(IllegalStateException("root exit=${result.exitCode}"))
-            }
-        }
-    }
-
-    private fun runSuCommand(command: String): ShellCommandResult {
-        return try {
-            val process = ProcessBuilder("su", "-c", command)
-                .redirectErrorStream(true)
-                .start()
-            val completed = process.waitFor(ROOT_COMMAND_TIMEOUT_SEC, TimeUnit.SECONDS)
-            if (!completed) {
-                process.destroy()
-                if (process.isAlive) {
-                    process.destroyForcibly()
-                }
-                return ShellCommandResult(exitCode = -2, output = "")
-            }
-            val output = process.inputStream.bufferedReader().use { it.readText() }
-            ShellCommandResult(exitCode = process.exitValue(), output = output)
-        } catch (e: IOException) {
-            ShellCommandResult(exitCode = -1, output = e.message.orEmpty())
-        } catch (e: InterruptedException) {
-            Thread.currentThread().interrupt()
-            ShellCommandResult(exitCode = -1, output = e.message.orEmpty())
-        }
-    }
-
-    private data class ShellCommandResult(
-        val exitCode: Int,
-        val output: String,
-    ) {
-        val success: Boolean
-            get() = exitCode == 0
     }
 }

@@ -1,6 +1,11 @@
 package io.github.magisk317.relay.xp
 
+import android.content.Context
+import android.content.pm.ApplicationInfo
+import io.mockk.every
+import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
@@ -84,5 +89,27 @@ class HookTargetDiagnosticsTest {
         assertFalse(result.handlerDispatchIntentFound)
         assertFalse(result.dispatchersControllerClassFound)
         assertFalse(result.dispatchersControllerDispatchFound)
+    }
+
+    @Test
+    fun resolveProcessContext_acceptsContextOwnedByCurrentProcess() {
+        val context = mockk<Context>(relaxed = true)
+        val processUid = 42
+        val applicationInfo = ApplicationInfo().apply { uid = processUid }
+        every { context.applicationContext } returns null
+        every { context.applicationInfo } returns applicationInfo
+
+        assertEquals(context, HookTargetDiagnostics.resolveProcessContext(context, processUid))
+    }
+
+    @Test
+    fun resolveProcessContext_rejectsForeignContext() {
+        val context = mockk<Context>(relaxed = true)
+        val processUid = 42
+        val applicationInfo = ApplicationInfo().apply { uid = processUid + 1 }
+        every { context.applicationContext } returns null
+        every { context.applicationInfo } returns applicationInfo
+
+        assertNull(HookTargetDiagnostics.resolveProcessContext(context, processUid))
     }
 }

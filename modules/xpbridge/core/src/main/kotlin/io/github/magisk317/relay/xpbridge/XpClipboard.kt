@@ -12,7 +12,6 @@ object XpClipboard {
         platformBridge = bridge ?: NoopClipboardPlatformBridge
     }
 
-    fun copyToClipboard(context: Context, text: String?) {
+    fun copyToClipboard(context: Context, text: String?): Boolean =
         platformBridge.copyToClipboard(context, text)
-    }
 }

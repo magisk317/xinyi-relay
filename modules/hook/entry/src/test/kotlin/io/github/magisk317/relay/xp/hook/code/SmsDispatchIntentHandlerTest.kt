@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.Intent
 import io.mockk.mockk
 import io.github.magisk317.relay.xpbridge.SmsMsg
-import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
+import io.github.magisk317.smscode.xposed.hook.telephony.SmsHookRuntimeContext
 import io.github.magisk317.smscode.verification.BlacklistMatchResult
 import io.github.magisk317.smscode.runtime.verification.SmsDispatchIntentHandler as SharedSmsDispatchIntentHandler
 import io.github.magisk317.smscode.runtime.verification.SmsHandlerDispatchDecision

@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.Intent
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpPrefs
-import io.github.magisk317.relay.xp.hook.SmsHookRuntimeContext
+import io.github.magisk317.smscode.xposed.hook.telephony.SmsHookRuntimeContext
 import io.github.magisk317.relay.xp.hook.forward.SmsForwardSimRoutingResolver
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper

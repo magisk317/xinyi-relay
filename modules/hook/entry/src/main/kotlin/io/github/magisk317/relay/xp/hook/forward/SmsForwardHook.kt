@@ -17,7 +17,7 @@ import io.github.magisk317.relay.xp.hook.code.action.impl.OperateSmsAction
 import io.github.magisk317.relay.xp.hook.SmsHookDispatchGate
 import io.github.magisk317.relay.xp.hook.PhoneHookTargetPackages
 import io.github.magisk317.relay.xp.hook.helper.XinyiHookHostCapabilities
-import io.github.magisk317.relay.xp.hook.SmsHookRuntimeSession
+import io.github.magisk317.smscode.xposed.hook.telephony.SmsHookRuntimeSession
 import io.github.magisk317.relay.xp.helper.ModuleConflictArbiter
 import io.github.magisk317.relay.xp.helper.SmsCodeConflictNoticeHelper
 import io.github.magisk317.xposed.contract.dedup.RecentEventDeduplicator
@@ -32,6 +32,7 @@ import io.github.magisk317.xposed.LoadParam
 import io.github.magisk317.xposed.MethodHook
 import io.github.magisk317.xposed.MethodHookParam
 import io.github.magisk317.xposed.logging.MagiskOtel
+import io.github.magisk317.xposed.logging.StageEventEmitter
 import io.github.magisk317.xposed.runtime.contract.logging.LogRoute
 import io.github.magisk317.xposed.logging.XLog
 import kotlinx.coroutines.runBlocking
@@ -57,7 +58,7 @@ class SmsForwardHook : BaseHook() {
     )
 
     private val smsOperationExecutor = Executors.newSingleThreadExecutor()
-    private val runtimeSession = SmsHookRuntimeSession(SMSCODE_PACKAGE)
+    private val runtimeSession: SmsHookRuntimeSession = XinyiHookHostCapabilities.smsHookRuntimeSession
     private val inboundSmsBlocker = InboundSmsBlocker(SMS_HANDLER_CLASS)
     private val parsedCodeSmsForwarder = ParsedCodeSmsForwarder()
     private val blockHandler = SmsForwardBlockHandler(
@@ -192,7 +193,7 @@ class SmsForwardHook : BaseHook() {
     }
 
     private fun beforeDispatchIntentHandler(param: MethodHookParam) {
-        maybeInitRuntimeFromHandler(param)
+        runtimeSession.currentOrResolveWithFallback(param.thisObject)
         val dispatch = resolveIncomingSmsDispatch(param) ?: return
         if (shouldSkipDispatch(dispatch)) return
         val blockOutcome = blockHandler.handle(
@@ -213,28 +214,6 @@ class SmsForwardHook : BaseHook() {
         val preparedDispatch = prepareForwardDispatch(dispatch) ?: return
         if (shouldSuppressDuplicateDispatch(preparedDispatch)) return
         dispatchPreparedForward(preparedDispatch)
-    }
-
-    /**
-     * Lazily initialize [runtimeSession] from InboundSmsHandler.mContext if the constructor
-     * hook never fired (common on Xiaomi HyperOS where the handler is already constructed
-     * before our module loads).
-     */
-    private fun maybeInitRuntimeFromHandler(param: MethodHookParam) {
-        if (runtimeSession.currentOrResolve() != null) return
-        try {
-            val handler = param.thisObject ?: return
-            val contextField = handler.javaClass.getDeclaredField("mContext")
-            contextField.isAccessible = true
-            val context = contextField.get(handler) as? Context ?: return
-            runtimeSession.initialize(context)
-            XLog.w(
-                message = "SmsForwardHook: lazy-initialized runtimeSession from InboundSmsHandler.mContext pkg=%s",
-                context.packageName,
-            )
-        } catch (t: Throwable) {
-            XLog.e(message = "SmsForwardHook: failed to lazy-init runtimeSession from handler", t)
-        }
     }
 
     private fun resolveIncomingSmsDispatch(param: MethodHookParam): IncomingSmsDispatch? {
@@ -600,6 +579,7 @@ class SmsForwardHook : BaseHook() {
 
     override fun onHotReloading() {
         smsOperationExecutor.shutdownNow()
+        runtimeSession.reset()
     }
 
     private fun buildSmsDispatchDedupKey(
@@ -651,7 +631,17 @@ class SmsForwardHook : BaseHook() {
         if (!errorClass.isNullOrBlank()) {
             attrs["error_class"] = errorClass
         }
-        MagiskOtel.event(name = "sms.relay", attributes = attrs, statusOk = statusOk)
+        StageEventEmitter.emit(
+            name = "sms.relay",
+            result = attrs.getValue("result"),
+            stage = attrs.getValue("stage"),
+            reason = attrs.getValue("reason"),
+            source = attrs.getValue("source"),
+            msgType = attrs["msg_type"],
+            eventIdPresent = eventIdPresent,
+            statusOk = statusOk,
+            extra = attrs.filterKeys { it !in setOf("result", "duration_ms", "process", "stage", "reason", "source", "msg_type", "event_id_present") },
+        )
     }
 
     private fun logSuppressedOnce(stage: String) {

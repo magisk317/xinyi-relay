@@ -7,9 +7,7 @@ import android.text.TextUtils
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
 import io.github.magisk317.relay.xpbridge.XpMessageTypes
-import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xpbridge.XpRecordFacade
-import io.github.magisk317.relay.xpbridge.XpStringEscaper
 import io.github.magisk317.relay.xp.hook.code.action.CallableAction
 import io.github.magisk317.smscode.runtime.verification.SmsParseAction as SharedSmsParseAction
 import io.github.magisk317.smscode.verification.SmsDuplicateCheckResult
@@ -40,33 +38,15 @@ class SmsParseAction(pluginContext: Context, phoneContext: Context, smsMsg: SmsM
             smsIntent = mSmsIntent,
             deduplicateEnabled = mDeduplicateEnabled,
             incomingSmsParser = SmsMsg::fromIntent,
-            sensitiveDebugLogReader = XpPrefs::isSensitiveDebugLogMode,
-            summarizeSender = { sensitive, value ->
-                if (sensitive) XpStringEscaper.escape(value).orEmpty() else XpStringEscaper.summarizeSender(value)
-            },
-            summarizeBody = { sensitive, value ->
-                if (sensitive) XpStringEscaper.escape(value).orEmpty() else XpStringEscaper.summarizeBody(value)
-            },
-            summarizeCode = { sensitive, value ->
-                if (sensitive) XpStringEscaper.escape(value).orEmpty() else XpStringEscaper.summarizeCode(value)
-            },
             duplicateChecker = { sender, body, timestamp ->
                 // A lookup that cannot be completed is UNAVAILABLE (fail closed),
                 // never a silent "not duplicate" like the old Boolean contract.
-                when (
-                    runCatching {
-                        runtimeRecordFacade.isDuplicateSms(
-                            sender = sender,
-                            body = body,
-                            date = timestamp,
-                            msgType = SmsMsg.MSG_TYPE_SMS,
-                        )
-                    }.getOrNull()
-                ) {
-                    true -> SmsDuplicateCheckResult.DUPLICATE
-                    false -> SmsDuplicateCheckResult.NOT_DUPLICATE
-                    null -> SmsDuplicateCheckResult.UNAVAILABLE
-                }
+                runtimeRecordFacade.isDuplicateSms(
+                    sender = sender,
+                    body = body,
+                    date = timestamp,
+                    msgType = SmsMsg.MSG_TYPE_SMS,
+                )
             },
             preparedSmsResolver = { pluginContext, phoneContext, smsMsg, intent, timestamp ->
                 val prepared = XpDispatchCoordinator.prepareIngressSms(

@@ -24,6 +24,13 @@
 # Suppress R8 missing-class errors for these interfaces/classes.
 -dontwarn io.github.libxposed.api.**
 
+# libxposed-service is the binder surface between the module app and the LSPosed manager:
+# the manager marshals IXposedService / IXposedScopeCallback by interface descriptor, so any
+# R8 rename or removal silently kills the service bind. The released v0.4.2 mapping proves it
+# happened here: IXposedScopeCallback$Stub -> R8$$REMOVED$$CLASS$$896, IXposedService -> eh1.
+# Kept as a whole package: renaming the Stub is as fatal as removing it.
+-keep class io.github.libxposed.service.** { *; }
+
 # ==========================
 # Matrix E2EE plugin contract start
 # The GitHub flavor loads features/matrix-e2ee-plugin as a separate APK through a

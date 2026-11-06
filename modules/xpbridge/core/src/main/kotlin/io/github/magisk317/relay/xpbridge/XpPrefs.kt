@@ -37,7 +37,6 @@ object XpPrefs {
 
     fun isEnabled(context: Context): Boolean = prefsBridge.isEnabled(context)
     fun isVerboseLogMode(context: Context): Boolean = prefsBridge.isVerboseLogMode(context)
-    fun isSensitiveDebugLogMode(context: Context): Boolean = prefsBridge.isSensitiveDebugLogMode(context)
     fun relayFeaturesEnabled(context: Context): Boolean = prefsBridge.relayFeaturesEnabled(context)
     fun mobileAutomationAllowed(context: Context): Boolean = prefsBridge.mobileAutomationAllowed(context)
     fun autoInputCodeEnabled(context: Context): Boolean = prefsBridge.autoInputCodeEnabled(context)

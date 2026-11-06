@@ -35,6 +35,14 @@ object RelayPreferenceHooks : AppPreferencesHooks {
                 PrefConst.KEY_SETTINGS_ACCORDION_MODE,
                 AppPreferencesDataStore.getBoolean(context, PrefConst.KEY_SETTINGS_ACCORDION_MODE, true),
             )
+            editor.putBoolean(
+                PrefConst.KEY_SMS_SHORT_CODE_CONFIRMATION_BYPASS,
+                AppPreferencesDataStore.getBoolean(
+                    context,
+                    PrefConst.KEY_SMS_SHORT_CODE_CONFIRMATION_BYPASS,
+                    PrefConst.SMS_SHORT_CODE_CONFIRMATION_BYPASS_DEFAULT,
+                ),
+            )
             editor.putInt(
                 PrefConst.KEY_RUNTIME_LOG_RETENTION_DAYS,
                 AppPreferencesDataStore.getInt(

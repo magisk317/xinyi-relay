@@ -2,32 +2,52 @@ package io.github.magisk317.relay.xp.hook.helper
 
 import android.content.Context
 import io.github.magisk317.relay.hookentry.BuildConfig
+import io.github.magisk317.relay.xp.HookTargetDiagnostics
 import io.github.magisk317.relay.xpbridge.XpHookDiagnostics
-import io.github.magisk317.relay.xpbridge.XpPrefs
 import io.github.magisk317.relay.xpbridge.XpSmsCodeParser
 import io.github.magisk317.relay.xpbridge.XpStringEscaper
+import io.github.magisk317.relay.android.prefs.PrefsReader
+import io.github.magisk317.smscode.xposed.hook.telephony.SmsHookRuntimeSession
 import io.github.magisk317.smscode.xposed.hook.telephony.SmsHookCapabilities
+import io.github.magisk317.xposed.logging.XLog
 
 /**
  * xinyi 侧的统一宿主能力适配器。
  *
  * core 的共享 hook 层只依赖 [HookHostCapabilities]；xinyi 的运行时桥接是
- * `xpbridge` 门面（[XpPrefs]/[XpStringEscaper]/[XpSmsCodeParser]/[XpHookDiagnostics]），
+ * `xpbridge` 门面（[XpStringEscaper]/[XpSmsCodeParser]/[XpHookDiagnostics]），
  * 本对象把这层差异收敛在一处，使 relay 与 XSC 消费同一份契约。
  */
 internal object XinyiHookHostCapabilities : SmsHookCapabilities {
-    override fun isVerboseLogMode(context: Context): Boolean = XpPrefs.isVerboseLogMode(context)
-
-    override fun isSensitiveDebugLogMode(context: Context): Boolean =
-        XpPrefs.isSensitiveDebugLogMode(context)
+    /** Handler and forward hooks must observe one Context/session lifecycle. */
+    internal val smsHookRuntimeSession: SmsHookRuntimeSession = SmsHookRuntimeSession(
+        applicationId = BuildConfig.APPLICATION_ID,
+        onPhoneContextInitialized = PrefsReader::installSnapshot,
+        onPluginContextResolved = { pluginContext, _ ->
+            onProcessInit(pluginContext)
+        },
+        onPhoneContextRecovered = { context ->
+            XLog.w(
+                message = "SmsHookRuntimeSession: recovered phoneContext from handler instance pkg=%s",
+                context.packageName,
+            )
+        },
+        heartbeatRecorder = { pluginContext, phoneContext, packageName, source ->
+            recordHookHeartbeat(
+                context = pluginContext,
+                packageName = packageName,
+                processName = phoneContext.applicationInfo?.processName ?: packageName,
+                source = source,
+                verboseLogging = isVerboseLogMode(pluginContext),
+            )
+        },
+    )
+    override fun isVerboseLogMode(context: Context): Boolean =
+        BuildConfig.DEBUG || BuildConfig.IS_CI_BUILD
 
     override fun escapeCode(value: String): String = XpStringEscaper.escape(value).orEmpty()
 
-    override fun summarizeCode(value: String): String = XpStringEscaper.summarizeCode(value)
-
     override fun escapeBody(value: String): String = XpStringEscaper.escape(value).orEmpty()
-
-    override fun summarizeBody(value: String): String = XpStringEscaper.summarizeBody(value)
 
     override suspend fun parseSmsCode(context: Context, content: String): String =
         XpSmsCodeParser.parseSmsCodeIfExists(context, content)
@@ -43,8 +63,9 @@ internal object XinyiHookHostCapabilities : SmsHookCapabilities {
         source: String,
         verboseLogging: Boolean,
     ) {
+        val processContext = resolveProcessContext(context) ?: return
         XpHookDiagnostics.recordSmsHookHeartbeat(
-            context = context,
+            context = processContext,
             packageName = packageName,
             processName = processName,
             source = source,
@@ -60,9 +81,9 @@ internal object XinyiHookHostCapabilities : SmsHookCapabilities {
         category: String,
         verboseLogging: Boolean,
     ) {
-        val moduleContext = resolveModuleContext(context) ?: return
+        val processContext = resolveProcessContext(context) ?: return
         XpHookDiagnostics.recordCallNotificationSource(
-            context = moduleContext,
+            context = processContext,
             packageName = packageName,
             channelId = channelId,
             category = category,
@@ -79,9 +100,9 @@ internal object XinyiHookHostCapabilities : SmsHookCapabilities {
         detail: String,
         verboseLogging: Boolean,
     ) {
-        val moduleContext = resolveModuleContext(context) ?: return
+        val processContext = resolveProcessContext(context) ?: return
         XpHookDiagnostics.recordHookInstall(
-            context = moduleContext,
+            context = processContext,
             hook = hook,
             status = status,
             packageName = packageName,
@@ -100,9 +121,9 @@ internal object XinyiHookHostCapabilities : SmsHookCapabilities {
         skipReason: String,
         verboseLogging: Boolean,
     ) {
-        val moduleContext = resolveModuleContext(context) ?: return
+        val processContext = resolveProcessContext(context) ?: return
         XpHookDiagnostics.recordNotifyEvent(
-            context = moduleContext,
+            context = processContext,
             source = source,
             packageName = packageName,
             channelId = channelId,
@@ -113,46 +134,16 @@ internal object XinyiHookHostCapabilities : SmsHookCapabilities {
     }
 
     /**
-     * The notification hook runs inside system_server, whose context belongs to `android`.
-     * The provider lives in the module APK, so the call has to be made through a package
-     * context for the module - the same shape the SMS hooks use for their heartbeat.
+     * The provider authority belongs to the module, but ContentResolver must use the package
+     * identity of the hooked process so its package matches the process UID.
      */
     @Volatile
-    private var cachedModuleContext: Context? = null
+    private var cachedProcessContext: Context? = null
 
-    private fun resolveModuleContext(fallback: Context?): Context? {
-        cachedModuleContext?.let { return it }
-        val base = fallback?.let { it.applicationContext ?: it }
-            ?: resolveCurrentApplication()
-            ?: resolveSystemContext()
-            ?: return null
-        val resolved = if (base.packageName == BuildConfig.APPLICATION_ID) {
-            base
-        } else {
-            runCatching {
-                base.createPackageContext(
-                    BuildConfig.APPLICATION_ID,
-                    Context.CONTEXT_IGNORE_SECURITY,
-                )
-            }.getOrNull()
+    private fun resolveProcessContext(fallback: Context?): Context? {
+        cachedProcessContext?.let { return it }
+        return HookTargetDiagnostics.resolveProcessContext(fallback)?.also {
+            cachedProcessContext = it
         }
-        return resolved?.also { cachedModuleContext = it }
     }
-
-    private fun resolveCurrentApplication(): Context? = runCatching {
-        val activityThread = Class.forName("android.app.ActivityThread")
-        activityThread.getDeclaredMethod("currentApplication")
-            .apply { isAccessible = true }
-            .invoke(null) as? Context
-    }.getOrNull()
-
-    private fun resolveSystemContext(): Context? = runCatching {
-        val activityThread = Class.forName("android.app.ActivityThread")
-        val current = activityThread.getDeclaredMethod("currentActivityThread")
-            .apply { isAccessible = true }
-            .invoke(null)
-        activityThread.getDeclaredMethod("getSystemContext")
-            .apply { isAccessible = true }
-            .invoke(current) as? Context
-    }.getOrNull()
 }

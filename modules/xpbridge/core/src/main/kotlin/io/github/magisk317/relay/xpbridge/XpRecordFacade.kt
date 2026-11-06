@@ -4,6 +4,7 @@ import android.content.Context
 import io.github.magisk317.relay.contract.xpbridge.NoopXpRecordRuntimeBridge
 import io.github.magisk317.relay.contract.xpbridge.XpRecordRuntimeBridge
 import io.github.magisk317.relay.contract.xpbridge.XpSmsBlacklistHitRecord
+import io.github.magisk317.smscode.verification.SmsDuplicateCheckResult
 
 class XpRecordFacade(
     context: Context,
@@ -16,7 +17,7 @@ class XpRecordFacade(
         body: String?,
         date: Long,
         msgType: Int = SmsMsg.MSG_TYPE_SMS,
-    ): Boolean = bridge.isDuplicateSms(
+    ): SmsDuplicateCheckResult = bridge.isDuplicateSms(
         context = appContext,
         sender = sender,
         body = body,

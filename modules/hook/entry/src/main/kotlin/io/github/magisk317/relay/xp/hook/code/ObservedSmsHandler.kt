@@ -12,6 +12,7 @@ import io.github.magisk317.smscode.verification.SmsDuplicateCheckResult
 import io.github.magisk317.smscode.runtime.verification.ObservedSmsHandler as SharedObservedSmsHandler
 import io.github.magisk317.smscode.runtime.verification.SmsCodePostParseCoordinator
 import io.github.magisk317.smscode.verification.SmsInboxObserverDecision
+import io.github.magisk317.xposed.logging.XLog
 import kotlinx.coroutines.runBlocking
 import java.util.concurrent.ScheduledExecutorService
 
@@ -146,15 +147,17 @@ internal class ObservedSmsHandler(
                     msgType = SmsMsg.MSG_TYPE_SMS,
                 )
             }
+        }.onFailure { error ->
+            XLog.e(
+                message = "Observed SMS duplicate check failed: ${error.javaClass.name}: " +
+                    (error.message ?: "<no-message>"),
+                error,
+            )
         }
         // A failed lookup is not proof of a fresh message. The shared decision layer treats
         // UNAVAILABLE as fail-closed, so surface it instead of defaulting to "not duplicate"
         // the way the old Boolean contract did.
-        return when (lookup.getOrNull()) {
-            true -> SmsDuplicateCheckResult.DUPLICATE
-            false -> SmsDuplicateCheckResult.NOT_DUPLICATE
-            null -> SmsDuplicateCheckResult.UNAVAILABLE
-        }
+        return lookup.getOrDefault(SmsDuplicateCheckResult.UNAVAILABLE)
     }
 
     private fun XpSharedRuntimeGate.ClaimResult.toShared(): SharedObservedSmsHandler.ClaimResult {

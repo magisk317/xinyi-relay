@@ -19,9 +19,9 @@ class DataStoreSyncInitializer : AppInitializer {
 
     override fun init(application: Application) {
         AppInitExecution.runWhenUserUnlocked(application, scope, "DataStoreSyncInitializer") {
-            HookPreferenceMirror.publish(application)
-
             val preferenceDataSource = RuntimeGraph.from(application).preferenceDataSource
+            LegacyShortCodeBypassMigration.migrate(application, preferenceDataSource)
+            HookPreferenceMirror.publish(application)
 
             val policy = MagiskLogPolicy.current()
             val logRetentionDays = MagiskLogPolicy.retentionDays(

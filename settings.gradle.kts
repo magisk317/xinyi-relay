@@ -89,6 +89,7 @@ include(
     ":magisk-xposed-kit:capability",
     ":magisk-xposed-kit:runtime",
     ":magisk-xposed-kit:capture",
+    ":magisk-xposed-kit:service",
     ":magisk-forward-core:contract",
     ":magisk-forward-core:capture",
     ":magisk-forward-core:runtime",
@@ -122,6 +123,7 @@ project(":magisk-xposed-kit:capture").projectDir = file("magisk-xposed-kit/captu
 project(":magisk-xposed-kit:diagnostics").projectDir = file("magisk-xposed-kit/diagnostics")
 project(":magisk-xposed-kit:capability").projectDir = file("magisk-xposed-kit/capability")
 project(":magisk-xposed-kit:runtime").projectDir = file("magisk-xposed-kit/runtime")
+project(":magisk-xposed-kit:service").projectDir = file("magisk-xposed-kit/service")
 project(":magisk-forward-core:contract").projectDir = file("forward/core/contract")
 project(":magisk-forward-core:capture").projectDir = file("forward/core/capture")
 project(":magisk-forward-core:runtime").projectDir = file("forward/core/runtime")
