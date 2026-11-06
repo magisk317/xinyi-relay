@@ -370,13 +370,20 @@ private fun HookInstallSection(report: DiagnosticsReport) {
             )
         } else {
             report.hookInstalls.sortedBy { it.hook }.forEach { status ->
+                val seenAt = formatDiagnosticTime(status.lastSeenAtMs) + if (
+                    status.lastSeenAtMs < report.bootStartAtMs
+                ) {
+                    " · ${stringResource(id = R.string.diagnostics_process_stale)}"
+                } else {
+                    ""
+                }
                 DiagnosticRow(
                     label = stringResource(id = hookLabelRes(status.hook)),
                     value = stringResource(
                         id = R.string.diagnostics_hook_value,
                         stringResource(id = hookStatusRes(status.status)),
                         status.detail.ifBlank { "—" },
-                        formatDiagnosticTime(status.lastSeenAtMs),
+                        seenAt,
                     ),
                 )
             }

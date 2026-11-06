@@ -14,6 +14,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import java.util.concurrent.atomic.AtomicBoolean
 
 /**
@@ -28,6 +29,9 @@ import java.util.concurrent.atomic.AtomicBoolean
  * import keeps the source tables intact for a retry.
  */
 object ForwardDatabaseBootstrapper {
+
+    /** Upper bound for a single reader waiting on the readiness gate. */
+    private const val READY_WAIT_LIMIT_MS = 30_000L
 
     private const val KEY_EVENT_IMPORT = "legacy_event_import"
     private const val KEY_CONFIG_IMPORT = "legacy_config_import"
@@ -46,29 +50,57 @@ object ForwardDatabaseBootstrapper {
         if (!started.compareAndSet(false, true)) return
         val appContext = context.applicationContext ?: context
         scope.launch {
-            val result = runCatching {
-                sourceFactory(appContext).use { source ->
-                    if (!source.legacyFileExists()) {
-                        return@launch
-                    }
-                    val target = ForwardDatabase.build(appContext)
-                    target.withTransaction { importLegacyData(source, target) }
+            drainAndRelease(sourceFactory(appContext)) { ForwardDatabase.build(appContext) }
+        }
+    }
+
+    /**
+     * Drains the legacy source and releases the readiness gate exactly once - including
+     * when there is nothing to drain.
+     *
+     * A fresh install (and every install that follows an uninstall) has no legacy database
+     * at all. Returning early from the launch block without releasing the gate used to leave
+     * [ready] uncompleted forever, so every reader that awaits it - the forward-domain
+     * repositories and the runtime diagnostics page behind them - suspended indefinitely.
+     * Split out of the launch block so the release is testable without an Android context.
+     *
+     * Returns whether the gate ended up released normally (an import failure completes it
+     * exceptionally and readers keep failing closed).
+     */
+    internal suspend fun drainAndRelease(
+        source: LegacyMigrationSource,
+        targetFactory: () -> ForwardDatabase,
+    ): Boolean {
+        val result = runCatching {
+            source.use { legacy ->
+                if (!legacy.legacyFileExists()) {
+                    XLog.i(message = "Forward legacy import skipped: no legacy database, gate released")
+                    return@use
                 }
+                val target = targetFactory()
+                target.withTransaction { importLegacyData(legacy, target) }
             }
-            val error = result.exceptionOrNull()
-            when {
-                error == null -> ready.complete(Unit)
-                error is CancellationException -> {
-                    ready.completeExceptionally(error)
-                    throw error
-                }
-                else -> {
-                    XLog.e(message = "Forward legacy import failed", error)
-                    ready.completeExceptionally(error)
-                }
+        }
+        val error = result.exceptionOrNull()
+        return when {
+            error == null -> {
+                ready.complete(Unit)
+                true
+            }
+            error is CancellationException -> {
+                ready.completeExceptionally(error)
+                throw error
+            }
+            else -> {
+                XLog.e(message = "Forward legacy import failed", error)
+                ready.completeExceptionally(error)
+                false
             }
         }
     }
+
+    /** Whether readers can already get past [awaitReady]; exposed for the readiness tests. */
+    internal fun gateIsReady(): Boolean = ready.isCompleted
 
     /**
      * Imports the legacy mixed schema into [target] and fails closed: a parity or I/O
@@ -91,7 +123,11 @@ object ForwardDatabaseBootstrapper {
             // The import fully succeeded, so the legacy tables are drained.
             // Dropping is best-effort cosmetic: a failure here leaves dead
             // tables behind, it can never lose data.
-            runCatching { source.dropLegacyTables() }
+            try {
+                source.dropLegacyTables()
+            } catch (_: Throwable) {
+                // Best effort only; retained legacy tables cannot invalidate imported data.
+            }
             return
         }
         if (error is CancellationException) throw error
@@ -104,9 +140,21 @@ object ForwardDatabaseBootstrapper {
         throw error
     }
 
+    /**
+     * Bridges the import window only. A gate that is still closed after the limit means the
+     * import itself is wedged, and hanging every reader behind it turns that into an
+     * unresponsive UI; the limit therefore releases readers with a loud warning. A gate that
+     * completed exceptionally still throws - failures keep failing closed.
+     */
     suspend fun awaitReady() {
         if (!started.get()) return
-        ready.await()
+        val released = withTimeoutOrNull(READY_WAIT_LIMIT_MS) {
+            ready.await()
+            true
+        } == true
+        if (!released) {
+            XLog.w(message = "Forward readiness gate still closed after ${READY_WAIT_LIMIT_MS}ms; continuing unlocked")
+        }
     }
 
     private suspend fun importEventsIfNeeded(source: LegacyMigrationSource, target: ForwardDatabase) {

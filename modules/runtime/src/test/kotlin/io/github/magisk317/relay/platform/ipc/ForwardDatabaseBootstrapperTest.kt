@@ -16,6 +16,7 @@ import io.mockk.mockk
 import io.mockk.mockkObject
 import io.mockk.unmockkAll
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -67,6 +68,24 @@ class ForwardDatabaseBootstrapperTest {
     @AfterEach
     fun tearDown() {
         unmockkAll()
+    }
+
+    /**
+     * Regression guard for the fresh-install hang: with no legacy database the gate still has
+     * to be released, otherwise every reader behind awaitReady() - forward-domain repositories
+     * and the runtime diagnostics page - suspends forever and the UI never finishes collecting.
+     */
+    @Test
+    fun `the readiness gate is released when there is no legacy database`() = runBlocking {
+        source.fileExists = false
+
+        val released = ForwardDatabaseBootstrapper.drainAndRelease(source) { target }
+
+        assertTrue(released, "an absent legacy database must still release the gate")
+        assertTrue(source.closed, "the source must be closed on every path")
+        assertFalse(source.markerWritten, "nothing to mark drained without a legacy database")
+        assertFalse(source.dropped, "nothing to drop without a legacy database")
+        withTimeout(2_000) { ForwardDatabaseBootstrapper.awaitReady() }
     }
 
     @Test

@@ -7,6 +7,7 @@ import android.telecom.TelecomManager
 import io.github.magisk317.smscode.runtime.common.notification.CallNotificationMatcher
 import io.github.magisk317.xposed.runtime.state.CallNotificationSourceSnapshot
 import io.github.magisk317.xposed.runtime.state.HookProcessStatus
+import io.github.magisk317.xposed.runtime.state.RuntimeDiagnosticsSnapshot
 
 /**
  * Finds the packages this ROM could use to publish call notifications. The result is
@@ -97,10 +98,33 @@ object HookProcessMatrix {
             }
 
     fun systemRow(rows: List<Row>): Row? =
-        rows.firstOrNull { it.packageName == "android" || it.processName == "system" }
+        rows.firstOrNull { isSystemProcess(it.packageName, it.processName) }
 
-    fun hasSystemHeartbeatThisBoot(rows: List<Row>): Boolean =
-        systemRow(rows)?.thisBoot == true
+    fun hasSystemHeartbeatForInstall(
+        rows: List<Row>,
+        evidenceAfterMs: Long,
+        moduleVersion: Int,
+    ): Boolean = systemRow(rows)?.let { row ->
+        row.lastSeenAtMs >= evidenceAfterMs && row.moduleVersion == moduleVersion
+    } == true
+
+    fun hasSystemFrameworkTargetForInstall(
+        snapshot: RuntimeDiagnosticsSnapshot,
+        evidenceAfterMs: Long,
+    ): Boolean = snapshot.lastFrameworkHookAtMs >= evidenceAfterMs &&
+        snapshot.frameworkHookTargets.any { target ->
+            isSystemProcess(target.packageName, target.processName) &&
+                target.state == FRAMEWORK_STATE_UP_TO_DATE
+        }
+
+    private fun isSystemProcess(packageName: String, processName: String): Boolean =
+        packageName == "android" ||
+            packageName == "system" ||
+            processName == "android" ||
+            processName == "system" ||
+            processName == "system_server"
+
+    private const val FRAMEWORK_STATE_UP_TO_DATE = "UP_TO_DATE"
 }
 
 /** Explains why notification hooks may be missing without hiding an actual scope gap. */

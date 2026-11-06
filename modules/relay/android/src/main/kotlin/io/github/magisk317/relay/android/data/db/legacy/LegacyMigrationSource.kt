@@ -206,7 +206,11 @@ class LegacyRawSource(private val context: Context) : LegacyMigrationSource {
     }
 
     override fun close() {
-        runCatching { openedDb?.close() }
+        try {
+            openedDb?.close()
+        } catch (_: Throwable) {
+            // Best effort: the migration result is already durable at this point.
+        }
         openedDb = null
     }
 

@@ -4,7 +4,7 @@ import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import android.content.Context
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.smscode.runtime.contract.prefs.AtomicPreferencePersistence
-import io.github.magisk317.smscode.runtime.common.prefs.createPreferenceCommitCoordinator
+import io.github.magisk317.smscode.runtime.common.prefs.AppPreferenceCommits
 import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceCommitResult
 import io.github.magisk317.smscode.runtime.contract.prefs.PreferenceEditScope
 import io.github.magisk317.smscode.runtime.contract.prefs.PreferencePostCommitHooks
@@ -30,12 +30,11 @@ object AppPreferenceTransactions {
             AppPreferencesDataStore.persistChanges(context, changes)
         },
         edit: PreferenceEditScope.() -> Unit,
-    ): PreferenceCommitResult = createPreferenceCommitCoordinator(
-        persistence = persistence,
+    ): PreferenceCommitResult = AppPreferenceCommits.createCommitCoordinator(
+        context = context,
         invalidate = PrefsReader::invalidateCache,
-        publish = {
-            check(HookPreferenceMirror.publish(context)) { "Hook preference publication failed" }
-        },
+        publish = HookPreferenceMirror::publish,
+        persistence = persistence,
     ).commit(edit)
 }
 

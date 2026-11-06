@@ -112,12 +112,18 @@ internal suspend fun loadDiagnosticsReport(context: Context): DiagnosticsReport 
         append(")")
     }
     val processes = HookProcessMatrix.build(snapshot.hookProcesses, bootStartAtMs)
+    val evidenceAfterMs = maxOf(bootStartAtMs, firstInstallTimeMs, lastUpdateTimeMs)
+    val systemRuntimeSeenThisBoot = HookProcessMatrix.hasSystemHeartbeatForInstall(
+        rows = processes,
+        evidenceAfterMs = evidenceAfterMs,
+        moduleVersion = packageInfo?.longVersionCode?.toInt() ?: 0,
+    ) || HookProcessMatrix.hasSystemFrameworkTargetForInstall(snapshot, evidenceAfterMs)
     val verdict = RebootVerdict.evaluate(
         bootStartAtMs = bootStartAtMs,
         firstInstallTimeMs = firstInstallTimeMs,
         lastUpdateTimeMs = lastUpdateTimeMs,
         systemScopeSelected = scope.hasSystemScope,
-        systemProcessSeenThisBoot = HookProcessMatrix.hasSystemHeartbeatThisBoot(processes),
+        systemProcessSeenThisBoot = systemRuntimeSeenThisBoot,
     )
     val installedPackages = runCatching {
         context.packageManager.getInstalledPackages(0)

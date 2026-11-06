@@ -1,6 +1,8 @@
 package io.github.magisk317.relay.domain.diagnostics
 
 import io.github.magisk317.xposed.runtime.state.HookProcessStatus
+import io.github.magisk317.xposed.runtime.state.FrameworkHookTargetStatus
+import io.github.magisk317.xposed.runtime.state.RuntimeDiagnosticsSnapshot
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -33,10 +35,82 @@ class DiagnosticsSupportTest {
             listOf(HookProcessStatus("android", "system", 300L)),
             bootStartAtMs = 0L,
         )
+        val androidProcess = HookProcessMatrix.build(
+            listOf(HookProcessStatus("com.android.providers.settings", "android", 300L)),
+            bootStartAtMs = 0L,
+        )
 
-        assertTrue(HookProcessMatrix.hasSystemHeartbeatThisBoot(byPackage))
-        assertTrue(HookProcessMatrix.hasSystemHeartbeatThisBoot(byProcess))
-        assertFalse(HookProcessMatrix.hasSystemHeartbeatThisBoot(emptyList()))
+        assertTrue(HookProcessMatrix.hasSystemHeartbeatForInstall(byPackage, 200L, 0))
+        assertTrue(HookProcessMatrix.hasSystemHeartbeatForInstall(byProcess, 200L, 0))
+        assertTrue(HookProcessMatrix.hasSystemHeartbeatForInstall(androidProcess, 200L, 0))
+        assertFalse(HookProcessMatrix.hasSystemHeartbeatForInstall(emptyList(), 200L, 0))
+    }
+
+    @Test
+    fun `framework system target from this boot is accepted as runtime evidence`() {
+        val snapshot = RuntimeDiagnosticsSnapshot(
+            lastFrameworkHookAtMs = 300L,
+            frameworkHookTargets = listOf(
+                FrameworkHookTargetStatus(
+                    packageName = "com.xiaomi.gnss.polaris",
+                    processName = "system",
+                    uid = 1000,
+                    state = "UP_TO_DATE",
+                ),
+            ),
+        )
+
+        assertTrue(HookProcessMatrix.hasSystemFrameworkTargetForInstall(snapshot, 200L))
+    }
+
+    @Test
+    fun `phone-only or previous-boot framework targets do not prove system runtime`() {
+        val phoneOnly = RuntimeDiagnosticsSnapshot(
+            lastFrameworkHookAtMs = 300L,
+            frameworkHookTargets = listOf(
+                FrameworkHookTargetStatus(packageName = "com.android.phone", processName = "com.android.phone"),
+            ),
+        )
+        val staleSystem = RuntimeDiagnosticsSnapshot(
+            lastFrameworkHookAtMs = 100L,
+            frameworkHookTargets = listOf(
+                FrameworkHookTargetStatus(packageName = "android", processName = "system_server"),
+            ),
+        )
+
+        assertFalse(HookProcessMatrix.hasSystemFrameworkTargetForInstall(phoneOnly, 200L))
+        assertFalse(HookProcessMatrix.hasSystemFrameworkTargetForInstall(staleSystem, 200L))
+    }
+
+    @Test
+    fun `framework target before update or without up-to-date state does not prove new install`() {
+        val beforeUpdate = RuntimeDiagnosticsSnapshot(
+            lastFrameworkHookAtMs = 250L,
+            frameworkHookTargets = listOf(
+                FrameworkHookTargetStatus(packageName = "android", processName = "system", state = "UP_TO_DATE"),
+            ),
+        )
+        val outdated = RuntimeDiagnosticsSnapshot(
+            lastFrameworkHookAtMs = 350L,
+            frameworkHookTargets = listOf(
+                FrameworkHookTargetStatus(packageName = "android", processName = "system", state = "OUTDATED"),
+            ),
+        )
+
+        assertFalse(HookProcessMatrix.hasSystemFrameworkTargetForInstall(beforeUpdate, 300L))
+        assertFalse(HookProcessMatrix.hasSystemFrameworkTargetForInstall(outdated, 300L))
+    }
+
+    @Test
+    fun `system heartbeat must be from current module version after update`() {
+        val rows = HookProcessMatrix.build(
+            listOf(HookProcessStatus("android", "system", 350L, "process_online", 56)),
+            bootStartAtMs = 100L,
+        )
+
+        assertTrue(HookProcessMatrix.hasSystemHeartbeatForInstall(rows, 300L, 56))
+        assertFalse(HookProcessMatrix.hasSystemHeartbeatForInstall(rows, 360L, 56))
+        assertFalse(HookProcessMatrix.hasSystemHeartbeatForInstall(rows, 300L, 55))
     }
 
     @Test

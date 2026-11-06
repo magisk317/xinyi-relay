@@ -16,18 +16,24 @@ import io.github.magisk317.forward.db.ForwardEventDao
 import io.github.magisk317.forward.db.ForwardAppInfoEntity
 import io.github.magisk317.forward.db.ForwardDatabase
 import io.github.magisk317.smscode.db.entity.SmsCodeRule
+import io.github.magisk317.smscode.db.entity.AutoInputEvent
 import io.github.magisk317.forward.db.ForwardEventEntity
 import io.github.magisk317.relay.android.data.mapper.mergeForwardEventForInsert
 import io.github.magisk317.smscode.runtime.common.record.CodeRecordChannel
 import io.github.magisk317.smscode.runtime.common.record.CodeRecordTrimPolicy
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.android.platform.ipc.ProviderCallerPolicy
+import io.github.magisk317.smscode.common.utils.ProviderIpcTokenCodec
+import io.github.magisk317.smscode.runtime.common.provider.HookFingerprintQuery
 import io.github.magisk317.relay.contract.constant.RelayPrefConst
 import io.github.magisk317.xposed.runtime.state.RuntimeStateStore
 import io.github.magisk317.smscode.runtime.common.diagnostics.RuntimeLogStore
+import io.github.magisk317.xposed.runtime.RuntimeStateProviderAddress
 import io.github.magisk317.xposed.runtime.RuntimeStateProviderContract
+import io.github.magisk317.relay.android.BuildConfig
 import io.github.magisk317.smscode.runtime.contract.record.SmsMsgCursorContract
 import io.github.magisk317.smscode.runtime.common.utils.SharedRuntimeGate
+import io.github.magisk317.smscode.runtime.common.utils.RuntimeStateCallHandlers
 import io.github.magisk317.smscode.runtime.common.utils.StorageUtils
 import io.github.magisk317.xposed.contract.util.CodeRecordSimilarityUtils
 import kotlinx.coroutines.runBlocking
@@ -36,7 +42,7 @@ class DBProvider : ContentProvider() {
     private var mDatabase: AppDatabase? = null
     private var mForwardDatabase: ForwardDatabase? = null
     private lateinit var uriMatcher: UriMatcher
-    private lateinit var authority: String
+    private lateinit var providerAuthority: String
 
     override fun onCreate(): Boolean {
         context?.let {
@@ -44,14 +50,15 @@ class DBProvider : ContentProvider() {
             mForwardDatabase = ForwardDatabase.build(it)
             StorageUtils.repairExternalAppDataPermissions(it)
             ProviderCallerPolicy.updateLiveScope(readCachedXposedScope(it))
-            authority = "${it.packageName}.db.provider"
+            providerAuthority = authority()
             uriMatcher = UriMatcher(UriMatcher.NO_MATCH).apply {
-                addURI(authority, PATH_SMS_MSG, SMS_MSG_DIR)
-                addURI(authority, "$PATH_SMS_MSG/#", SMS_MSG_ID)
-                addURI(authority, PATH_SMS_CODE_RULE, SMS_CODE_RULE_DIR)
-                addURI(authority, "$PATH_SMS_CODE_RULE/#", SMS_CODE_RULE_ID)
-                addURI(authority, PATH_APP_INFO, APP_INFO_DIR)
-                addURI(authority, "$PATH_APP_INFO/*", APP_INFO_ITEM)
+                addURI(providerAuthority, PATH_SMS_MSG, SMS_MSG_DIR)
+                addURI(providerAuthority, "$PATH_SMS_MSG/#", SMS_MSG_ID)
+                addURI(providerAuthority, PATH_SMS_CODE_RULE, SMS_CODE_RULE_DIR)
+                addURI(providerAuthority, "$PATH_SMS_CODE_RULE/#", SMS_CODE_RULE_ID)
+                addURI(providerAuthority, PATH_APP_INFO, APP_INFO_DIR)
+                addURI(providerAuthority, "$PATH_APP_INFO/*", APP_INFO_ITEM)
+                addURI(providerAuthority, PATH_AUTO_INPUT_EVENT, AUTO_INPUT_EVENT_DIR)
             }
         }
         return true
@@ -61,13 +68,21 @@ class DBProvider : ContentProvider() {
 
     override fun call(method: String, arg: String?, extras: Bundle?): Bundle? {
         val ctx = context ?: return null
-        if (!isCallerAllowedForRuntimeState(ctx)) {
+        if (!isCallerAllowedForRuntimeState(ctx) && !isIpcTokenAllowedByExtras(extras)) {
             XLog.w(message = "DBProvider: deny call uid=%d method=%s", Binder.getCallingUid(), method)
             return null
         }
         return when (method) {
-            RuntimeStateProviderContract.METHOD_CLAIM_RUNTIME_GATE -> claimRuntimeGate(ctx, arg, extras)
-            RuntimeStateProviderContract.METHOD_RECORD_HOOK_HEARTBEAT -> recordHookHeartbeat(ctx, extras)
+            RuntimeStateProviderContract.METHOD_CLAIM_RUNTIME_GATE ->
+                RuntimeStateCallHandlers.claimRuntimeGate(
+                    ctx = ctx,
+                    fileName = arg,
+                    extras = extras,
+                    failOpen = false,
+                    maxEntriesCap = MAX_RUNTIME_GATE_ENTRIES,
+                )
+            RuntimeStateProviderContract.METHOD_RECORD_HOOK_HEARTBEAT ->
+                RuntimeStateCallHandlers.recordHookHeartbeat(ctx, extras, defaultRoute = RuntimeLogStore.ROUTE_SMS_HOOK)
             RuntimeStateProviderContract.METHOD_RECORD_CALL_NOTIFICATION_SOURCE ->
                 recordCallNotificationSource(ctx, extras)
             RuntimeStateProviderContract.METHOD_RECORD_HOOK_INSTALL -> recordHookInstall(ctx, extras)
@@ -80,7 +95,7 @@ class DBProvider : ContentProvider() {
     override fun insert(uri: Uri, values: ContentValues?): Uri? {
         val ctx = context ?: return null
         val uriType = uriMatcher.match(uri)
-        if (!isCallerAllowedForInsert(ctx, uriType)) {
+        if (!isCallerAllowedForInsert(ctx, uriType) && !isIpcTokenAllowedByUri(uri)) {
             XLog.w(message = "DBProvider: deny insert uid=%d uri=%s", Binder.getCallingUid(), uri)
             return null
         }
@@ -120,7 +135,10 @@ class DBProvider : ContentProvider() {
                         result
                     }
                 }
-                val resultUri = ContentUris.withAppendedId(uri, outcome.id)
+                // Strip the request query (e.g. the ipc_token auth parameter) so the token
+                // cannot leak through the returned uri into logs or telemetry.
+                val responseBaseUri = uri.buildUpon().clearQuery().build()
+                val resultUri = ContentUris.withAppendedId(responseBaseUri, outcome.id)
                     .buildUpon()
                     .apply {
                         if (outcome.duplicate) appendQueryParameter(QUERY_DUPLICATE, "true")
@@ -134,7 +152,34 @@ class DBProvider : ContentProvider() {
                 return resultUri
             }
 
+            AUTO_INPUT_EVENT_DIR -> {
+                val id = addAutoInputEvent(values)
+                val responseBaseUri = uri.buildUpon().clearQuery().build()
+                return ContentUris.withAppendedId(responseBaseUri, id)
+            }
+
             else -> throw IllegalArgumentException("Unsupported URI: $uri")
+        }
+    }
+
+    private fun addAutoInputEvent(values: ContentValues?): Long {
+        val database = mDatabase ?: return 0L
+        val id = values?.getAsLong("id")?.takeIf { it > 0L } ?: 0L
+        val recordId = values?.getAsLong("record_id")
+        val packageName = values?.getAsString("package_name")?.take(255)
+        val codeLength = (values?.getAsInteger("code_length") ?: 0).coerceAtLeast(0)
+        val attemptAt = values?.getAsLong("attempt_at")?.takeIf { it > 0L }
+            ?: System.currentTimeMillis()
+        return runBlocking {
+            database.autoInputEventDao().insert(
+                AutoInputEvent(
+                    id = id,
+                    recordId = recordId,
+                    packageName = packageName,
+                    codeLength = codeLength,
+                    attemptAt = attemptAt,
+                ),
+            )
         }
     }
 
@@ -147,14 +192,14 @@ class DBProvider : ContentProvider() {
     ): Cursor? {
         val ctx = context ?: return null
         val uriType = uriMatcher.match(uri)
-        if (!isCallerAllowedForQuery(ctx, uriType)) {
+        if (!isCallerAllowedForQuery(ctx, uriType) && !isIpcTokenAllowedByUri(uri)) {
             XLog.w(message = "DBProvider: deny query uid=%d uri=%s", Binder.getCallingUid(), uri)
             return null
         }
         return when (uriType) {
             SMS_CODE_RULE_DIR -> querySmsCodeRules(projection)
             SMS_CODE_RULE_ID -> querySmsCodeRuleById(projection, uri)
-            SMS_MSG_DIR -> querySmsMsgs(projection, sortOrder)
+            SMS_MSG_DIR -> querySmsMsgs(projection, selection, selectionArgs, sortOrder)
             SMS_MSG_ID -> querySmsMsgById(projection, uri)
             APP_INFO_DIR -> queryAppInfo(projection, selection, selectionArgs)
             APP_INFO_ITEM -> queryAppInfoByPackageName(projection, uri)
@@ -165,7 +210,7 @@ class DBProvider : ContentProvider() {
     override fun delete(uri: Uri, selection: String?, selectionArgs: Array<String>?): Int {
         val ctx = context ?: return 0
         val uriType = uriMatcher.match(uri)
-        if (!isCallerAllowedForMutation(ctx)) {
+        if (!isCallerAllowedForMutation(ctx) && !isIpcTokenAllowedByUri(uri)) {
             XLog.w(message = "DBProvider: deny delete uid=%d uri=%s", Binder.getCallingUid(), uri)
             return 0
         }
@@ -291,12 +336,35 @@ class DBProvider : ContentProvider() {
         return@runBlocking cursor
     }
 
-    private fun querySmsMsgs(projection: Array<String>?, sortOrder: String?): Cursor = runBlocking {
-        val rows = mForwardDatabase!!.forwardEventDao().getAll().let { list ->
-            when (sortOrder?.trim()?.lowercase()) {
-                "date asc" -> list.sortedBy { it.date }
-                "date desc", null, "" -> list.sortedByDescending { it.date }
-                else -> list
+    private fun querySmsMsgs(
+        projection: Array<String>?,
+        selection: String?,
+        selectionArgs: Array<String>?,
+        sortOrder: String?,
+    ): Cursor = runBlocking {
+        val args = selectionArgs
+        val rows = if (selection == HookFingerprintQuery.FINGERPRINT_SELECTION && args?.size == 4) {
+            val msgType = args[0].toIntOrNull()
+            val date = args[3].toLongOrNull()
+            if (date == null || msgType == null) {
+                emptyList()
+            } else {
+                listOfNotNull(
+                    mForwardDatabase!!.forwardEventDao().getByFingerprint(
+                        sender = args[1],
+                        body = args[2],
+                        date = date,
+                        msgType = msgType,
+                    ),
+                )
+            }
+        } else {
+            mForwardDatabase!!.forwardEventDao().getAll().let { list ->
+                when (sortOrder?.trim()?.lowercase()) {
+                    "date asc" -> list.sortedBy { it.date }
+                    "date desc", null, "" -> list.sortedByDescending { it.date }
+                    else -> list
+                }
             }
         }
         val columns = projection ?: SmsMsgCursorContract.defaultColumns
@@ -418,7 +486,7 @@ class DBProvider : ContentProvider() {
     override fun update(uri: Uri, values: ContentValues?, selection: String?, selectionArgs: Array<String>?): Int {
         val ctx = context ?: return 0
         val uriType = uriMatcher.match(uri)
-        if (!isCallerAllowedForMutation(ctx)) {
+        if (!isCallerAllowedForMutation(ctx) && !isIpcTokenAllowedByUri(uri)) {
             XLog.w(message = "DBProvider: deny update uid=%d uri=%s", Binder.getCallingUid(), uri)
             return 0
         }
@@ -435,11 +503,25 @@ class DBProvider : ContentProvider() {
         return rowsUpdated
     }
 
+    private fun isIpcTokenAllowedByUri(uri: Uri?): Boolean =
+        ProviderIpcTokenCodec.allowedByUri(
+            context,
+            uri,
+            io.github.magisk317.relay.contract.constant.RelayPrefConst.KEY_IPC_TOKEN,
+        )
+
+    private fun isIpcTokenAllowedByExtras(extras: Bundle?): Boolean =
+        ProviderIpcTokenCodec.allowedByExtras(
+            context,
+            extras,
+            io.github.magisk317.relay.contract.constant.RelayPrefConst.KEY_IPC_TOKEN,
+        )
+
     private fun isCallerAllowedForQuery(ctx: Context, uriType: Int): Boolean {
         if (ProviderCallerPolicy.isSelf(ctx)) return true
         if (!ProviderCallerPolicy.isSelfOrSystemScope(ctx)) return false
         return when (uriType) {
-            SMS_CODE_RULE_DIR, SMS_CODE_RULE_ID, APP_INFO_DIR, APP_INFO_ITEM -> true
+            SMS_MSG_DIR, SMS_CODE_RULE_DIR, SMS_CODE_RULE_ID, APP_INFO_DIR, APP_INFO_ITEM -> true
             else -> false
         }
     }
@@ -462,92 +544,12 @@ class DBProvider : ContentProvider() {
 
     private fun isCallerAllowedForInsert(ctx: Context, uriType: Int): Boolean =
         when (uriType) {
-            SMS_MSG_DIR -> ProviderCallerPolicy.isSelf(ctx) || ProviderCallerPolicy.isSelfOrSystemScope(ctx)
+            SMS_MSG_DIR, AUTO_INPUT_EVENT_DIR -> ProviderCallerPolicy.isSelf(ctx) || ProviderCallerPolicy.isSelfOrSystemScope(ctx)
             else -> ProviderCallerPolicy.isSelf(ctx)
         }
 
     private fun isCallerAllowedForRuntimeState(ctx: Context): Boolean =
         ProviderCallerPolicy.isSelf(ctx) || ProviderCallerPolicy.isSelfOrSystemScope(ctx)
-
-    private fun claimRuntimeGate(ctx: Context, fileName: String?, extras: Bundle?): Bundle? {
-        val resolvedFileName = fileName?.takeIf(String::isNotBlank) ?: return null
-        val keys = extras?.getStringArrayList(RuntimeStateProviderContract.EXTRA_KEYS).orEmpty()
-        val windowMs = extras?.getLong(RuntimeStateProviderContract.EXTRA_WINDOW_MS, 0L) ?: 0L
-        val maxEntries = extras?.getInt(
-            RuntimeStateProviderContract.EXTRA_MAX_ENTRIES,
-            RuntimeStateProviderContract.DEFAULT_MAX_ENTRIES,
-        ) ?: RuntimeStateProviderContract.DEFAULT_MAX_ENTRIES
-        if (windowMs <= 0L || maxEntries !in 1..MAX_RUNTIME_GATE_ENTRIES) return null
-
-        val result = runCatching {
-            SharedRuntimeGate.claimAllWithinWindow(
-                file = SharedRuntimeGate.internalGateFile(ctx, resolvedFileName),
-                keys = keys,
-                windowMs = windowMs,
-                maxEntries = maxEntries,
-            )
-        }.onFailure { error ->
-            XLog.w(
-                message = "DBProvider: runtime gate failed file=%s err=%s",
-                resolvedFileName,
-                error.message ?: error.javaClass.simpleName,
-            )
-        }.getOrNull() ?: return null
-
-        return Bundle().apply {
-            putBoolean(RuntimeStateProviderContract.RESULT_OK, true)
-            putBoolean(RuntimeStateProviderContract.RESULT_CLAIMED, result.claimed)
-            putLong(
-                RuntimeStateProviderContract.RESULT_AGE_MS,
-                result.ageMs ?: RuntimeStateProviderContract.NO_AGE_MS,
-            )
-            result.key?.let { putString(RuntimeStateProviderContract.RESULT_BLOCKED_KEY, it) }
-        }
-    }
-
-    private fun recordHookHeartbeat(ctx: Context, extras: Bundle?): Bundle? {
-        val packageName = extras
-            ?.getString(RuntimeStateProviderContract.EXTRA_PACKAGE_NAME)
-            ?.toRuntimeStateValue()
-            .orEmpty()
-        val processName = extras
-            ?.getString(RuntimeStateProviderContract.EXTRA_PROCESS_NAME)
-            ?.toRuntimeStateValue()
-            .orEmpty()
-        val source = extras
-            ?.getString(RuntimeStateProviderContract.EXTRA_SOURCE)
-            ?.toRuntimeStateValue()
-            .orEmpty()
-        if (packageName.isBlank() || processName.isBlank() || source.isBlank()) return null
-
-        val ok = runCatching {
-            RuntimeStateStore.recordHookHeartbeat(
-                context = ctx.applicationContext ?: ctx,
-                packageName = packageName,
-                processName = processName,
-                source = source,
-                verboseLogging = extras?.getBoolean(
-                    RuntimeStateProviderContract.EXTRA_VERBOSE_LOGGING,
-                    false,
-                ) ?: false,
-                route = extras
-                    ?.getString(RuntimeStateProviderContract.EXTRA_ROUTE)
-                    ?.toRuntimeStateValue()
-                    ?.takeIf(String::isNotBlank)
-                    ?: RuntimeLogStore.ROUTE_SMS_HOOK,
-                moduleVersion = extras
-                    ?.getInt(RuntimeStateProviderContract.EXTRA_MODULE_VERSION, 0)
-                    ?: 0,
-            )
-        }.onFailure { error ->
-            XLog.w(
-                message = "DBProvider: hook heartbeat failed source=%s err=%s",
-                source,
-                error.message ?: error.javaClass.simpleName,
-            )
-        }.isSuccess
-        return Bundle().apply { putBoolean(RuntimeStateProviderContract.RESULT_OK, ok) }
-    }
 
     private fun recordCallNotificationSource(ctx: Context, extras: Bundle?): Bundle? {
         val packageName = extras
@@ -645,8 +647,7 @@ class DBProvider : ContentProvider() {
         return Bundle().apply { putBoolean(RuntimeStateProviderContract.RESULT_OK, ok) }
     }
 
-    private fun String?.toRuntimeStateValue(): String =
-        this.orEmpty().replace('\n', ' ').replace('\r', ' ').take(MAX_RUNTIME_STATE_VALUE_LENGTH)
+    private fun String?.toRuntimeStateValue(): String = RuntimeStateCallHandlers.sanitized(this)
 
     private fun updateSmsMsgByUriId(uri: Uri, values: ContentValues?): Int {
         val id = uri.lastPathSegment?.toLongOrNull() ?: return 0
@@ -827,6 +828,7 @@ class DBProvider : ContentProvider() {
         private const val PATH_SMS_MSG = "sms_msg"
         private const val PATH_SMS_CODE_RULE = "sms_code_rule"
         private const val PATH_APP_INFO = "app_info"
+        private const val PATH_AUTO_INPUT_EVENT = "auto_input_event"
         private const val KEY_DEDUPLICATE = "deduplicate"
         private const val QUERY_DUPLICATE = "duplicate"
 
@@ -836,19 +838,28 @@ class DBProvider : ContentProvider() {
         private const val SMS_CODE_RULE_ID = 3
         private const val APP_INFO_DIR = 4
         private const val APP_INFO_ITEM = 5
+        private const val AUTO_INPUT_EVENT_DIR = 6
         private const val MAX_RUNTIME_GATE_ENTRIES = 4_096
         private const val MAX_RUNTIME_STATE_VALUE_LENGTH = 256
 
-        fun authority(context: Context): String = "${context.packageName}.db.provider"
+        // The authority must come from the MODULE id, never from the ambient package name: inside
+        // a hook process the ambient package is the hooked app (com.android.phone etc.), so an
+        // authority derived from it addresses a provider that does not exist and silently no-ops.
+        fun authority(): String = RuntimeStateProviderAddress.authorityOf(BuildConfig.APPLICATION_ID)
 
-        fun smsMsgContentUri(context: Context): Uri =
-            Uri.parse("content://${context.packageName}.db.provider/$PATH_SMS_MSG")
+        fun authority(@Suppress("UNUSED_PARAMETER") context: Context): String = authority()
 
-        fun smsCodeRuleContentUri(context: Context): Uri =
-            Uri.parse("content://${context.packageName}.db.provider/$PATH_SMS_CODE_RULE")
+        fun smsMsgContentUri(@Suppress("UNUSED_PARAMETER") context: Context): Uri =
+            Uri.parse("content://${authority()}/$PATH_SMS_MSG")
 
-        fun appInfoContentUri(context: Context): Uri =
-            Uri.parse("content://${context.packageName}.db.provider/$PATH_APP_INFO")
+        fun smsCodeRuleContentUri(@Suppress("UNUSED_PARAMETER") context: Context): Uri =
+            Uri.parse("content://${authority()}/$PATH_SMS_CODE_RULE")
+
+        fun appInfoContentUri(@Suppress("UNUSED_PARAMETER") context: Context): Uri =
+            Uri.parse("content://${authority()}/$PATH_APP_INFO")
+
+        fun autoInputEventContentUri(@Suppress("UNUSED_PARAMETER") context: Context): Uri =
+            Uri.parse("content://${authority()}/$PATH_AUTO_INPUT_EVENT")
     }
 
     private data class SmsMsgInsertOutcome(

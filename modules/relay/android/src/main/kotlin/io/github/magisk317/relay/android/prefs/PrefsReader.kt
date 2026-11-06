@@ -13,14 +13,12 @@ import io.github.magisk317.relay.android.data.db.legacy.entity.LegacySmsMsg as S
 import io.github.magisk317.relay.android.BuildConfig
 import io.github.magisk317.smscode.runtime.common.prefs.PrefsResolver
 import io.github.magisk317.smscode.runtime.common.prefs.PrefsSnapshot
-import io.github.magisk317.smscode.runtime.common.prefs.SnapshotPrefsSource
-import io.github.magisk317.smscode.runtime.common.prefs.sharedPrefsSnapshot
+import io.github.magisk317.smscode.runtime.common.prefs.PrefsSnapshotHolder
 import io.github.magisk317.smscode.runtime.contract.prefs.PrefSources
 import com.magisk317.mobile.entitlement.MobileEntitlementGate
-import com.magisk317.mobile.entitlement.MobileEntitlementPublishedState
+import io.github.magisk317.xposed.entitlement.HookEntitlementStates
 import io.github.magisk317.xposed.entitlement.MobileHookGateCheck
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.Collections
 import io.github.magisk317.xposed.logging.AnonymousInstallationId
 import io.github.magisk317.xposed.logging.MagiskLogPolicy
 
@@ -34,10 +32,9 @@ object PrefsReader {
     private val runtimeBridgeLogOnce = AtomicBoolean(false)
     /** Remote provider availability can change without a bridge callback; never serve stale hits. */
     private const val CACHE_TTL_MS = 0L
-    private const val SNAPSHOT_PREFS_NAME = "hook_prefs_snapshot"
     private val prefsResolver = PrefsResolver(
         cacheTtlMs = CACHE_TTL_MS,
-        missFallsThrough = true,
+        missFallsThrough = false,
     )
 
     /**
@@ -45,11 +42,7 @@ object PrefsReader {
      * app cannot make a switch the user turned off read back as on. Installed from the hosted
      * process context because the module package's own storage is not writable from here.
      */
-    @Volatile
-    private var prefsSnapshot: PrefsSnapshot? = null
-    @Volatile
-    private var snapshotInstalled = false
-    private val fallbackTraceLoggedKeys = Collections.synchronizedSet(mutableSetOf<String>())
+    private val prefsSnapshot = PrefsSnapshotHolder()
 
     @Volatile
     private var runtimeBridge: XpRuntimeBridge = NoopXpRuntimeBridge
@@ -81,19 +74,12 @@ object PrefsReader {
     }
 
     private fun logFallbackOnce(key: String, source: String) {
-        if (fallbackTraceLoggedKeys.add("$key@$source")) {
-            safeWarn("Diag prefs fallback: key=%s source=%s (remote provider unreachable)", key, source)
-        }
+        prefsSnapshot.logFallbackOnce(key, source, ::safeWarnText)
     }
 
     @JvmStatic
     fun installSnapshot(context: Context?) {
-        if (context == null || snapshotInstalled) return
-        runCatching {
-            val target = context.getSharedPreferences(SNAPSHOT_PREFS_NAME, Context.MODE_PRIVATE)
-            prefsSnapshot = sharedPrefsSnapshot(prefs = { target })
-            snapshotInstalled = true
-        }.onFailure { safeWarn("PrefsReader snapshot install failed", it) }
+        prefsSnapshot.install(context) { message, error -> safeWarn(message, error) }
     }
 
     private fun logRuntimeBridgeOnce() {
@@ -122,7 +108,7 @@ object PrefsReader {
             runtimeBridge = runtimeBridge,
             warn = ::safeWarn,
         )
-        val snapshotSource = prefsSnapshot?.let(::SnapshotPrefsSource)
+        val snapshotSource = prefsSnapshot.asSource()
         return if (snapshotSource == null) chain else chain + snapshotSource
     }
 
@@ -135,7 +121,7 @@ object PrefsReader {
         prefsResolver.invalidate()
         logRuntimeBridgeOnce()
         val result = prefsResolver.resolveBoolean(key, defaultValue, sources)
-        onResolved(key, result.source) { prefsSnapshot?.recordBoolean(key, result.value) }
+        onResolved(key, result.source) { prefsSnapshot.rememberBoolean(key, result.value) }
         return result
     }
 
@@ -148,7 +134,7 @@ object PrefsReader {
         prefsResolver.invalidate()
         logRuntimeBridgeOnce()
         val result = prefsResolver.resolveString(key, defaultValue, sources)
-        onResolved(key, result.source) { prefsSnapshot?.recordString(key, result.value) }
+        onResolved(key, result.source) { prefsSnapshot.rememberString(key, result.value) }
         return result
     }
 
@@ -161,8 +147,12 @@ object PrefsReader {
         prefsResolver.invalidate()
         logRuntimeBridgeOnce()
         val result = prefsResolver.resolveInt(key, defaultValue, sources)
-        onResolved(key, result.source) { prefsSnapshot?.recordInt(key, result.value) }
+        onResolved(key, result.source) { prefsSnapshot.rememberInt(key, result.value) }
         return result
+    }
+
+    private fun safeWarnText(message: String) {
+        safeWarn(message)
     }
 
     private fun safeWarn(message: String, vararg args: Any?) {
@@ -237,10 +227,6 @@ object PrefsReader {
         MagiskLogPolicy.current().verboseLogging
 
     @JvmStatic
-    fun isSensitiveDebugLogMode(context: Context): Boolean =
-        !MagiskLogPolicy.current().sanitizesText
-
-    @JvmStatic
     fun verificationFeaturesEnabled(context: Context): Boolean {
         return getBooleanViaProvider(context, PrefConst.KEY_VERIFICATION_FEATURES_ENABLED, true)
     }
@@ -253,17 +239,13 @@ object PrefsReader {
     fun mobileAutomationAllowed(context: Context): Boolean =
         MobileHookGateCheck.isAllowedWhenEnabled(
             gateEnabled = BuildConfig.ENABLE_MOBILE_ENTITLEMENT,
-            state = MobileEntitlementPublishedState(
-                automationAllowed = getBooleanViaProvider(
-                    context,
-                    PrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
-                    PrefConst.DEFAULT_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
-                ),
-                entitlementToken = getStringViaProvider(
-                    context,
-                    PrefConst.KEY_MOBILE_ENTITLEMENT_TOKEN,
-                    "",
-                ).takeIf(String::isNotBlank),
+            state = HookEntitlementStates.fromChain(
+                context = context,
+                readBoolean = ::getBooleanViaProvider,
+                readString = ::getStringViaProvider,
+                allowedKey = PrefConst.KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+                allowedDefault = PrefConst.DEFAULT_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED,
+                tokenKey = PrefConst.KEY_MOBILE_ENTITLEMENT_TOKEN,
             ),
             signingPublicJwk = BuildConfig.MOBILE_ENTITLEMENT_SIGNING_PUBLIC_JWK,
             issuer = BuildConfig.MOBILE_ENTITLEMENT_API_ORIGIN,

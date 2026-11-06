@@ -231,14 +231,16 @@ internal fun SettingsDiagnosticsSection(
         ) {
             updateController.check(userInitiated = true)
         }
-        // Unset falls back to how this build was produced; writing the switch pins the track
-        // explicitly. `defaultValue` renders that fallback so the row shows the effective state.
-        SwitchItem(
-            title = stringResource(id = R.string.settings_track_ci_builds_title),
-            summary = stringResource(id = R.string.settings_track_ci_builds_summary),
-            key = RelayPrefConst.KEY_TRACK_CI_BUILDS,
-            defaultValue = BuildConfig.DEBUG || BuildConfig.IS_CI_BUILD,
-        )
+        if (!BuildConfig.DEBUG && !BuildConfig.IS_CI_BUILD) {
+            // Unset falls back to how this build was produced; writing the switch pins the track
+            // explicitly. `defaultValue` renders the release default state.
+            SwitchItem(
+                title = stringResource(id = R.string.settings_track_ci_builds_title),
+                summary = stringResource(id = R.string.settings_track_ci_builds_summary),
+                key = RelayPrefConst.KEY_TRACK_CI_BUILDS,
+                defaultValue = false,
+            )
+        }
         // A CI build checks unconditionally, so the two release switches would be rows that do
         // nothing: they only exist where the rule they feed actually applies.
         if (!BuildConfig.DEBUG && !BuildConfig.IS_CI_BUILD) {
