@@ -39,9 +39,9 @@ class ForwardRoomRecordRepository(
     override fun observeSmsBlacklistHits(limit: Int): Flow<List<ReadSmsBlacklistHitData>> =
         db.smsBlacklistHitDao().observeRecent(limit)
 
-    override suspend fun removeSmsBlacklistHits(list: List<ReadSmsBlacklistHitData>) {
-        if (list.isEmpty()) return
-        db.smsBlacklistHitDao().deleteAll(list.map { it.toSmsBlacklistHit() })
+    override suspend fun removeSmsBlacklistHits(ids: List<Long>) {
+        if (ids.isEmpty()) return
+        db.smsBlacklistHitDao().deleteByIds(ids)
     }
 
     override suspend fun restoreSmsBlacklistHits(list: List<ReadSmsBlacklistHitData>) {
@@ -131,9 +131,9 @@ class ForwardRoomRecordRepository(
     }
 
     /** 批量删除（同一事务内执行）。 */
-    override suspend fun removeList(list: List<ReadRecordData>) {
-        if (list.isEmpty()) return
-        forwardDb.forwardEventDao().deleteInTx(list.map { it.toForwardEventEntity() })
+    override suspend fun removeRecords(ids: List<Long>) {
+        if (ids.isEmpty()) return
+        forwardDb.forwardEventDao().deleteByIds(ids)
         scheduleRecordUpload("remove_list")
     }
 

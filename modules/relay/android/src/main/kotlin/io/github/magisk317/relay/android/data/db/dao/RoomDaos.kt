@@ -222,6 +222,9 @@ interface SmsBlacklistHitDao {
     @Delete
     suspend fun deleteAll(hits: List<SmsBlacklistHit>)
 
+    @Query("DELETE FROM sms_blacklist_hit WHERE id IN (:ids)")
+    suspend fun deleteByIds(ids: List<Long>)
+
     @Query(
         "DELETE FROM sms_blacklist_hit WHERE id NOT IN (" +
             "SELECT id FROM sms_blacklist_hit ORDER BY created_at DESC LIMIT :limit" +

@@ -150,7 +150,7 @@ fun BlacklistHitListScreen(
     ) {
         { hit ->
             scope.launch {
-                recordRepository.removeSmsBlacklistHits(listOf(hit))
+                recordRepository.removeSmsBlacklistHits(listOf(hit.id))
                 val result = snackbarHostState.showLatestSnackbar(
                     message = context.getString(R.string.some_items_removed, 1),
                     actionLabel = context.getString(R.string.revoke),

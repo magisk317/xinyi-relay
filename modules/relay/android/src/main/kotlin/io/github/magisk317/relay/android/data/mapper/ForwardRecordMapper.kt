@@ -29,6 +29,7 @@ fun ForwardEventEntity.toRecordData(): ReadRecordData = ReadRecordDataImpl(
     sessionKey = sessionKey,
 )
 
+
 fun ReadRecordData.toForwardEventEntity(): ForwardEventEntity = ForwardEventEntity(
     id = id,
     eventId = "",

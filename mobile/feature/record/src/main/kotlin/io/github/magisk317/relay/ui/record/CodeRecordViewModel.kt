@@ -330,7 +330,7 @@ class CodeRecordViewModel(
         viewModelScope.launch {
             try {
                 withContext(Dispatchers.IO) {
-                    repository.removeList(smsMsgList)
+                    repository.removeRecords(smsMsgList.map { it.id })
                 }
             } catch (ignored: Throwable) {
                 XLog.e("Error occurs when remove SMS records", ignored)
