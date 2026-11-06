@@ -93,6 +93,16 @@ fun RelayConfigScreen(
                     }
                 }
                 if (current.relayFeaturesEnabled) {
+                    StateSwitchItem(
+                        title = stringResource(id = R.string.pref_forward_content_mask_title),
+                        summary = stringResource(id = R.string.pref_forward_content_mask_summary),
+                        checked = current.forwardContentMaskEnabled,
+                    ) { enabled ->
+                        scope.launch {
+                            relay = repository.updateRelaySettings(RelaySettingsUpdate(forwardContentMaskEnabled = enabled))
+                            notifySaved()
+                        }
+                    }
                     AppArrowItem(
                         title = stringResource(id = R.string.tab_senders),
                         summary = stringResource(id = R.string.pref_enable_forward_summary),

@@ -55,12 +55,14 @@ data class VerificationSettingsUpdate(
 @Serializable
 data class RelaySettingsSnapshot(
     val relayFeaturesEnabled: Boolean,
+    val forwardContentMaskEnabled: Boolean,
     val smsForwardDedupWindowSec: Int,
 )
 
 @Serializable
 data class RelaySettingsUpdate(
     val relayFeaturesEnabled: Boolean? = null,
+    val forwardContentMaskEnabled: Boolean? = null,
     val smsForwardDedupWindowSec: Int? = null,
 )
 
@@ -73,8 +75,6 @@ data class DiagnosticsSettingsSnapshot(
     val rootDbCatchupWriteback: Boolean,
     val forceStopRecoveryEnabled: Boolean,
     val forceStopRecoveryRelaunchOnceEnabled: Boolean,
-    val verboseLogMode: Boolean,
-    val sensitiveDebugLogMode: Boolean,
     val runtimeLogRetentionDays: Int,
     val autoUpdateOnStart: Boolean,
     val autoUpdateWifiOnly: Boolean,
@@ -95,8 +95,6 @@ data class DiagnosticsSettingsUpdate(
     val rootDbCatchupWriteback: Boolean? = null,
     val forceStopRecoveryEnabled: Boolean? = null,
     val forceStopRecoveryRelaunchOnceEnabled: Boolean? = null,
-    val verboseLogMode: Boolean? = null,
-    val sensitiveDebugLogMode: Boolean? = null,
     val runtimeLogRetentionDays: Int? = null,
     val autoUpdateOnStart: Boolean? = null,
     val autoUpdateWifiOnly: Boolean? = null,
@@ -297,7 +295,6 @@ data class UserSettingsSnapshot(
     val blockSmsEnabled: Boolean,
     val enableAutoInputCode: Boolean,
     val enableAutoEnterCode: Boolean,
-    val verboseLogMode: Boolean,
     val smsBlacklistEnabled: Boolean,
     val forceStopRecoveryEnabled: Boolean,
 )
@@ -313,7 +310,6 @@ data class UserSettingsUpdate(
     val blockSmsEnabled: Boolean? = null,
     val enableAutoInputCode: Boolean? = null,
     val enableAutoEnterCode: Boolean? = null,
-    val verboseLogMode: Boolean? = null,
     val smsBlacklistEnabled: Boolean? = null,
     val forceStopRecoveryEnabled: Boolean? = null,
 )

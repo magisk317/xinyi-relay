@@ -165,6 +165,7 @@ class LocalConfigRepositoryImpl(
             settingsRepository.updateRelaySettings(
                 RelaySettingsUpdate(
                     relayFeaturesEnabled = payload.relay.relayFeaturesEnabled,
+                    forwardContentMaskEnabled = payload.relay.forwardContentMaskEnabled,
                     smsForwardDedupWindowSec = payload.relay.smsForwardDedupWindowSec,
                 ),
             )
@@ -175,8 +176,6 @@ class LocalConfigRepositoryImpl(
                     rootDbCatchupWriteback = payload.diagnostics.rootDbCatchupWriteback,
                     forceStopRecoveryEnabled = payload.diagnostics.forceStopRecoveryEnabled,
                     forceStopRecoveryRelaunchOnceEnabled = payload.diagnostics.forceStopRecoveryRelaunchOnceEnabled,
-                    verboseLogMode = payload.diagnostics.verboseLogMode,
-                    sensitiveDebugLogMode = payload.diagnostics.sensitiveDebugLogMode,
                     runtimeLogRetentionDays = payload.diagnostics.runtimeLogRetentionDays,
                     autoUpdateOnStart = payload.diagnostics.autoUpdateOnStart,
                     autoUpdateWifiOnly = payload.diagnostics.autoUpdateWifiOnly,

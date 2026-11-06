@@ -15,6 +15,8 @@ object RelayPrefConst {
     const val KEY_LANGUAGE = "pref_language"
     const val KEY_COMPOSE_SETTINGS = "pref_compose_settings"
     const val KEY_SETTINGS_ACCORDION_MODE = "pref_settings_accordion_mode"
+    const val KEY_SMS_SHORT_CODE_CONFIRMATION_BYPASS = "pref_sms_short_code_confirmation_bypass"
+    const val SMS_SHORT_CODE_CONFIRMATION_BYPASS_DEFAULT = false
 
     /** Derived by the parent app's entitlement coordinator and mirrored to hook processes. */
     const val KEY_MOBILE_ENTITLEMENT_AUTOMATION_ALLOWED = "mobile_entitlement_automation_allowed"
@@ -111,8 +113,6 @@ object RelayPrefConst {
     const val KEY_KEEPALIVE_DEDICATED_SERVICE = "pref_keepalive_dedicated_service"
 
     // Others
-    const val KEY_VERBOSE_LOG_MODE = "pref_verbose_log_mode"
-    const val KEY_SENSITIVE_DEBUG_LOG_MODE = "pref_sensitive_debug_log_mode"
     const val KEY_RUNTIME_LOG_RETENTION_DAYS = "pref_runtime_log_retention_days"
     // Kept in sync with MagiskLogPolicy.DEFAULT_LOG_RETENTION_DAYS by
     // RuntimeLogRetentionDefaultsTest: this module is commonMain and cannot see the kit.
@@ -150,6 +150,7 @@ object RelayPrefConst {
     const val KEY_RELAY_BY_WIFI = "pref_relay_by_wifi"
     const val KEY_RELAY_BY_DATA = "pref_relay_by_data"
     const val KEY_SMS_FORWARD_DEDUP_WINDOW_SEC = "pref_sms_forward_dedup_window_sec"
+    const val KEY_FORWARD_CONTENT_MASK = "pref_forward_content_mask"
     const val SMS_FORWARD_DEDUP_WINDOW_SEC_DEFAULT = 60
     const val SMS_FORWARD_DEDUP_WINDOW_SEC_MIN = 10
     const val SMS_FORWARD_DEDUP_WINDOW_SEC_MAX = 300

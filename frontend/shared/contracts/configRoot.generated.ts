@@ -201,8 +201,6 @@ export interface DiagnosticsSettingsSnapshot {
   rootDbCatchupWriteback: boolean
   forceStopRecoveryEnabled: boolean
   forceStopRecoveryRelaunchOnceEnabled: boolean
-  verboseLogMode: boolean
-  sensitiveDebugLogMode: boolean
   runtimeLogRetentionDays: number
   autoUpdateOnStart: boolean
   autoUpdateWifiOnly: boolean
@@ -217,6 +215,7 @@ export interface DiagnosticsSettingsSnapshot {
 
 export interface RelaySettingsSnapshot {
   relayFeaturesEnabled: boolean
+  forwardContentMaskEnabled: boolean
   smsForwardDedupWindowSec: number
 }
 

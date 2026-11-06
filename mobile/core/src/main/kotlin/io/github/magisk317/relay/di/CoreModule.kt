@@ -114,9 +114,13 @@ val coreModule = module {
     single { RoutingResolver(get<ForwardDatabase>()) }
     single { SenderSelector() }
     single {
-        DispatchExecutor {
-            SenderRuntimeServiceRegistry.requireInstalled().createDispatcher(androidContext())
-        }
+        val settingsRepository = get<SettingsPreferencesRepository>()
+        DispatchExecutor(
+            maskEnabled = { settingsRepository.getRelaySettings().forwardContentMaskEnabled },
+            delegateProvider = {
+                SenderRuntimeServiceRegistry.requireInstalled().createDispatcher(androidContext())
+            },
+        )
     }
     single { DispatchResultWriter(get<ForwardDatabase>(), get(), get()) }
     single {

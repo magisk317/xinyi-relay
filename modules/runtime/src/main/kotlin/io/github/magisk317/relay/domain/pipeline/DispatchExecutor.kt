@@ -11,6 +11,7 @@ import io.github.magisk317.xposed.logging.MagiskOtel
 
 class DispatchExecutor(
     private val delegateProvider: () -> SenderDispatcher,
+    private val maskEnabled: suspend () -> Boolean = { false },
 ) : SenderDispatcher {
     override suspend fun dispatchToSender(
         sender: Sender,
@@ -22,8 +23,9 @@ class DispatchExecutor(
         XLog.d(message = "Dispatching to sender: id=%d, type=%d, name=%s", sender.id, sender.type, sender.name)
         ForwardFlowLog.d(traceId, "Dispatch sender start name=$senderName type=${sender.type}")
         return runCatching {
+            val outbound = runCatching { OutboundContentMask.apply(msgInfo, maskEnabled()) }.getOrDefault(msgInfo)
             val delegate = delegateProvider()
-            delegate.dispatchToSender(sender, msgInfo, traceId)
+            delegate.dispatchToSender(sender, outbound, traceId)
         }.fold(
             onSuccess = { result ->
                 if (result.success) {

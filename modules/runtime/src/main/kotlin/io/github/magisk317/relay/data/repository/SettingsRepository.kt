@@ -100,6 +100,7 @@ class SettingsRepository(
     override suspend fun getRelaySettings(): RelaySettingsSnapshot {
         return RelaySettingsSnapshot(
             relayFeaturesEnabled = preferenceDataSource.getBoolean(PrefConst.KEY_RELAY_FEATURES_ENABLED, true),
+            forwardContentMaskEnabled = preferenceDataSource.getBoolean(PrefConst.KEY_FORWARD_CONTENT_MASK, false),
             smsForwardDedupWindowSec = preferenceDataSource.getString(
                 PrefConst.KEY_SMS_FORWARD_DEDUP_WINDOW_SEC,
                 PrefConst.SMS_FORWARD_DEDUP_WINDOW_SEC_DEFAULT.toString(),
@@ -113,6 +114,9 @@ class SettingsRepository(
     override suspend fun updateRelaySettings(update: RelaySettingsUpdate): RelaySettingsSnapshot {
         update.relayFeaturesEnabled?.let {
             preferenceDataSource.setBoolean(PrefConst.KEY_RELAY_FEATURES_ENABLED, it)
+        }
+        update.forwardContentMaskEnabled?.let {
+            preferenceDataSource.setBoolean(PrefConst.KEY_FORWARD_CONTENT_MASK, it)
         }
         update.smsForwardDedupWindowSec?.let {
             preferenceDataSource.setString(
@@ -137,8 +141,6 @@ class SettingsRepository(
                 PrefConst.KEY_FORCE_STOP_RECOVERY_RELAUNCH_ONCE,
                 false,
             ),
-            verboseLogMode = preferenceDataSource.getBoolean(PrefConst.KEY_VERBOSE_LOG_MODE, false),
-            sensitiveDebugLogMode = preferenceDataSource.getBoolean(PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE, false),
             runtimeLogRetentionDays = preferenceDataSource.getInt(
                 PrefConst.KEY_RUNTIME_LOG_RETENTION_DAYS,
                 PrefConst.RUNTIME_LOG_RETENTION_DAYS_DEFAULT,
@@ -162,10 +164,6 @@ class SettingsRepository(
         update.forceStopRecoveryEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_FORCE_STOP_RECOVERY, it) }
         update.forceStopRecoveryRelaunchOnceEnabled?.let {
             preferenceDataSource.setBoolean(PrefConst.KEY_FORCE_STOP_RECOVERY_RELAUNCH_ONCE, it)
-        }
-        update.verboseLogMode?.let { preferenceDataSource.setBoolean(PrefConst.KEY_VERBOSE_LOG_MODE, it) }
-        update.sensitiveDebugLogMode?.let {
-            preferenceDataSource.setBoolean(PrefConst.KEY_SENSITIVE_DEBUG_LOG_MODE, it)
         }
         update.runtimeLogRetentionDays?.let {
             preferenceDataSource.setInt(
@@ -608,7 +606,6 @@ class SettingsRepository(
             blockSmsEnabled = verification.blockSmsEnabled,
             enableAutoInputCode = verification.autoInputEnabled,
             enableAutoEnterCode = verification.autoEnterEnabled,
-            verboseLogMode = diagnostics.verboseLogMode,
             smsBlacklistEnabled = advanced.enableSmsBlacklist,
             forceStopRecoveryEnabled = diagnostics.forceStopRecoveryEnabled,
         )
@@ -626,7 +623,6 @@ class SettingsRepository(
         update.blockSmsEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_BLOCK_SMS, it) }
         update.enableAutoInputCode?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE_AUTO_INPUT_CODE, it) }
         update.enableAutoEnterCode?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE_AUTO_ENTER_CODE, it) }
-        update.verboseLogMode?.let { preferenceDataSource.setBoolean(PrefConst.KEY_VERBOSE_LOG_MODE, it) }
         update.smsBlacklistEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_ENABLE_SMS_BLACKLIST, it) }
         update.forceStopRecoveryEnabled?.let { preferenceDataSource.setBoolean(PrefConst.KEY_FORCE_STOP_RECOVERY, it) }
         publishHookPrefsAndNoteLocalMutation("settings.user_settings")
