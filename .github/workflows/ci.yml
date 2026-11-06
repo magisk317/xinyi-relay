@@ -22,6 +22,7 @@ jobs:
     env:
       GRADLE_OPTS: -Dorg.gradle.warning.mode=all
       HAS_RELEASE_SIGNING: ${{ secrets.RELEASE_KEYSTORE != '' && secrets.STORE_PASSWORD != '' && secrets.KEY_ALIAS != '' && secrets.KEY_PASSWORD != '' }}
+      MAGISK_IS_CI_BUILD: true
       HAS_GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON != '' }}
     steps:
       - name: Configure GitLab submodule credentials
@@ -39,7 +40,7 @@ jobs:
           fetch-depth: 0
       - uses: ./.github/actions/resolve-ci-toolkit
         with:
-          ref: 85171f0a9dc19ae177c8ecbe5fd0c9d5b7b8bb34
+          ref: faaef5053270cf29bcf3d6568c52a8592386e230
       - name: Setup Android CI
         uses: ./.magisk-ci-toolkit/.github/actions/setup-android-ci
         with:
