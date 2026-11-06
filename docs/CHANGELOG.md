@@ -3,9 +3,12 @@
 本日志记录了项目近期的主要变更。 
 
 ---
-## [v0.4.3] - 2026-11-01
+## [v0.4.3] - 2026-11-06
 - 版本：`versionCode 56` / `versionName 0.4.3`。
-- 下一轮开发占位，发布前补充具体变更。
+- `[feat]` ntfy/webhook 发件通道支持 mTLS 客户端证书。
+- `[log]` 日志策略按构建通道收口，减少正式版明文日志。
+- `[fix]` 修复无人值守定时发送、Hook 运行时与诊断证据问题。
+- `[deps]` 升级 Compose BOM 2026.11 等共享依赖。
 
 > Full Changelog: https://gitlab.com/magisk3171/xinyi-relay/-/compare/v0.4.2...v0.4.3
 
