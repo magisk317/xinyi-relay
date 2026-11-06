@@ -17,10 +17,17 @@
 # `git apply --check` loudly instead of silently producing a wrong artifact.
 # When upstream moves, rebase the patch against the new tag and re-run.
 #
+# Every publish also writes <group>/<artifact>/maven-metadata.xml. A raw PUT
+# does not generate that listing, and without it the registry holds an
+# artifact nothing can enumerate -- Renovate's maven datasource reports
+# `no-result` and Gradle dynamic versions resolve to nothing. The version set
+# is read back from the Packages API, never trusted from the last uploaded
+# listing, so a run that died between the two PUTs still converges.
+#
 # Environment:
 #   RUSTLS_PV_VERSION    override the version (default: catalog [libraries])
 #   RUSTLS_PV_FORCE=1    republish even when the registry already has it
-#   RUSTLS_PV_DRY_RUN=1  build + contract check + POM only, no registry writes
+#   RUSTLS_PV_DRY_RUN=1  build + contract check + POM/metadata only, no writes
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -40,6 +47,12 @@ PROJECT_ID="${CI_PROJECT_ID:-84113188}"
 DRY_RUN="${RUSTLS_PV_DRY_RUN:-0}"
 FORCE="${RUSTLS_PV_FORCE:-0}"
 WORK_DIR="$ROOT_DIR/.cache/rustls-platform-verifier"
+METADATA_NAME="maven-metadata.xml"
+METADATA_ENDPOINT="projects/$PROJECT_ID/packages/maven/$GROUP_ID/$ARTIFACT_ID/$METADATA_NAME"
+METADATA_SCRIPT="$ROOT_DIR/scripts/ci/rustls_pv_metadata.sh"
+# GitLab indexes Maven packages under "<group>/<artifact>", and the name filter
+# has to carry the separator percent-encoded.
+PACKAGE_NAME_FILTER="$GROUP_ID%2F$ARTIFACT_ID"
 
 die() {
   echo "ERROR: $*" >&2
@@ -49,6 +62,104 @@ die() {
 
 catalog_version() {
   sed -nE "s/^$1[[:space:]]*=[[:space:]]*\"([^\"]+)\".*/\1/p" "$CATALOG" | head -n 1
+}
+
+# put_asset <endpoint> <file> -- one registry PUT with the GitLab quirks
+# already absorbed: an immutable versioned path answers 409, or 400 with an
+# "already exists" body, both of which mean the bytes are already there.
+put_asset() {
+  local endpoint="$1" asset="$2" name status
+  name="$(basename "$asset")"
+  mkdir -p "$WORK_DIR"
+  echo "==> PUT $name"
+  status="$(gitlab_api_curl "$endpoint" --output "$WORK_DIR/upload.json" --write-out '%{http_code}' \
+    --request PUT --upload-file "$asset" || true)"
+  case "$status" in
+    200|201|409) ;;
+    400)
+      if ! grep -qiE 'already|taken|exist' "$WORK_DIR/upload.json"; then
+        die "failed to upload $name (HTTP $status): $(cat "$WORK_DIR/upload.json")"
+      fi
+      ;;
+    *)
+      die "failed to upload $name (HTTP $status): $(cat "$WORK_DIR/upload.json")"
+      ;;
+  esac
+}
+
+registry_versions() {
+  # The Packages API is the authoritative list of what the registry holds; the
+  # previously uploaded listing may be missing (pre-metadata publish) or stale.
+  # gitlab_api_curl takes the endpoint first, so the curl switches follow it.
+  local listing http_code
+  mkdir -p "$WORK_DIR"
+  listing="$WORK_DIR/packages.json"
+  http_code="$(gitlab_api_curl "projects/$PROJECT_ID/packages" --get \
+    --data-urlencode "package_type=maven" \
+    --data-urlencode "package_name=$GROUP_ID/$ARTIFACT_ID" \
+    --data-urlencode "per_page=100" \
+    --output "$listing" --write-out '%{http_code}' 2>/dev/null || true)"
+  if [[ "$http_code" != "200" ]]; then
+    echo "    Packages API returned HTTP '${http_code:-no-response}'" >&2
+    return 1
+  fi
+  python3 - "$GROUP_ID/$ARTIFACT_ID" "$listing" <<'PY'
+import json
+import sys
+
+wanted, path = sys.argv[1], sys.argv[2]
+with open(path) as handle:
+    raw = handle.read()
+try:
+    packages = json.loads(raw)
+except ValueError as err:
+    sys.stderr.write(f"unparseable Packages API response: {err}\n{raw[:200]}\n")
+    raise SystemExit(1)
+if not isinstance(packages, list):
+    sys.stderr.write(f"unexpected Packages API payload: {str(packages)[:200]}\n")
+    raise SystemExit(1)
+if len(packages) == 100:
+    sys.stderr.write("Packages API returned a full page; the listing needs pagination\n")
+    raise SystemExit(1)
+for package in packages:
+    if package.get("name") == wanted and package.get("version"):
+        print(package["version"])
+PY
+}
+
+build_metadata() {
+  # build_metadata <strict(1|0)> -- writes $WORK_DIR/maven-metadata.xml
+  local strict="${1:-1}" known
+  mkdir -p "$WORK_DIR"
+  if ! known="$(registry_versions)"; then
+    if [[ "$strict" == "1" ]]; then
+      die "cannot list published versions from the Packages API; refusing to write a version listing that might drop artifacts"
+    fi
+    echo "    Packages API unreachable; listing only the current version"
+    known=""
+  fi
+  # shellcheck disable=SC2086  # deliberate word split of a newline-free list
+  bash "$METADATA_SCRIPT" "$GROUP_ID" "$ARTIFACT_ID" "$VERSION" $known > "$WORK_DIR/$METADATA_NAME"
+}
+
+metadata_lists_current() {
+  # Prove the listing is really served and really names this version; a 200 on
+  # the PUT does not show that the bytes landed.
+  mkdir -p "$WORK_DIR"
+  local code
+  code="$(gitlab_api_curl "$METADATA_ENDPOINT" \
+    --output "$WORK_DIR/$METADATA_NAME.remote" --write-out '%{http_code}' 2>/dev/null || true)"
+  if [[ "$code" != "200" ]]; then
+    echo "    maven-metadata.xml: HTTP '${code:-no-response}'" >&2
+    return 1
+  fi
+  grep -qF "<version>$VERSION</version>" "$WORK_DIR/$METADATA_NAME.remote"
+}
+
+publish_metadata() {
+  build_metadata 1
+  put_asset "$METADATA_ENDPOINT" "$WORK_DIR/$METADATA_NAME"
+  metadata_lists_current || die "maven-metadata.xml does not list $VERSION after upload"
 }
 
 VERSION="${RUSTLS_PV_VERSION:-}"
@@ -85,7 +196,15 @@ echo "    toolchain: kotlin=$KOTLIN agp=$AGP buildTools=$BUILD_TOOLS targetSdk=$
 if [[ "$DRY_RUN" != "1" && "$FORCE" != "1" ]]; then
   status="$(gitlab_api_curl "projects/$PROJECT_ID/packages/maven/$GROUP_ID/$ARTIFACT_ID/$VERSION/$POM_NAME" --output /dev/null --write-out '%{http_code}' || true)"
   if [[ "$status" == "200" ]]; then
-    echo "==> $GROUP_ID:$ARTIFACT_ID:$VERSION already published; nothing to do (RUSTLS_PV_FORCE=1 to republish)"
+    # The artifact exists, but publishes made before this script wrote a
+    # version listing left one behind. Converge instead of exiting early, or
+    # the backfill could never happen without RUSTLS_PV_FORCE=1.
+    if metadata_lists_current; then
+      echo "==> $GROUP_ID:$ARTIFACT_ID:$VERSION already published and listed; nothing to do (RUSTLS_PV_FORCE=1 to republish)"
+      exit 0
+    fi
+    echo "==> $GROUP_ID:$ARTIFACT_ID:$VERSION artifact is published but not listed; uploading the version listing"
+    publish_metadata
     exit 0
   fi
 fi
@@ -157,31 +276,27 @@ if [[ "$DRY_RUN" == "1" ]]; then
   echo "==> dry run: skipping registry writes"
   echo "    aar: $WORK_DIR/$ARTIFACT_ID-$VERSION.aar"
   echo "    pom: $WORK_DIR/$POM_NAME"
+  # Show the listing shape too. It is built in soft mode because the new
+  # version is not in the registry yet during a dry run.
+  build_metadata 0
+  echo "    metadata: $WORK_DIR/$METADATA_NAME"
   exit 0
 fi
 
 
-for asset in "$WORK_DIR/$ARTIFACT_ID-$VERSION.aar" "$WORK_DIR/$POM_NAME"; do
-  name="$(basename "$asset")"
-  echo "==> PUT $name"
-  status="$(gitlab_api_curl "projects/$PROJECT_ID/packages/maven/$GROUP_ID/$ARTIFACT_ID/$VERSION/$name" --output "$WORK_DIR/upload.json" --write-out '%{http_code}' \
-    --request PUT --upload-file "$asset" || true)"
-  case "$status" in
-    200|201|409) ;;
-    400)
-      if ! grep -qiE 'already|taken|exist' "$WORK_DIR/upload.json"; then
-        die "failed to upload $name (HTTP $status): $(cat "$WORK_DIR/upload.json")"
-      fi
-      ;;
-    *)
-      die "failed to upload $name (HTTP $status): $(cat "$WORK_DIR/upload.json")"
-      ;;
-  esac
-done
+put_asset "projects/$PROJECT_ID/packages/maven/$GROUP_ID/$ARTIFACT_ID/$VERSION/$ARTIFACT_ID-$VERSION.aar" \
+  "$WORK_DIR/$ARTIFACT_ID-$VERSION.aar"
+put_asset "projects/$PROJECT_ID/packages/maven/$GROUP_ID/$ARTIFACT_ID/$VERSION/$POM_NAME" \
+  "$WORK_DIR/$POM_NAME"
 
 verify_status="$(gitlab_api_curl "projects/$PROJECT_ID/packages/maven/$GROUP_ID/$ARTIFACT_ID/$VERSION/$POM_NAME" --output /dev/null --write-out '%{http_code}' || true)"
 [[ "$verify_status" == "200" ]] || die "post-publish verification failed (HTTP $verify_status)"
 
+# After the artifact PUT, so the Packages API already reflects this version and
+# the listing is rebuilt from what the registry really holds.
+publish_metadata
+
 echo "==> Published $GROUP_ID:$ARTIFACT_ID:$VERSION"
 echo "    $MAVEN_URL/$ARTIFACT_ID-$VERSION.aar"
 echo "    $MAVEN_URL/$POM_NAME"
+echo "    $(gitlab_api_base_url)/projects/$PROJECT_ID/packages/maven/$GROUP_ID/$ARTIFACT_ID/$METADATA_NAME"

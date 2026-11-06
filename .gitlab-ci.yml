@@ -1,31 +1,31 @@
 include:
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "85171f0a9dc19ae177c8ecbe5fd0c9d5b7b8bb34"
+    ref: "457630762e41329cb2d09687d7abdb603b65788d"
     file: /.gitlab/ci/android.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "85171f0a9dc19ae177c8ecbe5fd0c9d5b7b8bb34"
+    ref: "457630762e41329cb2d09687d7abdb603b65788d"
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "85171f0a9dc19ae177c8ecbe5fd0c9d5b7b8bb34"
+    ref: "457630762e41329cb2d09687d7abdb603b65788d"
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "85171f0a9dc19ae177c8ecbe5fd0c9d5b7b8bb34"
+    ref: "457630762e41329cb2d09687d7abdb603b65788d"
     file: /.gitlab/ci/renovate.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "85171f0a9dc19ae177c8ecbe5fd0c9d5b7b8bb34"
+    ref: "457630762e41329cb2d09687d7abdb603b65788d"
     file: /.gitlab/ci/cancel-mr-pipelines.yml
   # Utility-job anchor (alpine, pinned): the GitHub mirror and the README-badge
   # job extend it instead of pinning their own image. Language-tool jobs
   # (backend:go, webui:check, the docker/node jobs) keep their own pinned tool
   # images by design.
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "85171f0a9dc19ae177c8ecbe5fd0c9d5b7b8bb34"
+    ref: "457630762e41329cb2d09687d7abdb603b65788d"
     file: /.gitlab/ci/utility.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "85171f0a9dc19ae177c8ecbe5fd0c9d5b7b8bb34"
+    ref: "457630762e41329cb2d09687d7abdb603b65788d"
     file: /.gitlab/ci/github-sync.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "85171f0a9dc19ae177c8ecbe5fd0c9d5b7b8bb34"
+    ref: "457630762e41329cb2d09687d7abdb603b65788d"
     file: /.gitlab/ci/readme-badges.yml
 
 workflow:
@@ -51,7 +51,7 @@ stages:
 
 variables:
   MAGISK_CI_TOOLKIT_REPOSITORY: "https://gitlab.com/magisk3171/shared/magisk-ci-toolkit.git"
-  MAGISK_CI_TOOLKIT_REF: "85171f0a9dc19ae177c8ecbe5fd0c9d5b7b8bb34"
+  MAGISK_CI_TOOLKIT_REF: "457630762e41329cb2d09687d7abdb603b65788d"
   MAGISK_CANCEL_OLDER_MR_PIPELINES: "true"
   # Cancel the merged MR's own merge_request_event pipeline from the push
   # pipeline that lands the merge. GitLab has no cancel-on-merge hook and
@@ -534,6 +534,14 @@ android:build:
     - .xinyi_signed_android_rules
   tags:
     - $XINYI_BUILD_RUNNER_TAG
+  # The registry has to serve the catalog's rustls-platform-verifier version
+  # before an app classpath resolves, and this job shares stage build with the
+  # publish job. Optional because a push that touches no catalog file has no
+  # publish job in its pipeline at all.
+  needs:
+    - job: rustls-platform-verifier:publish
+      optional: true
+      artifacts: false
   rules:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: never
@@ -549,6 +557,7 @@ android:build:
     - if: '$CI_COMMIT_BRANCH && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != ""'
     - when: never
   variables:
+    MAGISK_IS_CI_BUILD: "true"
     MAGISK_ANDROID_BUILD_TASKS: >-
       :app:assembleGithubDebug
       -PbuildSplits
@@ -610,11 +619,15 @@ cancel:older:mr:pipelines:
   # Switchable via XINYI_ANDROID_TEST_RUNNER_TAG (see variables above).
   tags:
     - $XINYI_ANDROID_TEST_RUNNER_TAG
-  # Publish first: wait for the Play beta publish (optional, so this
-  # stage still runs when the publish job is absent) instead of
-  # consuming the release runner in parallel.
+  # Wait for automatic Renovate delivery when present; the optional manual
+  # Play action on human beta pipelines does not block this quality job.
   needs:
     - job: android:ci:publish-play
+      artifacts: false
+      optional: true
+    # Also wait for the rustls-platform-verifier publish: the selected test
+    # tasks compile the app, which resolves the catalog's AAR.
+    - job: rustls-platform-verifier:publish
       artifacts: false
       optional: true
   script:
@@ -684,11 +697,15 @@ android:detekt:
   stage: quality
   tags:
     - $XINYI_BUILD_RUNNER_TAG
-  # Publish first: wait for the Play beta publish (optional, so this
-  # stage still runs when the publish job is absent) instead of
-  # consuming the release runner in parallel.
+  # Wait for automatic Renovate delivery when present; the optional manual
+  # Play action on human beta pipelines does not block this quality job.
   needs:
     - job: android:ci:publish-play
+      artifacts: false
+      optional: true
+    # Detekt resolves the compile classpath, so it needs the catalog's
+    # rustls-platform-verifier AAR to exist first.
+    - job: rustls-platform-verifier:publish
       artifacts: false
       optional: true
   allow_failure: true
@@ -809,10 +826,19 @@ e2ee-plugin:sync:
 # release cadence. matrix-rust-sdk reflects into this AAR at runtime but does
 # not depend on it in Gradle, and upstream never ships it to Maven, so the
 # registry copy (settings.gradle.kts pins group "rustls" to it) is built here
-# from the pinned upstream tag with this repository's own toolchain. Scheduled
-# pipelines only publish catalog versions the registry does not have yet; MRs
-# run a dry run (build + contract check, no registry writes) so a broken
-# toolchain patch is caught before it can publish a wrong artifact.
+# from the pinned upstream tag with this repository's own toolchain.
+#
+# The catalog line is the only thing that decides which version exists, so this
+# job has to finish before anything resolves an app classpath: the APK/AAB jobs
+# declare it as an optional need (they share stage build with it), and so do the
+# Android-test anchor and detekt, whose explicit needs replace stage ordering.
+# Scheduled and branch pipelines publish for real; merge-request pipelines
+# publish for real too, because the job that fails otherwise is android:check,
+# which needs the artifact to exist. The script's own guards come before its
+# first PUT -- git apply --check on the toolchain overlay, then the javap JNI
+# contract -- so a drifted upstream fails loudly instead of publishing a wrong
+# artifact, and a catalog version the registry already serves exits after two
+# GETs. RUSTLS_PV_DRY_RUN=1 remains for a manual no-write rehearsal.
 rustls-platform-verifier:publish:
   extends: .magisk_android_base
   stage: build
@@ -824,17 +850,7 @@ rustls-platform-verifier:publish:
     - if: '$CI_PIPELINE_SOURCE == "web"'
       when: manual
       allow_failure: true
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH =~ /^renovate\//'
-      when: never
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      changes:
-        - gradle/libs.versions.toml
-        - scripts/ci/rustls_pv_publish.sh
-        - scripts/ci/rustls_pv_toolchain.patch
-        - .gitlab-ci.yml
-      variables:
-        RUSTLS_PV_DRY_RUN: "1"
-    - if: '$CI_COMMIT_BRANCH'
+    - if: '$CI_COMMIT_BRANCH || $CI_PIPELINE_SOURCE == "merge_request_event"'
       changes:
         - gradle/libs.versions.toml
         - scripts/ci/rustls_pv_publish.sh
@@ -876,8 +892,10 @@ android:release:apk:
   # android:release:modules-repo does not have to re-derive it.
   extends: .magisk_android_release_apk
   variables:
-    MAGISK_ANDROID_RELEASE_APK_TASKS: ":app:assembleGithubRelease"
-    MAGISK_ANDROID_RELEASE_GRADLE_EXTRA_ARGS: "-PbuildSplits"
+    MAGISK_ANDROID_RELEASE_APK_TASKS: ":app:assembleGithubRelease :app:assembleGithubDebug"
+    MAGISK_ANDROID_RELEASE_APK_BUILD_TYPES: "release debug"
+    MAGISK_ANDROID_RELEASE_MAX_APK_BYTES: "52428800"
+    MAGISK_ANDROID_RELEASE_GRADLE_EXTRA_ARGS: "-PbuildSplits -PminifyDebug"
   before_script:
     - !reference [.magisk_android_base, before_script]
     - *xinyi_decode_google_services
@@ -888,12 +906,18 @@ android:release:apk:
   needs:
     - job: android:release:guard
       artifacts: false
+    # Tag pipelines have no publish job, so this stays optional; the version has
+    # to have been published by the branch pipeline the tag was cut from.
+    - job: rustls-platform-verifier:publish
+      optional: true
+      artifacts: false
   artifacts:
     name: "XinyiRelay-release-apks-$CI_COMMIT_TAG"
     when: always
     expire_in: 30 days
     paths:
       - app/build/outputs/apk/**/release/*.apk
+      - app/build/outputs/apk/**/debug/*.apk
       - app/build/outputs/mapping/**/mapping.txt
       - play-release.env
 
@@ -910,6 +934,12 @@ android:release:aab:
     - when: never
   needs:
     - job: android:release:guard
+      artifacts: false
+    # Optional, as with android:release:apk: a tag pipeline has no publish job,
+    # the artifact must already come from the branch pipeline the tag was cut
+    # from.
+    - job: rustls-platform-verifier:publish
+      optional: true
       artifacts: false
   variables:
     # Declared so the contract assertion below fails fast if it is ever emptied,
@@ -990,22 +1020,28 @@ android:release:publish-play:
     expire_in: 1 day
 
 android:ci:aab:
-  extends: .magisk_android_base
+  extends:
+    - .magisk_android_base
+    - .magisk_android_ci_aab_rules
   resource_group: xinyi-android-release-play
   stage: build
   tags:
     - $XINYI_BUNDLE_RUNNER_TAG
   # The release build is self-contained (keystore and google-services.json
-  # come from CI variables, assets from the repository), so the publish chain
-  # must not wait for the build/package stages: Play publishing keeps
-  # priority over the quality stage.
-  needs: []
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != "" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
-    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_AUTHOR =~ /Renovate317@users.noreply/ && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != "" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
-      when: on_success
-    - when: never
+  # come from CI variables, assets from the repository), so beta bundle
+  # production must not wait for other build/package jobs. Packaging, followed
+  # by Renovate's automatic delivery when applicable, keeps priority over
+  # quality. The rustls-platform-verifier need is the
+  # one exception: this bundle resolves the app classpath, so it has to wait
+  # for the AAR the catalog names, which on a beta push of a catalog bump
+  # happens in this same stage.
+  needs:
+    - job: rustls-platform-verifier:publish
+      optional: true
+      artifacts: false
   variables:
+    # Play tracks require a signed, non-debuggable AAB, so this internal diagnostic
+    # artifact deliberately uses bundlePlayRelease while keeping the CI log channel.
     MAGISK_IS_CI_BUILD: "true"
   script:
     - *xinyi_decode_google_services
@@ -1031,21 +1067,14 @@ android:ci:aab:
       - play-release.env
 
 android:ci:publish-play:
-  extends: .magisk_utility_base
+  extends:
+    - .magisk_utility_base
+    - .magisk_android_ci_publish_play_rules
   resource_group: xinyi-android-release-play
   stage: release
   interruptible: false
   tags:
     - $XINYI_BUILD_RUNNER_TAG
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_AUTHOR =~ /Renovate317@users.noreply/ && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
-      when: on_success
-    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
-      when: on_success
-      allow_failure: true
-    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "schedule" && $CI_COMMIT_AUTHOR =~ /Renovate317@users.noreply/ && $MAGISK_ANDROID_RELEASE_PUBLISH_PLAY == "true" && $ANDROID_PUBLISHER_CREDENTIALS != ""'
-      when: on_success
-    - when: never
   needs:
     - job: android:ci:aab
       artifacts: true
@@ -1096,12 +1125,14 @@ android:release:modules-repo:
 telegram:release:
   extends: .magisk_telegram_release
   stage: release
-  allow_failure: true
+  allow_failure: false
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   variables:
     MAGISK_TELEGRAM_PROJECT_TAG: "#XinyiRelay"
     MAGISK_TELEGRAM_PROJECT_NAME: "XinyiRelay"
+    MAGISK_TELEGRAM_RELEASE_EXPECTED_ARTIFACT_COUNT: "2"
+    MAGISK_TELEGRAM_RELEASE_ARTIFACT_CAPTION: "📦 XinyiRelay $CI_COMMIT_TAG · arm64-v8a · release + debug"
     MAGISK_TELEGRAM_IMAGE_LIST_COMMAND: "bash scripts/ci/gitlab_backend_container.sh list-images"
     # Use TG_RELEASE_CHAT_ID instead of TG_CHAT_ID so that the project-level
     # TG_CHAT_ID (which retargets CI to the new room) does NOT override this.
@@ -1111,22 +1142,14 @@ telegram:release:
       artifacts: true
     - job: backend:container:manifest
       artifacts: true
-    - job: android:release:gitlab
-      artifacts: false
 
 telegram:ci:
   extends:
     - .magisk_telegram_ci
     - .xinyi_signed_android_rules
+    - .magisk_telegram_ci_delivery_rules
   stage: release
   allow_failure: true
-  rules:
-    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_AUTHOR =~ /Renovate317@users.noreply/ && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != ""'
-      when: on_success
-    - if: '$CI_COMMIT_BRANCH == "beta" && $CI_PIPELINE_SOURCE == "push" && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != ""'
-      when: manual
-      allow_failure: true
-    - when: never
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   variables:
@@ -1162,9 +1185,9 @@ android:release:github:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
   variables:
     # Must stay job-level: the toolkit template pins the same key at job level
-    # to "*arm64-v8a*.apk", and job variables outrank the global variables
+    # to "*_release.apk", and job variables outrank the global variables
     # block, so a global override here would be silently ignored.
-    MAGISK_ANDROID_RELEASE_GITHUB_ASSET_PATTERN: "*.apk"
+    MAGISK_ANDROID_RELEASE_GITHUB_ASSET_PATTERN: "*_release.apk"
   needs:
     - job: android:release:apk
       artifacts: true

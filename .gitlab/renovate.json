@@ -1,10 +1,40 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Repository-local Renovate overrides for xinyi-relay. Both rules below are repository-specific: the rustls coordinate lives in this project's own Maven package registry and its release axis is upstream's git tags, so they belong next to settings.gradle.kts and scripts/ci/rustls_pv_publish.sh rather than in the shared toolkit preset. Keep the shared policy in gitlab>magisk3171/shared/magisk-ci-toolkit.",
   "extends": [
     "gitlab>magisk3171/shared/magisk-ci-toolkit"
   ],
   "ignorePaths": [
     "**/node_modules/**",
     "**/bower_components/**"
+  ],
+  "packageRules": [
+    {
+      "description": "rustls:rustls-platform-verifier is built from upstream source by scripts/ci/rustls_pv_publish.sh and PUT into this project's package registry; it never lands on Maven Central, so the Central-only lookup reports no-result.",
+      "matchDatasources": [
+        "maven"
+      ],
+      "matchPackageNames": [
+        "rustls:rustls-platform-verifier"
+      ],
+      "registryUrls": [
+        "https://gitlab.com/api/v4/projects/84113188/packages/maven"
+      ]
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Track the rustls-platform-verifier AAR on the axis that actually decides it: upstream releases are tagged v/<version>, the exact ref rustls_pv_publish.sh clones. The built-in gradle manager keeps checking the registry, which only ever lists what we already published.",
+      "managerFilePatterns": [
+        "/^gradle/libs\\.versions\\.toml$/"
+      ],
+      "matchStrings": [
+        "rustls-platform-verifier\\s*=\\s*\\{\\s*module\\s*=\\s*\"rustls:rustls-platform-verifier\",\\s*version\\s*=\\s*\"(?<currentValue>[^\"]+)\"\\s*\\}"
+      ],
+      "depNameTemplate": "rustls/rustls-platform-verifier",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v/(?<version>.+)$"
+    }
   ]
 }
