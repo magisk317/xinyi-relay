@@ -1,31 +1,31 @@
 include:
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "faaef5053270cf29bcf3d6568c52a8592386e230"
+    ref: "c4e65ee5763361e415ecf36d6e919345b6f6bba5"
     file: /.gitlab/ci/android.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "faaef5053270cf29bcf3d6568c52a8592386e230"
+    ref: "c4e65ee5763361e415ecf36d6e919345b6f6bba5"
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "faaef5053270cf29bcf3d6568c52a8592386e230"
+    ref: "c4e65ee5763361e415ecf36d6e919345b6f6bba5"
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "faaef5053270cf29bcf3d6568c52a8592386e230"
+    ref: "c4e65ee5763361e415ecf36d6e919345b6f6bba5"
     file: /.gitlab/ci/renovate.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "faaef5053270cf29bcf3d6568c52a8592386e230"
+    ref: "c4e65ee5763361e415ecf36d6e919345b6f6bba5"
     file: /.gitlab/ci/cancel-mr-pipelines.yml
   # Utility-job anchor (alpine, pinned): the GitHub mirror and the README-badge
   # job extend it instead of pinning their own image. Language-tool jobs
   # (backend:go, webui:check, the docker/node jobs) keep their own pinned tool
   # images by design.
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "faaef5053270cf29bcf3d6568c52a8592386e230"
+    ref: "c4e65ee5763361e415ecf36d6e919345b6f6bba5"
     file: /.gitlab/ci/utility.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "faaef5053270cf29bcf3d6568c52a8592386e230"
+    ref: "c4e65ee5763361e415ecf36d6e919345b6f6bba5"
     file: /.gitlab/ci/github-sync.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "faaef5053270cf29bcf3d6568c52a8592386e230"
+    ref: "c4e65ee5763361e415ecf36d6e919345b6f6bba5"
     file: /.gitlab/ci/readme-badges.yml
 
 workflow:
@@ -51,7 +51,7 @@ stages:
 
 variables:
   MAGISK_CI_TOOLKIT_REPOSITORY: "https://gitlab.com/magisk3171/shared/magisk-ci-toolkit.git"
-  MAGISK_CI_TOOLKIT_REF: "faaef5053270cf29bcf3d6568c52a8592386e230"
+  MAGISK_CI_TOOLKIT_REF: "c4e65ee5763361e415ecf36d6e919345b6f6bba5"
   MAGISK_CANCEL_OLDER_MR_PIPELINES: "true"
   # Cancel the merged MR's own merge_request_event pipeline from the push
   # pipeline that lands the merge. GitLab has no cancel-on-merge hook and
@@ -532,6 +532,9 @@ android:build:
   extends:
     - .magisk_android_build
     - .xinyi_signed_android_rules
+    # Last so its job-level rules win over the anchors above; the shared
+    # anchor skips MR/renovate/schedule pipelines and gates on signing creds.
+    - .magisk_android_build_rules
   tags:
     - $XINYI_BUILD_RUNNER_TAG
   # The registry has to serve the catalog's rustls-platform-verifier version
@@ -542,20 +545,6 @@ android:build:
     - job: rustls-platform-verifier:publish
       optional: true
       artifacts: false
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: never
-    # Job-level rules replace the ones inherited via extends, so the
-    # renovate/schedule exclusions from .xinyi_ci_rules must be restated
-    # here. Without them every renovate branch push and every scheduled
-    # pipeline burned a full ~20min android:build on the shared arm64
-    # runner, even for webui-only dependency bumps.
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH =~ /^renovate\//'
-      when: never
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
-      when: never
-    - if: '$CI_COMMIT_BRANCH && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != ""'
-    - when: never
   variables:
     MAGISK_IS_CI_BUILD: "true"
     MAGISK_ANDROID_BUILD_TASKS: >-
@@ -916,14 +905,10 @@ android:release:apk:
       optional: true
       artifacts: false
   artifacts:
+    # Only the name is job-specific; when/expire_in/paths inherit the shared
+    # .magisk_android_release_apk defaults (mapping.txt included there). The
+    # aab job keeps its own block because it does not extend the template.
     name: "XinyiRelay-release-apks-$CI_COMMIT_TAG"
-    when: always
-    expire_in: 30 days
-    paths:
-      - app/build/outputs/apk/**/release/*.apk
-      - app/build/outputs/apk/**/debug/*.apk
-      - app/build/outputs/mapping/**/mapping.txt
-      - play-release.env
 
 android:release:aab:
   extends:
