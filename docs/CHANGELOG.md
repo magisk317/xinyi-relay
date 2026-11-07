@@ -3,6 +3,12 @@
 本日志记录了项目近期的主要变更。 
 
 ---
+## [v0.4.4] - 2026-11-07
+- 版本：`versionCode 57` / `versionName 0.4.4`。
+- 下一轮开发占位，发布前补充具体变更。
+
+> Full Changelog: https://gitlab.com/magisk3171/xinyi-relay/-/compare/v0.4.3...v0.4.4
+
 ## [v0.4.3] - 2026-11-06
 - 版本：`versionCode 56` / `versionName 0.4.3`。
 - `[feat]` ntfy/webhook 发件通道支持 mTLS 客户端证书。
