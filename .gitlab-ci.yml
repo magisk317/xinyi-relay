@@ -243,34 +243,13 @@ variables:
   # jpackage and jlink included). Keep "-resolute" so the OS base stays Ubuntu
   # 26.04 and "_<build>" so the two runners cannot drift -- they pull
   # if-not-present. See "CI Java Runtime" in AGENTS.md for the fallback recipe.
-  image: "eclipse-temurin:27_35-jdk-resolute"
+  image: "registry.gitlab.com/magisk3171/shared/magisk-ci-toolkit/android-jdk:27_35"
   before_script:
     - |
       set -euo pipefail
-      export DEBIAN_FRONTEND=noninteractive
-      use_mirror="${MAGISK_LINUX_USE_MIRROR:-true}"
-      if [[ "$use_mirror" == "true" ]]; then
-        sed -i \
-          -e 's#http://deb.debian.org/debian-security#https://mirrors.tuna.tsinghua.edu.cn/debian-security#g' \
-          -e 's#http://security.debian.org/debian-security#https://mirrors.tuna.tsinghua.edu.cn/debian-security#g' \
-          -e 's#http://deb.debian.org/debian#https://mirrors.tuna.tsinghua.edu.cn/debian#g' \
-          -e 's#http://archive.ubuntu.com/ubuntu#https://mirrors.tuna.tsinghua.edu.cn/ubuntu#g' \
-          -e 's#http://security.ubuntu.com/ubuntu#https://mirrors.tuna.tsinghua.edu.cn/ubuntu#g' \
-          /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
-        if ! apt-get -o APT::Update::Error-Mode=any update; then
-          echo "Mirror apt-get update failed, falling back to official sources" >&2
-          sed -i \
-            -e 's#https://mirrors.tuna.tsinghua.edu.cn/debian-security#http://deb.debian.org/debian-security#g' \
-            -e 's#https://mirrors.tuna.tsinghua.edu.cn/debian#http://deb.debian.org/debian#g' \
-            -e 's#https://mirrors.tuna.tsinghua.edu.cn/ubuntu#http://archive.ubuntu.com/ubuntu#g' \
-            /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
-          apt-get -o APT::Update::Error-Mode=any update
-        fi
-      else
-        apt-get -o APT::Update::Error-Mode=any update
-      fi
-      apt-get install -y --no-install-recommends git dpkg fakeroot
-      rm -rf /var/lib/apt/lists/*
+      # The JDK (jpackage/jlink included) plus git, fakeroot, zip and
+      # unzip are pre-baked into the android-jdk CI image
+      # (toolkit docker/ci/Dockerfile); no apt traffic at job time.
     - chmod +x scripts/ci/gitlab_desktop_kmp_package.sh
 
 backend:go:
@@ -465,7 +444,7 @@ desktop:release:gitlab:
 
 webui:check:
   extends: .xinyi_android_rules
-  image: "oven/bun:1.4.4-alpine"
+  image: "registry.gitlab.com/magisk3171/shared/magisk-ci-toolkit/webui-bun:1.4.4"
   stage: quality
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
@@ -497,7 +476,6 @@ webui:check:
     paths:
       - .bun-cache/
   script:
-    - apk add --no-cache bash ca-certificates git
     - export MAGISK_CI_TOOLKIT_DIR="$(bash scripts/resolve_ci_toolkit.sh)"
     - export BUN_CONFIG_REGISTRY="${BUN_CONFIG_REGISTRY:-https://registry.npmmirror.com}"
     - bash "$MAGISK_CI_TOOLKIT_DIR/ci/ensure_bun.sh" frontend/webui/package.json
