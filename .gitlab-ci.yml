@@ -589,12 +589,12 @@ cancel:older:mr:pipelines:
   # Switchable via XINYI_ANDROID_TEST_RUNNER_TAG (see variables above).
   tags:
     - $XINYI_ANDROID_TEST_RUNNER_TAG
-  # Wait for automatic Renovate delivery when present; the optional manual
-  # Play action on human beta pipelines does not block this quality job.
+  # Prioritize build so compilation fails fast and releases/APKs are produced
+  # first; detekt and tests run automatically after build and do not depend on
+  # delivery or manual release actions.
   needs:
-    - job: android:ci:publish-play
+    - job: android:build
       artifacts: false
-      optional: true
     # Also wait for the rustls-platform-verifier publish: the selected test
     # tasks compile the app, which resolves the catalog's AAR.
     - job: rustls-platform-verifier:publish
@@ -667,12 +667,12 @@ android:detekt:
   stage: quality
   tags:
     - $XINYI_BUILD_RUNNER_TAG
-  # Wait for automatic Renovate delivery when present; the optional manual
-  # Play action on human beta pipelines does not block this quality job.
+  # Prioritize build so compilation fails fast and releases/APKs are produced
+  # first; detekt and tests run automatically after build and do not depend on
+  # delivery or manual release actions.
   needs:
-    - job: android:ci:publish-play
+    - job: android:build
       artifacts: false
-      optional: true
     # Detekt resolves the compile classpath, so it needs the catalog's
     # rustls-platform-verifier AAR to exist first.
     - job: rustls-platform-verifier:publish
