@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.service.notification.NotificationListenerService
 import io.github.magisk317.xposed.logging.XLog
+import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.relay.app.InfrastructureInitializer
 import io.github.magisk317.relay.service.AppNotificationListenerService
 import kotlinx.coroutines.CoroutineScope
@@ -28,12 +29,14 @@ class BootCompletedReceiver : BroadcastReceiver() {
                     InfrastructureInitializer.settleAndReconcile(application, "boot_completed_settled")
                 }
 
-                runCatching {
-                    NotificationListenerService.requestRebind(
-                        ComponentName(appContext, AppNotificationListenerService::class.java),
-                    )
-                }.onFailure {
-                    XLog.e(message = "BootCompletedReceiver: NLS requestRebind failed", it)
+                if (BuildConfig.ENABLE_NONROOT_MODE) {
+                    runCatching {
+                        NotificationListenerService.requestRebind(
+                            ComponentName(appContext, AppNotificationListenerService::class.java),
+                        )
+                    }.onFailure {
+                        XLog.e(message = "BootCompletedReceiver: NLS requestRebind failed", it)
+                    }
                 }
             } finally {
                 pendingResult.finish()

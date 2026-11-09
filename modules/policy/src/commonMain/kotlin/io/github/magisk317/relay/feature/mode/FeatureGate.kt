@@ -3,8 +3,8 @@ package io.github.magisk317.relay.feature.mode
 /**
  * Defines which gated features are available.
  *
- * - Xposed runtime inactive: there is no runtime path at all, so every gated
- *   feature is off.
+ * - Xposed runtime inactive: only the notification-based non-root features can
+ *   run, and only when the non-root runtime reports an enabled listener.
  * - Xposed runtime active: every gated feature is available except the
  *   root-backed ones, which need the root capability separately.
  *
@@ -72,16 +72,18 @@ object FeatureGate {
 
     /**
      * Returns true if the given [feature] can run: the Xposed runtime must be
-     * live, and root-backed features additionally need [hasRootAccess].
+     * live, or the notification-based non-root runtime must cover this feature;
+     * root-backed features additionally need [hasRootAccess].
      */
     fun isAvailable(
         feature: Feature,
         xposedActive: Boolean,
         hasRootAccess: Boolean = false,
+        nonRootActive: Boolean = false,
     ): Boolean = when {
-        !xposedActive -> false
-        feature in ROOT_ONLY_FEATURES && !hasRootAccess -> false
-        else -> true
+        feature in ROOT_ONLY_FEATURES -> xposedActive && hasRootAccess
+        xposedActive -> true
+        else -> nonRootActive && feature in NON_ROOT_FEATURES
     }
 
     /**
@@ -94,7 +96,11 @@ object FeatureGate {
     /**
      * Returns true if ALL given [features] are available with root state.
      */
-    fun allAvailable(xposedActive: Boolean, hasRootAccess: Boolean, vararg features: Feature): Boolean {
+    fun allAvailable(
+        xposedActive: Boolean,
+        hasRootAccess: Boolean,
+        vararg features: Feature,
+    ): Boolean {
         return features.all { isAvailable(it, xposedActive, hasRootAccess) }
     }
 
@@ -104,5 +110,15 @@ object FeatureGate {
         Feature.ROOT_DB_CATCHUP_WRITEBACK,
         Feature.FORCE_STOP_RECOVERY,
         Feature.FORCE_STOP_RECOVERY_RELAUNCH_ONCE,
+    )
+
+    /**
+     * Features the notification-listener runtime can serve without hooks:
+     * the payload already carries the parsed code and the relay pipeline owns
+     * the copy/send actions.
+     */
+    private val NON_ROOT_FEATURES = setOf(
+        Feature.COPY_CODE_TO_CLIPBOARD,
+        Feature.SEND_SMS_ON_NOTIFICATION,
     )
 }

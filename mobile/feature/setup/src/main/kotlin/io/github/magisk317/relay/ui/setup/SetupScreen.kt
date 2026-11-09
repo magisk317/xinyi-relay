@@ -1,6 +1,10 @@
 package io.github.magisk317.relay.ui.setup
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -15,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,6 +34,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.magisk317.relay.mobile.core.R
+import io.github.magisk317.relay.nonroot.DeviceOwnerController
 import io.github.magisk317.relay.ui.common.PrivacyPolicyDialog
 import io.github.magisk317.relay.ui.common.PrivacyPolicyPage
 import io.github.magisk317.relay.ui.permission.StartupPermissionCollector
@@ -48,6 +54,8 @@ import io.github.magisk317.uikit.text.AppTextRole
 import io.github.magisk317.uikit.theme.AppColorRole
 import io.github.magisk317.uikit.theme.appColor
 import org.koin.compose.viewmodel.koinViewModel
+
+private const val PILL_CORNER_PERCENT = 50
 
 /**
  * Setup wizard: privacy agreement followed by a permission list that uses the
@@ -109,6 +117,8 @@ fun SetupScreen(
                         state = state,
                         onRefreshMissing = viewModel::refreshMissing,
                         onGrantRoot = viewModel::grantViaRoot,
+                        onGrantShizuku = viewModel::grantViaShizuku,
+                        onApplyDeviceOwnerPolicies = viewModel::applyDeviceOwnerPolicies,
                     )
 
                     SetupStep.DONE -> DoneStep(state)
@@ -282,6 +292,8 @@ private fun GrantManualStep(
     state: SetupUiState,
     onRefreshMissing: () -> Unit,
     onGrantRoot: () -> Unit,
+    onGrantShizuku: () -> Unit,
+    onApplyDeviceOwnerPolicies: () -> Unit,
 ) {
     val context = LocalContext.current
     val runtimeLauncher = rememberLauncherForActivityResult(
@@ -297,31 +309,183 @@ private fun GrantManualStep(
         onRefreshMissing()
     }
 
+    var showDeviceOwnerGuide by remember { mutableStateOf(false) }
+    val deviceOwnerCommand = remember(context) { DeviceOwnerController.setupCommand(context) }
+
     AppText(text = stringResource(R.string.setup_manual_grant_title), role = AppTextRole.Title)
 
-    // Root status: same plain row style as the permission rows below, so the
-    // one-tap-vs-manual choice stays visible without a prominent card.
-    PermissionRow(
-        label = stringResource(
-            if (state.rootAvailable) {
-                R.string.setup_root_available_title
+    if (state.nonRootOptionsVisible) {
+        AppText(
+            text = stringResource(R.string.setup_nonroot_hint),
+            role = AppTextRole.BodySmall,
+            modifier = Modifier.padding(bottom = 8.dp),
+        )
+        SectionHeading(title = stringResource(R.string.setup_nonroot_title))
+        AppCard {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        AppText(text = stringResource(R.string.setup_shizuku_title), role = AppTextRole.Subtitle)
+                        when {
+                            !state.shizukuAvailable -> AppText(
+                                text = stringResource(R.string.setup_shizuku_unavailable_summary),
+                                role = AppTextRole.BodySmall,
+                            )
+
+                            !state.shizukuAuthorized -> AppText(
+                                text = stringResource(R.string.setup_shizuku_available),
+                                role = AppTextRole.BodySmall,
+                            )
+                        }
+                    }
+                    if (state.shizukuAvailable) {
+                        if (state.shizukuAuthorized) {
+                            Box(
+                                modifier = Modifier
+                                    .background(
+                                        color = appColor(AppColorRole.SecondaryContainer),
+                                        shape = RoundedCornerShape(PILL_CORNER_PERCENT),
+                                    )
+                                    .padding(horizontal = 12.dp, vertical = 6.dp),
+                            ) {
+                                AppText(
+                                    text = stringResource(R.string.setup_shizuku_authorized),
+                                    role = AppTextRole.Footnote,
+                                )
+                            }
+                        } else {
+                            AppPrimaryButton(
+                                text = stringResource(R.string.setup_shizuku_request),
+                                onClick = onGrantShizuku,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        AppCard {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                AppText(text = stringResource(R.string.setup_device_owner_title), role = AppTextRole.Subtitle)
+                AppText(
+                    text = stringResource(
+                        if (state.deviceOwnerActive) {
+                            R.string.setup_device_owner_active
+                        } else {
+                            R.string.setup_device_owner_inactive
+                        },
+                    ),
+                    role = AppTextRole.BodySmall,
+                )
+                AppText(
+                    text = stringResource(R.string.setup_device_owner_benefits),
+                    role = AppTextRole.BodySmall,
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AppSecondaryButton(
+                        text = stringResource(R.string.setup_device_owner_guide),
+                        onClick = { showDeviceOwnerGuide = !showDeviceOwnerGuide },
+                    )
+                    AppSecondaryButton(
+                        text = stringResource(R.string.setup_refresh_state),
+                        onClick = onRefreshMissing,
+                    )
+                    if (state.deviceOwnerActive) {
+                        AppPrimaryButton(
+                            text = stringResource(R.string.setup_device_owner_apply),
+                            onClick = onApplyDeviceOwnerPolicies,
+                        )
+                    }
+                }
+                if (showDeviceOwnerGuide) {
+                    AppText(
+                        text = stringResource(R.string.setup_device_owner_guide_body, deviceOwnerCommand),
+                        role = AppTextRole.BodySmall,
+                    )
+                    AppText(
+                        text = stringResource(
+                            R.string.setup_device_owner_remove_guide,
+                            DeviceOwnerController.removeCommand(context),
+                        ),
+                        role = AppTextRole.Footnote,
+                    )
+                    AppSecondaryButton(
+                        text = stringResource(R.string.setup_device_owner_copy),
+                        onClick = {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                            clipboard?.setPrimaryClip(
+                                ClipData.newPlainText("device-owner-command", deviceOwnerCommand),
+                            )
+                        },
+                    )
+                }
+            }
+        }
+    } else {
+        // Root status: same plain row style as the permission rows below, so the
+        // one-tap-vs-manual choice stays visible without a prominent card.
+        PermissionRow(
+            label = stringResource(
+                if (state.rootAvailable) {
+                    R.string.setup_root_available_title
+                } else {
+                    R.string.setup_root_unavailable_title
+                },
+            ),
+            granted = state.rootAvailable,
+            actionText = if (state.rootAvailable) {
+                stringResource(R.string.setup_done_item_granted)
             } else {
-                R.string.setup_root_unavailable_title
+                stringResource(R.string.setup_root_unavailable_action)
             },
-        ),
-        granted = state.rootAvailable,
-        actionText = if (state.rootAvailable) {
-            stringResource(R.string.setup_done_item_granted)
-        } else {
-            stringResource(R.string.setup_root_unavailable_action)
-        },
-        onClick = {},
-    )
-    AppText(
-        text = stringResource(R.string.setup_root_hint),
-        role = AppTextRole.BodySmall,
-        modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 8.dp),
-    )
+            onClick = {},
+        )
+        AppText(
+            text = stringResource(R.string.setup_root_hint),
+            role = AppTextRole.BodySmall,
+            modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 8.dp),
+        )
+    }
+
+    if (state.granting) {
+        AppCard {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                AppCircularProgressIndicator(modifier = Modifier.size(24.dp))
+                AppText(
+                    text = stringResource(R.string.setup_one_tap_granting),
+                    role = AppTextRole.Body,
+                )
+            }
+        }
+    }
+    if (state.grantLog.isNotEmpty()) {
+        AppCard {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                state.grantLog.forEach { line ->
+                    AppText(text = line, role = AppTextRole.Footnote)
+                }
+            }
+        }
+    }
 
     if (state.rootAvailable && state.missing.isNotEmpty()) {
         AppPrimaryButton(
@@ -397,6 +561,14 @@ private fun GrantManualStep(
 
 @Composable
 private fun DoneStep(state: SetupUiState) {
+    if (state.xposedActive) {
+        OnboardingSummaryHeader(
+            title = stringResource(R.string.setup_done_title),
+            grantedText = stringResource(R.string.setup_done_framework_mode),
+            missingText = null,
+        )
+        return
+    }
     OnboardingSummaryHeader(
         title = stringResource(R.string.setup_done_title),
         grantedText = if (state.permissionStatuses.isNotEmpty() || state.missing.isNotEmpty()) {

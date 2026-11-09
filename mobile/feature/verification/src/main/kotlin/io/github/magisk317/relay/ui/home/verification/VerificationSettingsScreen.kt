@@ -66,6 +66,7 @@ import io.github.magisk317.uikit.theme.currentUiKitStyle
 import io.github.magisk317.relay.mobilefeature.verification.BuildConfig
 import io.github.magisk317.relay.feature.mode.FeatureGate
 import io.github.magisk317.relay.feature.mode.FeatureGate.Feature.*
+import io.github.magisk317.relay.feature.mode.NonRootRuntimeState
 import io.github.magisk317.relay.feature.mode.XposedRuntimeState
 import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
 import io.github.magisk317.relay.ui.common.normalizeIntegerInput
@@ -102,7 +103,12 @@ fun VerificationSettingsScreen(
     }
     val accordionMode = rememberPrefBoolean(PrefConst.KEY_SETTINGS_ACCORDION_MODE, true)
     val xposedActive by XposedRuntimeState.xposedActive.collectAsStateWithLifecycle()
-    val canCopyToClipboard = FeatureGate.isAvailable(COPY_CODE_TO_CLIPBOARD, xposedActive)
+    val nonRootActive by NonRootRuntimeState.active.collectAsStateWithLifecycle()
+    val canCopyToClipboard = FeatureGate.isAvailable(
+        COPY_CODE_TO_CLIPBOARD,
+        xposedActive,
+        nonRootActive = nonRootActive,
+    )
     val canBlockSms = FeatureGate.isAvailable(BLOCK_SMS, xposedActive)
     val xposedDisabledHint = stringResource(R.string.feature_requires_xposed)
     var settings by remember { mutableStateOf<VerificationSettingsSnapshot?>(null) }

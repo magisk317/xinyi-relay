@@ -198,6 +198,8 @@ dependencies {
     add("playImplementation", libs.google.id)
     add("githubImplementation", platform(libs.firebase.bom))
     add("githubImplementation", libs.firebase.analytics)
+    add("githubImplementation", libs.shizuku.api)
+    add("githubImplementation", libs.shizuku.provider)
 
     listOf("play", "github").forEach { flavor ->
         add("${flavor}Implementation", project(":hook:entry"))

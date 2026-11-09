@@ -7,6 +7,8 @@ import io.github.magisk317.relay.common.utils.relayPackageActions
 import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.OverviewSettingsUpdate
+import io.github.magisk317.relay.mobilefeature.overview.BuildConfig
+import io.github.magisk317.relay.nonroot.ShizukuGrantBridge
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -178,17 +180,41 @@ private suspend fun loadOverviewRuntimeUiState(
         }
 
         val frameworkInfo = frameworkInfoDeferred.await()
-        val frameworkType = frameworkInfo?.first ?: context.getString(io.github.magisk317.relay.mobile.core.R.string.unknown)
-        val frameworkVersion = frameworkInfo?.second ?: run {
-            val lsposedVersion = relayPackageActions.getPackageVersion(context, Const.LSPOSED_MANAGER_PACKAGE_NAME)
-            when {
-                lsposedVersion != null && lsposedVersion.first.isNotBlank() ->
-                    "${lsposedVersion.first} (${lsposedVersion.second})"
+        val shizukuActive = BuildConfig.ENABLE_NONROOT_MODE &&
+            runCatching { ShizukuGrantBridge.isSupported() }.getOrDefault(false)
+        val shizukuVersion = if (shizukuActive) {
+            relayPackageActions.getPackageVersion(context, Const.SHIZUKU_MANAGER_PACKAGE_NAME)
+        } else {
+            null
+        }
+        val frameworkType = when {
+            frameworkInfo != null -> frameworkInfo.first
+            shizukuActive -> "Shizuku"
+            else -> context.getString(io.github.magisk317.relay.mobile.core.R.string.unknown)
+        }
+        val frameworkVersion = when {
+            frameworkInfo?.second != null -> frameworkInfo.second
+            shizukuActive -> when {
+                shizukuVersion != null && shizukuVersion.first.isNotBlank() ->
+                    "${shizukuVersion.first} (${shizukuVersion.second})"
 
-                relayPackageActions.isPackageInstalled(context, Const.LSPOSED_MANAGER_PACKAGE_NAME) ->
+                relayPackageActions.isPackageInstalled(context, Const.SHIZUKU_MANAGER_PACKAGE_NAME) ->
                     context.getString(io.github.magisk317.relay.mobile.core.R.string.unknown)
 
                 else -> context.getString(io.github.magisk317.relay.mobile.core.R.string.not_installed)
+            }
+
+            else -> run {
+                val lsposedVersion = relayPackageActions.getPackageVersion(context, Const.LSPOSED_MANAGER_PACKAGE_NAME)
+                when {
+                    lsposedVersion != null && lsposedVersion.first.isNotBlank() ->
+                        "${lsposedVersion.first} (${lsposedVersion.second})"
+
+                    relayPackageActions.isPackageInstalled(context, Const.LSPOSED_MANAGER_PACKAGE_NAME) ->
+                        context.getString(io.github.magisk317.relay.mobile.core.R.string.unknown)
+
+                    else -> context.getString(io.github.magisk317.relay.mobile.core.R.string.not_installed)
+                }
             }
         }
         OverviewRuntimeUiState(

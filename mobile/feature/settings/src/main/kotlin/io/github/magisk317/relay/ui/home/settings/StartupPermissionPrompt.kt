@@ -34,6 +34,14 @@ private val earlyPromptExcludedKeys = setOf(PermissionRequirement.BATTERY_OPTIMI
 @Composable
 fun StartupPermissionPrompt(enabled: Boolean) {
     val context = LocalContext.current
+    // GitHub ships the single permission page in SetupScreen; do not bounce
+    // non-root users through one system dialog after another.
+    if (BuildConfig.ENABLE_NONROOT_MODE) {
+        LaunchedEffect(enabled) {
+            if (enabled) StartupPromptStore.markPromptedForCurrentVersion(context)
+        }
+        return
+    }
     val snackbarHostState = LocalSnackbarHostState.current
     val scope = rememberCoroutineScope()
     var promptStarted by remember { mutableStateOf(false) }

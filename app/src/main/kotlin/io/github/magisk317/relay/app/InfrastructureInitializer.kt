@@ -6,6 +6,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import io.github.magisk317.relay.BuildConfig
 import io.github.magisk317.xposed.logging.XLog
+import io.github.magisk317.relay.feature.mode.NonRootRuntimeState
 import io.github.magisk317.relay.feature.mode.XposedRuntimeState
 import io.github.magisk317.xposed.runtime.state.RuntimeStateStore
 import io.github.magisk317.relay.android.otel.MagiskOtelBootstrap
@@ -33,6 +34,7 @@ class InfrastructureInitializer : AppInitializer {
 
         FlavorXposedRuntimeInitializer.installPlatformBridges()
         XposedRuntimeState.refresh(application)
+        refreshNonRootRuntime(application)
         AppInfrastructureCoordinator.initialize(
             application = application,
             shouldSuppressSystemHooks = FlavorXposedRuntimeInitializer::shouldSuppressSystemHooks,
@@ -57,6 +59,7 @@ class InfrastructureInitializer : AppInitializer {
     companion object {
         private const val SETTLE_TIMEOUT_MS = 800L
         private const val SETTLE_POLL_MS = 50L
+        private const val NLS_COMPONENT_CLASS = "io.github.magisk317.relay.service.AppNotificationListenerService"
         private val environmentSettled = AtomicBoolean(false)
 
         suspend fun settleAndReconcile(application: Application, reason: String) {
@@ -71,6 +74,7 @@ class InfrastructureInitializer : AppInitializer {
                 delay(SETTLE_POLL_MS)
             }
             val xposedActive = XposedRuntimeState.refresh(application)
+            refreshNonRootRuntime(application)
             environmentSettled.set(true)
             XLog.i(
                 message = "Xposed runtime settle complete: active=%s reason=%s activated=%s",
@@ -82,6 +86,14 @@ class InfrastructureInitializer : AppInitializer {
 
         fun markEnvironmentSettled() {
             environmentSettled.set(true)
+        }
+
+        private fun refreshNonRootRuntime(application: Application) {
+            NonRootRuntimeState.refresh(
+                context = application,
+                enabledInThisBuild = BuildConfig.ENABLE_NONROOT_MODE,
+                notificationListenerComponent = "${application.packageName}/$NLS_COMPONENT_CLASS",
+            )
         }
 
         fun reconcileAfterEnvironmentKnown(application: Application, reason: String) {

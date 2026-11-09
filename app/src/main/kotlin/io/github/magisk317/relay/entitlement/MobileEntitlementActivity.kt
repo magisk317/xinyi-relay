@@ -4,7 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -61,6 +61,7 @@ class MobileEntitlementActivity : ComponentActivity() {
 @Composable
 private fun MobileEntitlementRoot(onBack: () -> Unit) {
     val context = LocalContext.current
+    val telegramEntryMissingMessage = stringResource(io.github.magisk317.uikit.R.string.mobile_entitlement_qq_entry_missing)
     val scope = rememberCoroutineScope()
     var evaluation by remember {
         mutableStateOf(MobileEntitlementCoordinator.readCachedEvaluation())
@@ -95,7 +96,7 @@ private fun MobileEntitlementRoot(onBack: () -> Unit) {
 
     fun openTelegram(url: String) {
         runCatching {
-            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+            context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
         }.onFailure { error ->
             // ACTION_VIEW 失败（Telegram 未安装等）时把链接复制到剪贴板兜底。
             copyPlainText(context, "bot_url", url)
@@ -113,7 +114,7 @@ private fun MobileEntitlementRoot(onBack: () -> Unit) {
                 }
                 val url = challenge.botUrl
                 if (url.isNullOrBlank()) {
-                    message = context.getString(io.github.magisk317.uikit.R.string.mobile_entitlement_qq_entry_missing)
+                    message = telegramEntryMissingMessage
                 } else {
                     openTelegram(url)
                 }

@@ -1,8 +1,10 @@
 package io.github.magisk317.relay.feature.mode
 
 import io.github.magisk317.relay.feature.mode.FeatureGate.Feature.BLOCK_SMS
+import io.github.magisk317.relay.feature.mode.FeatureGate.Feature.COPY_CODE_TO_CLIPBOARD
 import io.github.magisk317.relay.feature.mode.FeatureGate.Feature.KEEPALIVE_OOM_ADJ
 import io.github.magisk317.relay.feature.mode.FeatureGate.Feature.ROOT_DB_CATCHUP
+import io.github.magisk317.relay.feature.mode.FeatureGate.Feature.SEND_SMS_ON_NOTIFICATION
 import io.github.magisk317.relay.feature.mode.FeatureGate.Feature.SMS_HOOK_INTERCEPT
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -34,6 +36,39 @@ class FeatureGateTest {
     fun `An inactive Xposed runtime disables every gated feature`() {
         assertFalse(FeatureGate.isAvailable(SMS_HOOK_INTERCEPT, xposedActive = false, hasRootAccess = true))
         assertFalse(FeatureGate.isAvailable(ROOT_DB_CATCHUP, xposedActive = false, hasRootAccess = true))
+    }
+
+    @Test
+    fun `notification listener enables copy and send without Xposed`() {
+        assertTrue(
+            FeatureGate.isAvailable(
+                COPY_CODE_TO_CLIPBOARD,
+                xposedActive = false,
+                nonRootActive = true,
+            ),
+        )
+        assertTrue(
+            FeatureGate.isAvailable(
+                SEND_SMS_ON_NOTIFICATION,
+                xposedActive = false,
+                nonRootActive = true,
+            ),
+        )
+        assertFalse(
+            FeatureGate.isAvailable(
+                SMS_HOOK_INTERCEPT,
+                xposedActive = false,
+                nonRootActive = true,
+            ),
+        )
+        assertFalse(
+            FeatureGate.isAvailable(
+                ROOT_DB_CATCHUP,
+                xposedActive = false,
+                hasRootAccess = true,
+                nonRootActive = true,
+            ),
+        )
     }
 
     @Test

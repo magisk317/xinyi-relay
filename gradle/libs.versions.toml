@@ -66,6 +66,7 @@ play-services-code-scanner = "16.1.0"
 hiddenapibypass = "6.2"
 hyperisland-kit = "0.4.5"
 libsu = "6.0.0"
+shizuku = "13.1.5"
 markdown = "0.7.18"
 metrics-performance = "1.0.0"
 version-catalog-update = "1.1.2"
@@ -163,6 +164,8 @@ libsu-core = { module = "com.github.topjohnwu.libsu:core", version.ref = "libsu"
 libxposed-api = { module = "io.github.libxposed:api", version.ref = "libxposed-api" }
 libxposed-service = { module = "io.github.libxposed:service", version.ref = "libxposed-service" }
 markdown = { module = "org.jetbrains:markdown", version.ref = "markdown" }
+shizuku-api = { module = "dev.rikka.shizuku:api", version.ref = "shizuku" }
+shizuku-provider = { module = "dev.rikka.shizuku:provider", version.ref = "shizuku" }
 miuix = { module = "top.yukonga.miuix.kmp:miuix-ui", version.ref = "miuix" }
 miuixBlur = { module = "top.yukonga.miuix.kmp:miuix-blur", version.ref = "miuix-blur" }
 miuixPreference = { module = "top.yukonga.miuix.kmp:miuix-preference", version.ref = "miuix" }

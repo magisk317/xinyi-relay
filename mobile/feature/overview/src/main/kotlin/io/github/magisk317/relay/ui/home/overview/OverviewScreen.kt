@@ -14,6 +14,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.activity.compose.LocalActivity
+import io.github.magisk317.relay.feature.mode.NonRootRuntimeState
 import io.github.magisk317.relay.feature.mode.XposedRuntimeState
 import io.github.magisk317.uikit.foundation.LocalSnackbarHostState
 import androidx.compose.foundation.layout.Arrangement
@@ -118,7 +119,8 @@ fun OverviewScreen(
     )
 
     val xposedActive by XposedRuntimeState.xposedActive.collectAsStateWithLifecycle()
-    val isEnabled = xposedActive
+    val nonRootActive by NonRootRuntimeState.active.collectAsStateWithLifecycle()
+    val isEnabled = xposedActive || nonRootActive
 
     val lifecycleOwner = LocalLifecycleOwner.current
 

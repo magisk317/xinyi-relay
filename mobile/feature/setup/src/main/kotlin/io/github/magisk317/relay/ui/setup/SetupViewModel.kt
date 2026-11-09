@@ -5,7 +5,11 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.domain.recovery.RootShell
+import io.github.magisk317.relay.feature.mode.NonRootRuntimeState
+import io.github.magisk317.relay.feature.mode.XposedRuntimeState
 import io.github.magisk317.relay.mobilefeature.setup.BuildConfig
+import io.github.magisk317.relay.nonroot.DeviceOwnerController
+import io.github.magisk317.relay.nonroot.ShizukuGrantBridge
 import io.github.magisk317.relay.ui.permission.PermissionRequirement
 import io.github.magisk317.relay.ui.permission.PermissionStatus
 import io.github.magisk317.relay.ui.permission.StartupPermissionCollector
@@ -51,6 +55,11 @@ data class SetupUiState(
     val grantedCount: Int = 0,
     val permissionStatuses: List<PermissionStatus> = emptyList(),
     val allStatuses: List<PermissionStatus> = emptyList(),
+    val xposedActive: Boolean = false,
+    val nonRootMode: Boolean = false,
+    val shizukuAvailable: Boolean = false,
+    val shizukuAuthorized: Boolean = false,
+    val deviceOwnerActive: Boolean = false,
 ) {
     /** Runtime permissions still missing, requested through the permission launcher. */
     val missingRuntime: List<PermissionRequirement>
@@ -59,6 +68,10 @@ data class SetupUiState(
     /** Settings-page permissions still missing, opened one card at a time. */
     val missingSpecial: List<PermissionRequirement>
         get() = missing.filter(PermissionRequirement::isSpecial)
+
+    /** Non-root options are only useful when neither framework nor root is present. */
+    val nonRootOptionsVisible: Boolean
+        get() = nonRootMode && !xposedActive && !rootAvailable
 }
 
 /**
@@ -74,10 +87,13 @@ class SetupViewModel(
     private val settingsRepository: SettingsPreferencesRepository,
 ) : AndroidViewModel(application) {
 
-    private val _uiState = MutableStateFlow(SetupUiState())
+    private val _uiState = MutableStateFlow(
+        SetupUiState(nonRootMode = BuildConfig.ENABLE_NONROOT_MODE),
+    )
     val uiState: StateFlow<SetupUiState> = _uiState.asStateFlow()
 
     private var config: StartupPermissionConfig? = null
+    private var shizukuAutoGrantAttempted = false
 
 
     private fun context(): Application = getApplication()
@@ -111,6 +127,14 @@ class SetupViewModel(
 
     private suspend fun probeRootAndContinue() {
         SetupProgressStore.mark(context(), SetupProgress.ROOT_PENDING)
+        val xposedActive = withContext(Dispatchers.IO) {
+            runCatching { XposedRuntimeState.refresh(context()) }.getOrDefault(false)
+        }
+        if (xposedActive) {
+            _uiState.update { it.copy(rootProbing = false, xposedActive = true) }
+            completeSetup(skipPermissions = true)
+            return
+        }
         val rootAvailable = withContext(Dispatchers.IO) {
             runCatching { RootShell.canUseRoot() }.getOrDefault(false)
         }
@@ -177,6 +201,66 @@ class SetupViewModel(
         }
     }
 
+    /** One-tap grant through Shizuku, then re-collect what is left. */
+    fun grantViaShizuku() {
+        val state = _uiState.value
+        if (!state.nonRootOptionsVisible || !state.shizukuAvailable) return
+        if (!state.shizukuAuthorized) {
+            _uiState.update { it.copy(granting = true, grantLog = emptyList()) }
+            ShizukuGrantBridge.requestPermission(context()) { granted ->
+                if (granted) {
+                    _uiState.update { it.copy(shizukuAuthorized = true) }
+                    grantViaShizuku()
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            granting = false,
+                            grantLog = it.grantLog + "Shizuku permission denied",
+                        )
+                    }
+                }
+            }
+            return
+        }
+        viewModelScope.launch {
+            SetupProgressStore.mark(context(), SetupProgress.GRANT_MANUAL)
+            _uiState.update { it.copy(granting = true, grantLog = emptyList()) }
+            val cfg = ensureConfig()
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    ShizukuGrantBridge.grant(context(), cfg) { message ->
+                        _uiState.update { it.copy(grantLog = it.grantLog + message) }
+                    }
+                }.onFailure { error ->
+                    if (error is CancellationException) throw error
+                    XLog.w(message = "Setup Shizuku grant failed", error)
+                }
+            }
+            publishPermissions()
+            _uiState.update { it.copy(granting = false) }
+            if (_uiState.value.missing.isEmpty()) {
+                completeSetup()
+            } else {
+                SetupProgressStore.mark(context(), SetupProgress.GRANT_MANUAL)
+                _uiState.update { it.copy(step = SetupStep.GRANT_MANUAL) }
+            }
+        }
+    }
+
+    /** Applies device-owner policies only when the user explicitly asks for them. */
+    fun applyDeviceOwnerPolicies() {
+        val runtimePermissions = _uiState.value.allStatuses
+            .filterNot { it.requirement.isSpecial }
+            .map { it.requirement.key }
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                DeviceOwnerController.applyPolicies(context(), runtimePermissions)
+            }
+            publishPermissions()
+            _uiState.update { it.copy(grantLog = it.grantLog + result.message) }
+        }
+    }
+
     /** Re-reads the missing set after a runtime/settings grant came back. */
     fun refreshMissing() {
         viewModelScope.launch { publishPermissions() }
@@ -203,6 +287,7 @@ class SetupViewModel(
     /** Collects the full permission set with live grant state; drives both the
      *  manual grant list and the per-item granted markers. */
     private suspend fun publishPermissions() {
+        refreshCapabilities()
         val statuses = withContext(Dispatchers.IO) {
             runCatching {
                 StartupPermissionCollector.collectStatuses(context(), ensureConfig())
@@ -210,10 +295,52 @@ class SetupViewModel(
         }
         val missing = statuses.filter { !it.granted }.map { it.requirement }
         _uiState.update { it.copy(missing = missing, allStatuses = statuses) }
+        maybeAutoGrantAfterShizukuAuthorization()
+    }
+
+    private fun maybeAutoGrantAfterShizukuAuthorization() {
+        if (shizukuAutoGrantAttempted) return
+        val state = _uiState.value
+        if (!state.nonRootOptionsVisible || !state.shizukuAuthorized || state.missing.isEmpty()) return
+        shizukuAutoGrantAttempted = true
+        grantViaShizuku()
+    }
+
+    private suspend fun refreshCapabilities() {
+        val shizukuAvailable = withContext(Dispatchers.IO) {
+            runCatching { ShizukuGrantBridge.isSupported() }.getOrDefault(false)
+        }
+        val shizukuAuthorized = withContext(Dispatchers.IO) {
+            runCatching { ShizukuGrantBridge.isAuthorized() }.getOrDefault(false)
+        }
+        val deviceOwnerActive = withContext(Dispatchers.IO) {
+            runCatching { DeviceOwnerController.isDeviceOwner(context()) }.getOrDefault(false)
+        }
+        NonRootRuntimeState.refresh(
+            context = context(),
+            enabledInThisBuild = BuildConfig.ENABLE_NONROOT_MODE,
+            notificationListenerComponent = ensureConfig().notificationListenerComponent,
+        )
+        _uiState.update {
+            it.copy(
+                nonRootMode = BuildConfig.ENABLE_NONROOT_MODE,
+                shizukuAvailable = shizukuAvailable,
+                shizukuAuthorized = shizukuAuthorized,
+                deviceOwnerActive = deviceOwnerActive,
+            )
+        }
     }
 
     private fun resumeGrantPhase(forceManual: Boolean) {
         viewModelScope.launch {
+            val xposedActive = withContext(Dispatchers.IO) {
+                runCatching { XposedRuntimeState.refresh(context()) }.getOrDefault(false)
+            }
+            if (xposedActive) {
+                _uiState.update { it.copy(xposedActive = true) }
+                completeSetup(skipPermissions = true)
+                return@launch
+            }
             val rootAvailable = withContext(Dispatchers.IO) {
                 runCatching { RootShell.canUseRoot() }.getOrDefault(false)
             }
@@ -236,7 +363,22 @@ class SetupViewModel(
         }
     }
 
-    private suspend fun completeSetup() {
+    private suspend fun completeSetup(skipPermissions: Boolean = false) {
+        if (skipPermissions) {
+            withContext(Dispatchers.IO) {
+                StartupPromptStore.markPromptedForCurrentVersion(context())
+                SetupProgressStore.markComplete(context())
+            }
+            _uiState.update {
+                it.copy(
+                    step = SetupStep.DONE,
+                    permissionStatuses = emptyList(),
+                    missing = emptyList(),
+                    grantedCount = 0,
+                )
+            }
+            return
+        }
         val statuses = withContext(Dispatchers.IO) {
             runCatching {
                 StartupPermissionCollector.collectStatuses(context(), ensureConfig())

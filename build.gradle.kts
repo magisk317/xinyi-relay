@@ -69,6 +69,8 @@ magiskDistribution {
         buildConfigBoolean("ENABLE_SMS_CHANNEL", false)
         buildConfigBoolean("ALLOW_HTTP_WEBHOOK", true)
         buildConfigBoolean("ENABLE_ACCESSIBILITY_AUTO_INPUT", false)
+        // Non-root notification capture (NLS + Shizuku/DO guidance) is GitHub-only.
+        buildConfigBoolean("ENABLE_NONROOT_MODE", false)
         buildConfigBoolean("HAS_BILLING", true)
         buildConfigBoolean("HAS_CLOUD_BACKUP", true)
         buildConfigBoolean("HAS_MATRIX_E2EE", true)
@@ -77,6 +79,7 @@ magiskDistribution {
         buildConfigBoolean("ENABLE_SMS_CHANNEL", true)
         buildConfigBoolean("ALLOW_HTTP_WEBHOOK", true)
         buildConfigBoolean("ENABLE_ACCESSIBILITY_AUTO_INPUT", true)
+        buildConfigBoolean("ENABLE_NONROOT_MODE", true)
         buildConfigBoolean("HAS_BILLING", false)
         buildConfigBoolean("HAS_CLOUD_BACKUP", false)
         // The GitHub flavor ships no E2EE code: the matrix-rust-sdk runtime arrives
