@@ -17,6 +17,7 @@
     ":smscode-core:domain:test",
     ":smscode-core:verification:detekt",
     ":smscode-core:verification:test",
+    ":smscode-core:verification-runtime:testDebugUnitTest",
     ":smscode-core:rule:test",
     ":magisk-ui-kit:testAndroidHostTest",
     ":magisk-ui-kit:jvmTest",
@@ -76,6 +77,7 @@
         ":smscode-core:domain:test",
         ":smscode-core:verification:detekt",
         ":smscode-core:verification:test",
+        ":smscode-core:verification-runtime:testDebugUnitTest",
         ":smscode-core:rule:test"
       ]
     },

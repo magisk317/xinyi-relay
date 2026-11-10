@@ -78,6 +78,7 @@ include(
     ":smscode-core:contract",
     ":smscode-core:runtime",
     ":smscode-core:verification",
+    ":smscode-core:verification-runtime",
     ":smscode-core:db",
     ":magisk-ui-kit",
     ":magisk-ui-kit:billing",
@@ -115,6 +116,7 @@ project(":smscode-core:domain").projectDir = file("smscode/core/domain")
 project(":smscode-core:contract").projectDir = file("smscode/core/contract")
 project(":smscode-core:runtime").projectDir = file("smscode/core/runtime")
 project(":smscode-core:verification").projectDir = file("smscode/core/verification")
+project(":smscode-core:verification-runtime").projectDir = file("smscode/core/verification-runtime")
 project(":smscode-core:db").projectDir = file("smscode/core/db")
 project(":smscode-core").projectDir = file("smscode/core")
 project(":magisk-xposed-kit:contract").projectDir = file("magisk-xposed-kit/contract")

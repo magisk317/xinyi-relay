@@ -176,6 +176,7 @@ dependencies {
     implementation(project(":magisk-xposed-kit:logging"))
     implementation(project(":magisk-xposed-kit:capability"))
     implementation(project(":smscode-core:runtime"))
+    implementation(project(":smscode-core:verification-runtime"))
     implementation(project(":smscode-core:verification"))
     implementation(project(":magisk-forward-core:engine"))
 

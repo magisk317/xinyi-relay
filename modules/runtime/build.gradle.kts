@@ -65,6 +65,7 @@ dependencies {
     implementation(project(":smscode-core:db"))
     implementation(project(":smscode-core:rule"))
     implementation(project(":smscode-core:runtime"))
+    implementation(project(":smscode-core:verification-runtime"))
     implementation(project(":smscode-core:contract"))
 
     implementation(libs.androidx.core.ktx)

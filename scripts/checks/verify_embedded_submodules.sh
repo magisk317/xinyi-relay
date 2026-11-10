@@ -35,7 +35,7 @@ forbid_pattern() {
 if [[ -f "$SUBMODULE_SETTINGS" ]]; then
   violations+=("smscode-core/settings.gradle.kts must stay absent; the parent build owns module wiring")
 fi
-for module in hook rule domain contract runtime verification; do
+for module in hook rule domain contract runtime verification verification-runtime; do
   require_pattern "$PARENT_SETTINGS" "\":smscode-core:$module\"" \
     "settings.gradle.kts must include :smscode-core:$module"
   require_pattern "$PARENT_SETTINGS" "project\(\":smscode-core:$module\"\)\.projectDir" \
