@@ -129,6 +129,9 @@ androidx-test-runner = { module = "androidx.test:runner", version.ref = "android
 androidx-test-uiautomator = { module = "androidx.test.uiautomator:uiautomator", version.ref = "androidx-test-uiautomator" }
 androidx-work-runtime = { module = "androidx.work:work-runtime", version.ref = "work" }
 androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
+compose-desktop-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "jetbrains-compose" }
+compose-desktop-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "jetbrains-compose" }
+compose-desktop-material = { module = "org.jetbrains.compose.material:material", version.ref = "jetbrains-compose" }
 compose-desktop-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "compose-desktop-material3" }
 compose-desktop-material-icons-extended = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "compose-material-icons-extended" }
 billing-ktx = { module = "com.android.billingclient:billing-ktx", version.ref = "billing" }
