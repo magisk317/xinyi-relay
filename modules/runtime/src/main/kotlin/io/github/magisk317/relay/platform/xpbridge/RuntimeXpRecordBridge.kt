@@ -35,13 +35,7 @@ object RuntimeXpRecordBridge : XpRecordRuntimeBridge {
             body = body.orEmpty(),
             date = date,
             msgType = msgType,
-            onFailure = { error ->
-                XLog.e(
-                    message = "SMS duplicate Provider query failed: ${error.javaClass.name}: " +
-                        (error.message ?: "<no-message>"),
-                    error,
-                )
-            },
+            onUnavailable = { failure -> XLog.w(failure.toLogMessage()) },
         )
     }
 
