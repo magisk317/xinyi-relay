@@ -39,12 +39,26 @@ import io.github.magisk317.xposed.logging.StageEventEmitter
 import io.github.magisk317.xposed.runtime.contract.logging.LogRoute
 import java.lang.reflect.Method
 import java.util.Collections
+import io.github.magisk317.smscode.runtime.verification.BoundedSmsRetryQueue
+import io.github.magisk317.smscode.runtime.verification.SmsProcessingState
 import java.util.concurrent.Executors
 /**
  * Hook class com.android.internal.telephony.InboundSmsHandler
  */
 class SmsHandlerHook : BaseHook() {
-    private val smsOperationExecutor = Executors.newSingleThreadExecutor()
+    private val smsOperationExecutor = Executors.newSingleThreadScheduledExecutor()
+    private val blockedSmsRecovery = BoundedSmsRetryQueue(
+        scheduler = smsOperationExecutor,
+        onFinished = { eventId, reason, attempts ->
+            XLog.w(
+                message = "Blocked SMS recovery: event_id=%s result=%s attempts=%d",
+                eventId,
+                reason.name.lowercase(),
+                attempts,
+            )
+        },
+    )
+
     private val runtimeSession: SmsHookRuntimeSession = XinyiHookHostCapabilities.smsHookRuntimeSession
     private val inboundSmsBlocker = InboundSmsBlocker(SMS_HANDLER_CLASS)
     private val parsedCodeSmsForwarder = ParsedCodeSmsForwarder()
@@ -570,10 +584,23 @@ class SmsHandlerHook : BaseHook() {
             reason,
             eventId,
         )
-        // CodeWorker.parse() is async: only does toast/notification/clipboard side effects.
-        // The block decision was already made above. Don't block the dispatch chain.
-        smsOperationExecutor.execute {
-            CodeWorker(pluginContext, phoneContext, intent, eventId).parse()
+        // Each retry resumes only the side that has not accepted this event. The direct
+        // forwarder keeps its IPC token check and does not reacquire normal ingress dedup gates.
+        if (reason == SmsBlockEvaluator.BLOCK_REASON_PREF_BLOCK) {
+            val smsMsg = evaluation.smsMsg ?: return
+            val accepted = blockedSmsRecovery.submitStages(
+                eventId,
+                { CodeWorker(pluginContext, phoneContext, intent, eventId).parse() != null },
+                { parsedCodeSmsForwarder.forwardIfCodeSms(pluginContext, phoneContext, smsMsg, intent, eventId) },
+            )
+            if (!accepted) {
+                XLog.w(message = "SMS block skipped: recovery unavailable event_id=%s", eventId)
+                return
+            }
+        } else {
+            smsOperationExecutor.execute {
+                CodeWorker(pluginContext, phoneContext, intent, eventId).parse()
+            }
         }
         val inbound = param.thisObject ?: return
         val smsReceiver = SmsIntentHookSupport.findRawTableReceiver(param.args)
@@ -591,17 +618,6 @@ class SmsHandlerHook : BaseHook() {
                     eventId,
                 )
                 return
-            }
-            if (reason == SmsBlockEvaluator.BLOCK_REASON_PREF_BLOCK) {
-                evaluation.smsMsg?.let { smsMsg ->
-                    parsedCodeSmsForwarder.forwardIfCodeSms(
-                        pluginContext = pluginContext,
-                        phoneContext = phoneContext,
-                        smsMsg = smsMsg,
-                        sourceIntent = intent,
-                        eventId = eventId,
-                    )
-                }
             }
         } else {
             XLog.w(
@@ -685,6 +701,8 @@ class SmsHandlerHook : BaseHook() {
         hookClaim.reset()
         smsInboxObserver?.unregister()
         smsInboxObserver = null
+        blockedSmsRecovery.close()
+        SmsProcessingState.clear()
         smsOperationExecutor.shutdownNow()
         // Release the runtime-registered receiver before libxposed swaps the module
         // ClassLoader; leaving it registered keeps the stale receiver alive across reloads.

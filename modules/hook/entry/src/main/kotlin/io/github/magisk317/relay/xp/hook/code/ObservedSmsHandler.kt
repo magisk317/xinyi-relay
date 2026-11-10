@@ -12,6 +12,8 @@ import io.github.magisk317.smscode.verification.SmsDuplicateCheckResult
 import io.github.magisk317.smscode.runtime.verification.ObservedSmsHandler as SharedObservedSmsHandler
 import io.github.magisk317.smscode.runtime.verification.SmsCodePostParseCoordinator
 import io.github.magisk317.smscode.verification.SmsInboxObserverDecision
+import io.github.magisk317.smscode.verification.SmsProcessingClaims
+import io.github.magisk317.smscode.runtime.verification.SmsProcessingState
 import io.github.magisk317.xposed.logging.XLog
 import kotlinx.coroutines.runBlocking
 import java.util.concurrent.ScheduledExecutorService
@@ -69,11 +71,13 @@ internal class ObservedSmsHandler(
         )
     },
     private val currentTimeMillis: () -> Long = System::currentTimeMillis,
+    private val processingClaims: SmsProcessingClaims = SmsProcessingState.claims,
 ) {
     data class Outcome(
         val eventId: String,
         val decision: SmsInboxObserverDecision.Decision,
         val dispatched: Boolean,
+        val retryable: Boolean = false,
     )
 
     private val delegate = SharedObservedSmsHandler(
@@ -95,6 +99,7 @@ internal class ObservedSmsHandler(
             dispatcher(pluginContext, phoneContext, smsMsg, eventId, plan)
         },
         currentTimeMillis = currentTimeMillis,
+        processingClaims = processingClaims,
     )
 
     fun handle(record: ObservedInboxScanRecord): Outcome {
@@ -104,6 +109,7 @@ internal class ObservedSmsHandler(
             eventId = outcome.eventId,
             decision = outcome.decision,
             dispatched = outcome.dispatched,
+            retryable = outcome.retryable,
         )
     }
 
@@ -154,9 +160,8 @@ internal class ObservedSmsHandler(
                 error,
             )
         }
-        // A failed lookup is not proof of a fresh message. The shared decision layer treats
-        // UNAVAILABLE as fail-closed, so surface it instead of defaulting to "not duplicate"
-        // the way the old Boolean contract did.
+        // The shared handler permits unavailable lookups only for messages received while
+        // this observer was running; historical scans retain conservative retry behavior.
         return lookup.getOrDefault(SmsDuplicateCheckResult.UNAVAILABLE)
     }
 
