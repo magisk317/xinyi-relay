@@ -1,80 +1,30 @@
 package io.github.magisk317.relay.feature.mode
 
-import io.github.magisk317.relay.feature.mode.FeatureGate.Feature.BLOCK_SMS
-import io.github.magisk317.relay.feature.mode.FeatureGate.Feature.COPY_CODE_TO_CLIPBOARD
-import io.github.magisk317.relay.feature.mode.FeatureGate.Feature.KEEPALIVE_OOM_ADJ
-import io.github.magisk317.relay.feature.mode.FeatureGate.Feature.ROOT_DB_CATCHUP
-import io.github.magisk317.relay.feature.mode.FeatureGate.Feature.SEND_SMS_ON_NOTIFICATION
-import io.github.magisk317.relay.feature.mode.FeatureGate.Feature.SMS_HOOK_INTERCEPT
+import io.github.magisk317.relay.feature.mode.FeatureGate.Feature
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class FeatureGateTest {
-
     @Test
-    fun `Hook-backed features need a live Xposed runtime`() {
-        listOf(SMS_HOOK_INTERCEPT, BLOCK_SMS, KEEPALIVE_OOM_ADJ).forEach { feature ->
-            assertTrue(
-                FeatureGate.isAvailable(feature, xposedActive = true),
-                "$feature should be available when Xposed is active",
-            )
-            assertFalse(
-                FeatureGate.isAvailable(feature, xposedActive = false),
-                "$feature should be unavailable when Xposed is inactive",
-            )
+    fun `hook features require Xposed even with a connected listener`() {
+        for (feature in listOf(Feature.BLOCK_SMS, Feature.SMS_BLACKLIST_BLOCK, Feature.KEEPALIVE_OOM_ADJ)) {
+            assertTrue(FeatureGate.isAvailable(feature, true))
+            assertFalse(FeatureGate.isAvailable(feature, false, nonRootActive = true))
         }
     }
 
     @Test
-    fun `Root-only features need root access on top of the Xposed runtime`() {
-        assertFalse(FeatureGate.isAvailable(ROOT_DB_CATCHUP, xposedActive = true, hasRootAccess = false))
-        assertTrue(FeatureGate.isAvailable(ROOT_DB_CATCHUP, xposedActive = true, hasRootAccess = true))
+    fun `root catch-up requires root without depending on Xposed or listener`() {
+        assertTrue(FeatureGate.isAvailable(Feature.ROOT_DB_CATCHUP, false, hasRootAccess = true))
+        assertTrue(FeatureGate.isAvailable(Feature.ROOT_DB_CATCHUP_WRITEBACK, false, hasRootAccess = true))
+        assertFalse(FeatureGate.isAvailable(Feature.ROOT_DB_CATCHUP, true, nonRootActive = true))
     }
 
     @Test
-    fun `An inactive Xposed runtime disables every gated feature`() {
-        assertFalse(FeatureGate.isAvailable(SMS_HOOK_INTERCEPT, xposedActive = false, hasRootAccess = true))
-        assertFalse(FeatureGate.isAvailable(ROOT_DB_CATCHUP, xposedActive = false, hasRootAccess = true))
-    }
-
-    @Test
-    fun `notification listener enables copy and send without Xposed`() {
-        assertTrue(
-            FeatureGate.isAvailable(
-                COPY_CODE_TO_CLIPBOARD,
-                xposedActive = false,
-                nonRootActive = true,
-            ),
-        )
-        assertTrue(
-            FeatureGate.isAvailable(
-                SEND_SMS_ON_NOTIFICATION,
-                xposedActive = false,
-                nonRootActive = true,
-            ),
-        )
-        assertFalse(
-            FeatureGate.isAvailable(
-                SMS_HOOK_INTERCEPT,
-                xposedActive = false,
-                nonRootActive = true,
-            ),
-        )
-        assertFalse(
-            FeatureGate.isAvailable(
-                ROOT_DB_CATCHUP,
-                xposedActive = false,
-                hasRootAccess = true,
-                nonRootActive = true,
-            ),
-        )
-    }
-
-    @Test
-    fun `allAvailable requires every feature to be available`() {
-        val keepAlive = arrayOf(FeatureGate.Feature.KEEPALIVE_ANTI_KILL, KEEPALIVE_OOM_ADJ)
-        assertTrue(FeatureGate.allAvailable(xposedActive = true, *keepAlive))
-        assertFalse(FeatureGate.allAvailable(xposedActive = false, *keepAlive))
+    fun `listener enables code copy but not force-stop recovery`() {
+        assertTrue(FeatureGate.isAvailable(Feature.COPY_CODE_TO_CLIPBOARD, false, nonRootActive = true))
+        assertFalse(FeatureGate.isAvailable(Feature.FORCE_STOP_RECOVERY, false, true, true))
+        assertTrue(FeatureGate.isAvailable(Feature.FORCE_STOP_RECOVERY, true, true, false))
     }
 }

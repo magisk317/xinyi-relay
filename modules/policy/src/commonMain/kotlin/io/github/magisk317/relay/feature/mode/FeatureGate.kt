@@ -3,10 +3,11 @@ package io.github.magisk317.relay.feature.mode
 /**
  * Defines which gated features are available.
  *
- * - Xposed runtime inactive: only the notification-based non-root features can
- *   run, and only when the non-root runtime reports an enabled listener.
- * - Xposed runtime active: every gated feature is available except the
- *   root-backed ones, which need the root capability separately.
+ * - Root DB catch-up features need root access only. They do not depend on the
+ *   Xposed runtime or the non-root runtime.
+ * - Force-stop recovery features need the Xposed runtime and root access.
+ * - Every other feature needs the Xposed runtime, or the non-root runtime when
+ *   the feature supports non-root mode.
  *
  * UI screens should consult [isAvailable] to gray-out gated toggles and append
  * a short reason hint when the user taps a disabled item.
@@ -15,12 +16,6 @@ object FeatureGate {
 
     /** Gated feature ids carried across the settings and UI layer. */
     enum class Feature(val id: String) {
-        /** Hook-based SMS interception (SmsHandlerHook / SmsProviderHook) */
-        SMS_HOOK_INTERCEPT("sms_hook_intercept"),
-
-        /** Hook-based MMS interception (MmsMessagesHook) */
-        MMS_HOOK_INTERCEPT("mms_hook_intercept"),
-
         /** Block incoming SMS from blacklisted numbers at system level */
         SMS_BLACKLIST_BLOCK("sms_blacklist_block"),
 
@@ -29,21 +24,6 @@ object FeatureGate {
 
         /** Automatically copy verification code to clipboard on notification */
         COPY_CODE_TO_CLIPBOARD("copy_code_to_clipboard"),
-
-        /** Delete SMS after verification code is auto-filled */
-        DELETE_SMS_ON_CODE_INPUT("delete_sms_on_code_input"),
-
-        /** Send SMS triggered by notification events */
-        SEND_SMS_ON_NOTIFICATION("send_sms_on_notification"),
-
-        /** Observe SMS inbox changes via Xposed hook */
-        SMS_INBOX_OBSERVER("sms_inbox_observer"),
-
-        /** Call interception via Xposed hook (InboundSmsHandler fallback) */
-        CALL_HOOK_INTERCEPT("call_hook_intercept"),
-
-        /** Shizuku-based MMS PDU processing via ContentProvider */
-        MMS_SHIZUKU_INTERCEPT("mms_shizuku_intercept"),
 
         /** Keep-alive: adjust OOM adj score via Xposed hook */
         KEEPALIVE_OOM_ADJ("keepalive_oom_adj"),
@@ -71,43 +51,54 @@ object FeatureGate {
     }
 
     /**
-     * Returns true if the given [feature] can run: the Xposed runtime must be
-     * live, or the notification-based non-root runtime must cover this feature;
-     * root-backed features additionally need [hasRootAccess].
+     * Returns true if the given [feature] can run. Root DB catch-up features need
+     * [hasRootAccess] only. Force-stop recovery features need [xposedActive] and
+     * [hasRootAccess]. Every other feature needs [xposedActive], or [nonRootActive]
+     * when the feature is in the non-root set.
      */
     fun isAvailable(
         feature: Feature,
         xposedActive: Boolean,
         hasRootAccess: Boolean = false,
         nonRootActive: Boolean = false,
-    ): Boolean = when {
-        feature in ROOT_ONLY_FEATURES -> xposedActive && hasRootAccess
-        xposedActive -> true
-        else -> nonRootActive && feature in NON_ROOT_FEATURES
+    ): Boolean = when (feature) {
+        in ROOT_DB_FEATURES -> hasRootAccess
+        in FORCE_STOP_FEATURES -> xposedActive && hasRootAccess
+        else -> xposedActive || (nonRootActive && feature in NON_ROOT_FEATURES)
     }
 
     /**
-     * Returns true if ALL given [features] are available.
+     * Returns true if ALL given [features] are available. Callers must pass
+     * [nonRootActive] explicitly, using the same value they give to [isAvailable].
      */
-    fun allAvailable(xposedActive: Boolean, vararg features: Feature): Boolean {
-        return features.all { isAvailable(it, xposedActive) }
+    fun allAvailable(
+        xposedActive: Boolean,
+        nonRootActive: Boolean,
+        vararg features: Feature,
+    ): Boolean {
+        return features.all { isAvailable(it, xposedActive, nonRootActive = nonRootActive) }
     }
 
     /**
-     * Returns true if ALL given [features] are available with root state.
+     * Returns true if ALL given [features] are available with root and non-root state.
      */
     fun allAvailable(
         xposedActive: Boolean,
         hasRootAccess: Boolean,
+        nonRootActive: Boolean,
         vararg features: Feature,
     ): Boolean {
-        return features.all { isAvailable(it, xposedActive, hasRootAccess) }
+        return features.all { isAvailable(it, xposedActive, hasRootAccess, nonRootActive) }
     }
 
-    /** Features that require Root access (su) to function. */
-    private val ROOT_ONLY_FEATURES = setOf(
+    /** Root DB catch-up features. They need root access (su) only. */
+    private val ROOT_DB_FEATURES = setOf(
         Feature.ROOT_DB_CATCHUP,
         Feature.ROOT_DB_CATCHUP_WRITEBACK,
+    )
+
+    /** Force-stop recovery features. They need the Xposed runtime and root access (su). */
+    private val FORCE_STOP_FEATURES = setOf(
         Feature.FORCE_STOP_RECOVERY,
         Feature.FORCE_STOP_RECOVERY_RELAUNCH_ONCE,
     )
@@ -115,10 +106,9 @@ object FeatureGate {
     /**
      * Features the notification-listener runtime can serve without hooks:
      * the payload already carries the parsed code and the relay pipeline owns
-     * the copy/send actions.
+     * the copy action.
      */
     private val NON_ROOT_FEATURES = setOf(
         Feature.COPY_CODE_TO_CLIPBOARD,
-        Feature.SEND_SMS_ON_NOTIFICATION,
     )
 }
