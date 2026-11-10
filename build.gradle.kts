@@ -162,6 +162,7 @@ tasks.register<Delete>("clean") {
 // Maintenance task now automatically hooked via magisk.maintenance plugin
 
 tasks.register<Exec>("verifyModuleBoundaries") {
+    dependsOn(":smscode-core:verifyModuleBoundaries")
     group = "verification"
     description = "Ensure app/mobile:core/runtime follow the intended direct project dependency graph."
     workingDir = rootProject.projectDir
