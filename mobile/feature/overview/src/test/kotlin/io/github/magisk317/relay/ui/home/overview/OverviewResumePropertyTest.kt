@@ -11,6 +11,7 @@ import io.github.magisk317.relay.feature.mode.ShizukuRowState
 import io.github.magisk317.relay.feature.mode.StatusCardState
 import io.github.magisk317.relay.feature.mode.XposedRowState
 import io.github.magisk317.relay.feature.mode.XposedRuntimeState
+import io.github.magisk317.relay.mobilefeature.overview.BuildConfig
 import io.github.magisk317.relay.nonroot.ShizukuGrantBridge
 import io.mockk.every
 import io.mockk.mockk
@@ -28,6 +29,7 @@ import kotlinx.coroutines.cancelAndJoin
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
 
 class OverviewResumePropertyTest {
@@ -56,36 +58,62 @@ class OverviewResumePropertyTest {
         val viewModel = OverviewViewModel(mockk<SettingsPreferencesRepository>(), signals)
         val observation = launch { viewModel.observeRuntimeSnapshot(context) }
         try {
-            withTimeout(5_000) {
-                viewModel.uiState.first { it.runtimeSnapshot.statusCard == StatusCardState.Shizuku("13") }
+            val inactiveCard = if (BuildConfig.ENABLE_NONROOT_MODE) {
+                StatusCardState.Shizuku("13")
+            } else {
+                StatusCardState.Inactive
             }
+            withTimeout(5_000) {
+                viewModel.uiState.first {
+                    it.runtimeSnapshot.appVersionName == "1.0" && it.runtimeSnapshot.statusCard == inactiveCard
+                }
+            }
+            assertNonRootRows(
+                viewModel.uiState.value.runtimeSnapshot, ListenerRowState.DISCONNECTED, ShizukuRowState.AUTHORIZED,
+            )
             listener.value = true
-            assertNotNull(withTimeoutOrNull(2_000) {
-                viewModel.uiState.first { it.runtimeSnapshot.rows.listener == ListenerRowState.CONNECTED }
-            }, "A foreground listener connection must update the rows without another resume")
+            if (BuildConfig.ENABLE_NONROOT_MODE) {
+                assertNotNull(withTimeoutOrNull(2_000) {
+                    viewModel.uiState.first { it.runtimeSnapshot.rows.listener == ListenerRowState.CONNECTED }
+                }, "A foreground listener connection must update the rows without another resume")
+            }
             xposed.value = true
             withTimeout(5_000) {
                 viewModel.uiState.first { it.runtimeSnapshot.statusCard is StatusCardState.Framework }
             }
             assertEquals(XposedRowState.ACTIVE, viewModel.uiState.value.runtimeSnapshot.rows.xposed)
             assertEquals(StatusCardState.Framework(FrameworkIdentity("LSPosed", "1.0")), viewModel.uiState.value.runtimeSnapshot.statusCard)
+            // The framework emission also proves the observer processed the changed signals
+            // on Play, where listener changes correctly produce no visible non-root row.
+            assertNonRootRows(
+                viewModel.uiState.value.runtimeSnapshot, ListenerRowState.CONNECTED, ShizukuRowState.AUTHORIZED,
+            )
             listener.value = false
             xposed.value = false
             withTimeout(5_000) {
                 viewModel.uiState.first {
-                    it.runtimeSnapshot.rows.listener == ListenerRowState.DISCONNECTED &&
-                        it.runtimeSnapshot.statusCard == StatusCardState.Shizuku("13")
+                    it.runtimeSnapshot.rows.listener ==
+                        (if (BuildConfig.ENABLE_NONROOT_MODE) ListenerRowState.DISCONNECTED else null) &&
+                        it.runtimeSnapshot.statusCard == inactiveCard
                 }
             }
+            assertNonRootRows(
+                viewModel.uiState.value.runtimeSnapshot, ListenerRowState.DISCONNECTED, ShizukuRowState.AUTHORIZED,
+            )
             assertEquals(1, probes)
             verify(exactly = 1) { relayPackageActions.hasRootAccess() }
-            verify(exactly = 1) { ShizukuGrantBridge.isSupported() }
+            val shizukuProbes = if (BuildConfig.ENABLE_NONROOT_MODE) 1 else 0
+            verify(exactly = shizukuProbes) { ShizukuGrantBridge.isSupported() }
+            verify(exactly = shizukuProbes) { ShizukuGrantBridge.isAuthorized() }
+            verify(exactly = shizukuProbes) { ShizukuGrantBridge.shizukuVersion(context) }
         } finally {
             observation.cancelAndJoin()
         }
+        val stoppedSnapshot = viewModel.uiState.value.runtimeSnapshot
         listener.value = true
+        xposed.value = true
         yield()
-        assertEquals(ListenerRowState.DISCONNECTED, viewModel.uiState.value.runtimeSnapshot.rows.listener)
+        assertEquals(stoppedSnapshot, viewModel.uiState.value.runtimeSnapshot)
     }
 
     @Test
@@ -120,8 +148,11 @@ class OverviewResumePropertyTest {
             val snapshot = viewModel.uiState.value.runtimeSnapshot
             assertEquals(index + 1, refreshes)
             assertEquals(if (index % 3 == 0) XposedRowState.ACTIVE else XposedRowState.INACTIVE, snapshot.rows.xposed)
-            assertEquals(if (index % 3 == 2) ListenerRowState.DISCONNECTED else ListenerRowState.CONNECTED, snapshot.rows.listener)
-            assertEquals(ShizukuRowState.UNAUTHORIZED, snapshot.rows.shizuku)
+            assertNonRootRows(
+                snapshot,
+                if (index % 3 == 2) ListenerRowState.DISCONNECTED else ListenerRowState.CONNECTED,
+                ShizukuRowState.UNAUTHORIZED,
+            )
             assertEquals(
                 if (index % 3 == 0) StatusCardState.Framework(FrameworkIdentity("LSPosed", "1.0")) else StatusCardState.Inactive,
                 snapshot.statusCard,
@@ -133,10 +164,33 @@ class OverviewResumePropertyTest {
         every { ShizukuGrantBridge.isSupported() } returns false
         viewModel.setPageActive(true)
         viewModel.refreshRuntimeSnapshot(context)
-        assertEquals(ShizukuRowState.UNREACHABLE, viewModel.uiState.value.runtimeSnapshot.rows.shizuku)
+        assertNonRootRows(
+            viewModel.uiState.value.runtimeSnapshot, ListenerRowState.CONNECTED, ShizukuRowState.UNREACHABLE,
+        )
+        val shizukuSupportProbes = if (BuildConfig.ENABLE_NONROOT_MODE) 130 else 0
+        val shizukuAuthorizationProbes = if (BuildConfig.ENABLE_NONROOT_MODE) 129 else 0
+        verify(exactly = shizukuSupportProbes) { ShizukuGrantBridge.isSupported() }
+        verify(exactly = shizukuAuthorizationProbes) { ShizukuGrantBridge.isAuthorized() }
+        verify(exactly = 0) { ShizukuGrantBridge.shizukuVersion(context) }
         viewModel.setPageActive(false)
         // A hidden page must not read signals or publish a fresh snapshot.
+        val stoppedSnapshot = viewModel.uiState.value.runtimeSnapshot
         viewModel.refreshRuntimeSnapshot(context)
         assertEquals(130, refreshes)
+        assertEquals(stoppedSnapshot, viewModel.uiState.value.runtimeSnapshot)
+    }
+
+    private fun assertNonRootRows(
+        snapshot: OverviewRuntimeUiState,
+        listener: ListenerRowState,
+        shizuku: ShizukuRowState,
+    ) {
+        if (BuildConfig.ENABLE_NONROOT_MODE) {
+            assertEquals(listener, snapshot.rows.listener)
+            assertEquals(shizuku, snapshot.rows.shizuku)
+        } else {
+            assertNull(snapshot.rows.listener, "Play must hide the notification-listener row")
+            assertNull(snapshot.rows.shizuku, "Play must hide the Shizuku row")
+        }
     }
 }
