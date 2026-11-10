@@ -24,6 +24,7 @@ private object XinyiSmsProviderHookHost : SmsProviderHookHost {
     override val applicationId: String = BuildConfig.APPLICATION_ID
 
     override val capabilities: SmsHookCapabilities = XinyiHookHostCapabilities
+    override val runtimeSession = XinyiHookHostCapabilities.smsHookRuntimeSession
 
     override fun onInboundSmsProviderWrite(
         pluginContext: Context,
