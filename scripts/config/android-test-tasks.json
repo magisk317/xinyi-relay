@@ -23,6 +23,7 @@
     ":magisk-ui-kit:jvmTest",
     ":magisk-ui-kit:billing:testDebugUnitTest",
     ":magisk-ui-kit:update:testGithubDebugUnitTest",
+    ":magisk-ui-kit:update:testPlayDebugUnitTest",
     ":policy:jvmTest",
     ":relay:android:testGithubDebugUnitTest",
     ":runtime:testGithubDebugUnitTest",
@@ -45,7 +46,26 @@
     ":magisk-forward-core:runtime:testDebugUnitTest",
     ":magisk-forward-core:db:testDebugUnitTest",
     ":mobile:feature:rule:testGithubDebugUnitTest",
-    ":mobile:feature:backup:testGithubDebugUnitTest"
+    ":mobile:feature:backup:testGithubDebugUnitTest",
+    ":magisk-xposed-kit:testDebugUnitTest",
+    ":magisk-xposed-kit:contract:test",
+    ":magisk-xposed-kit:logging:jvmTest",
+    ":magisk-xposed-kit:diagnostics:testDebugUnitTest",
+    ":magisk-xposed-kit:capability:testDebugUnitTest",
+    ":magisk-xposed-kit:runtime:testDebugUnitTest",
+    ":magisk-xposed-kit:permission:testDebugUnitTest",
+    ":magisk-xposed-kit:service:testDebugUnitTest",
+    ":magisk-xposed-kit:capture:testDebugUnitTest",
+    ":magisk-xposed-kit:keepalive:jvmTest",
+    ":smscode-core:hook:testDebugUnitTest",
+    ":smscode-core:runtime:testDebugUnitTest",
+    ":magisk-forward-core:sender:api:jvmTest",
+    ":magisk-forward-core:sender:testGithubDebugUnitTest",
+    ":magisk-forward-core:sender:testPlayDebugUnitTest",
+    ":magisk-forward-core:security:testGithubDebugUnitTest",
+    ":magisk-forward-core:security:testPlayDebugUnitTest",
+    ":mobile:core:testGithubDebugUnitTest",
+    ":mobile:feature:setup:testGithubDebugUnitTest"
   ],
   "full_paths": [
     "build.gradle*",
@@ -81,7 +101,9 @@
         ":smscode-core:verification:detekt",
         ":smscode-core:verification:test",
         ":smscode-core:verification-runtime:testDebugUnitTest",
-        ":smscode-core:rule:test"
+        ":smscode-core:rule:test",
+        ":smscode-core:hook:testDebugUnitTest",
+        ":smscode-core:runtime:testDebugUnitTest"
       ]
     },
     {
@@ -92,7 +114,8 @@
         ":magisk-ui-kit:testAndroidHostTest",
         ":magisk-ui-kit:jvmTest",
         ":magisk-ui-kit:billing:testDebugUnitTest",
-        ":magisk-ui-kit:update:testGithubDebugUnitTest"
+        ":magisk-ui-kit:update:testGithubDebugUnitTest",
+        ":magisk-ui-kit:update:testPlayDebugUnitTest"
       ]
     },
     {
@@ -160,7 +183,10 @@
         ":mobile:ui:testGithubDebugUnitTest",
         ":relay:android:testGithubDebugUnitTest",
         ":mobile:feature:rule:testGithubDebugUnitTest",
-        ":mobile:feature:backup:testGithubDebugUnitTest"
+        ":mobile:feature:backup:testGithubDebugUnitTest",
+        ":runtime:testGithubDebugUnitTest",
+        ":mobile:core:testGithubDebugUnitTest",
+        ":mobile:feature:setup:testGithubDebugUnitTest"
       ]
     },
     {
@@ -173,7 +199,29 @@
         ":magisk-forward-core:runtime:testDebugUnitTest",
         ":magisk-forward-core:engine:jvmTest",
         ":magisk-forward-core:net:jvmTest",
-        ":magisk-forward-core:db:testDebugUnitTest"
+        ":magisk-forward-core:db:testDebugUnitTest",
+        ":magisk-forward-core:sender:api:jvmTest",
+        ":magisk-forward-core:sender:testGithubDebugUnitTest",
+        ":magisk-forward-core:sender:testPlayDebugUnitTest",
+        ":magisk-forward-core:security:testGithubDebugUnitTest",
+        ":magisk-forward-core:security:testPlayDebugUnitTest"
+      ]
+    },
+    {
+      "paths": [
+        "magisk-xposed-kit/*"
+      ],
+      "tasks": [
+        ":magisk-xposed-kit:testDebugUnitTest",
+        ":magisk-xposed-kit:contract:test",
+        ":magisk-xposed-kit:logging:jvmTest",
+        ":magisk-xposed-kit:diagnostics:testDebugUnitTest",
+        ":magisk-xposed-kit:capability:testDebugUnitTest",
+        ":magisk-xposed-kit:runtime:testDebugUnitTest",
+        ":magisk-xposed-kit:permission:testDebugUnitTest",
+        ":magisk-xposed-kit:service:testDebugUnitTest",
+        ":magisk-xposed-kit:capture:testDebugUnitTest",
+        ":magisk-xposed-kit:keepalive:jvmTest"
       ]
     }
   ]
