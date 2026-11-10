@@ -5,7 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.domain.recovery.RootShell
-import io.github.magisk317.relay.feature.mode.NonRootRuntimeState
+import io.github.magisk317.relay.feature.mode.RuntimeSignalRefresher
 import io.github.magisk317.relay.feature.mode.XposedRuntimeState
 import io.github.magisk317.relay.mobilefeature.setup.BuildConfig
 import io.github.magisk317.relay.nonroot.DeviceOwnerController
@@ -85,6 +85,7 @@ data class SetupUiState(
 class SetupViewModel(
     application: Application,
     private val settingsRepository: SettingsPreferencesRepository,
+    private val runtimeSignals: RuntimeSignalRefresher,
 ) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(
@@ -128,7 +129,8 @@ class SetupViewModel(
     private suspend fun probeRootAndContinue() {
         SetupProgressStore.mark(context(), SetupProgress.ROOT_PENDING)
         val xposedActive = withContext(Dispatchers.IO) {
-            runCatching { XposedRuntimeState.refresh(context()) }.getOrDefault(false)
+            runtimeSignals.refresh()
+            XposedRuntimeState.xposedActive.value
         }
         if (xposedActive) {
             _uiState.update { it.copy(rootProbing = false, xposedActive = true) }
@@ -316,11 +318,6 @@ class SetupViewModel(
         val deviceOwnerActive = withContext(Dispatchers.IO) {
             runCatching { DeviceOwnerController.isDeviceOwner(context()) }.getOrDefault(false)
         }
-        NonRootRuntimeState.refresh(
-            context = context(),
-            enabledInThisBuild = BuildConfig.ENABLE_NONROOT_MODE,
-            notificationListenerComponent = ensureConfig().notificationListenerComponent,
-        )
         _uiState.update {
             it.copy(
                 nonRootMode = BuildConfig.ENABLE_NONROOT_MODE,
@@ -334,7 +331,8 @@ class SetupViewModel(
     private fun resumeGrantPhase(forceManual: Boolean) {
         viewModelScope.launch {
             val xposedActive = withContext(Dispatchers.IO) {
-                runCatching { XposedRuntimeState.refresh(context()) }.getOrDefault(false)
+                runtimeSignals.refresh()
+                XposedRuntimeState.xposedActive.value
             }
             if (xposedActive) {
                 _uiState.update { it.copy(xposedActive = true) }

@@ -42,6 +42,7 @@ import io.github.magisk317.uikit.theme.currentUiKitStyle
 import io.github.magisk317.relay.feature.mode.FeatureGate
 import io.github.magisk317.relay.feature.mode.FeatureGate.Feature.*
 import io.github.magisk317.relay.feature.mode.XposedRuntimeState
+import io.github.magisk317.relay.feature.mode.NonRootRuntimeState
 import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
 import io.github.magisk317.relay.ui.common.normalizeIntegerInput
 import io.github.magisk317.relay.ui.common.parseIntInRangeInput
@@ -64,6 +65,7 @@ fun ForwardKeepAliveScreen(onBack: () -> Unit) {
     var settings by remember { mutableStateOf<DiagnosticsSettingsSnapshot?>(null) }
     var showRootDbIntervalDialog by remember { mutableStateOf(false) }
     val xposedActive by XposedRuntimeState.xposedActive.collectAsStateWithLifecycle()
+    val nonRootActive by NonRootRuntimeState.active.collectAsStateWithLifecycle()
     val hasRootAccess by produceState(initialValue = false) {
         value = withContext(Dispatchers.IO) {
             relayPackageActions.hasRootAccess()
@@ -202,7 +204,7 @@ fun ForwardKeepAliveScreen(onBack: () -> Unit) {
                     KEEPALIVE_ANTI_KILL,
                     KEEPALIVE_STANDBY_BYPASS,
                 )
-                val canUseKeepAlive = FeatureGate.allAvailable(xposedActive, *keepAliveFeatures.toTypedArray())
+                val canUseKeepAlive = FeatureGate.allAvailable(xposedActive, nonRootActive, *keepAliveFeatures.toTypedArray())
                 StateSwitchItem(
                     title = stringResource(id = R.string.pref_keepalive_oom_adj_title),
                     summary = if (canUseKeepAlive) {

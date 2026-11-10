@@ -3,6 +3,7 @@ package io.github.magisk317.relay.app
 import android.app.Application
 import android.content.SharedPreferences
 import io.github.magisk317.relay.android.common.utils.RelayLogger
+import io.github.magisk317.xposed.runtime.state.FrameworkRead
 import io.github.magisk317.xposed.runtime.state.RuntimeStateStore
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.relay.android.prefs.HookPreferenceMirror
@@ -23,6 +24,7 @@ object XposedServiceRuntimeCoordinator {
         remotePrefsProvider: (() -> SharedPreferences?)?,
         frameworkName: String?,
         frameworkVersion: String?,
+        frameworkRead: FrameworkRead,
     ): Boolean {
         AppPreferencesDataStore.setRemotePrefsProvider(remotePrefsProvider)
         val pending = AppPreferencesDataStore.hasPendingRemotePrefsPublish()
@@ -58,10 +60,10 @@ object XposedServiceRuntimeCoordinator {
             ),
             statusOk = true,
         )
-        return XposedRuntimeState.refresh(application)
+        return XposedRuntimeState.refresh(application, frameworkRead)
     }
 
-    fun handleServiceDied(application: Application): Boolean {
+    fun handleServiceDied(application: Application, frameworkRead: FrameworkRead): Boolean {
         AppPreferencesDataStore.setRemotePrefsProvider(null)
         RuntimeStateStore.setRuntimeConnected(false)
         RuntimeStateStore.recordServiceDied(
@@ -79,7 +81,7 @@ object XposedServiceRuntimeCoordinator {
             ),
             statusOk = true,
         )
-        return XposedRuntimeState.refresh(application)
+        return XposedRuntimeState.refresh(application, frameworkRead)
     }
 
     fun logRegistrationFailure(throwable: Throwable) {

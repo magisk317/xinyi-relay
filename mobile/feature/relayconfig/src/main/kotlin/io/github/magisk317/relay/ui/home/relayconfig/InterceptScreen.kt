@@ -44,6 +44,7 @@ import io.github.magisk317.forward.engine.service.MessageRecordRepository
 import io.github.magisk317.relay.feature.mode.FeatureGate
 import io.github.magisk317.relay.feature.mode.FeatureGate.Feature.*
 import io.github.magisk317.relay.feature.mode.XposedRuntimeState
+import io.github.magisk317.relay.feature.mode.NonRootRuntimeState
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import java.util.Date
@@ -61,8 +62,9 @@ fun InterceptScreen(
         .collectAsStateWithLifecycle(initialValue = emptyList())
     val snackbarHostState = remember { AppSnackbarHostState() }
     val xposedActive by XposedRuntimeState.xposedActive.collectAsStateWithLifecycle()
+    val nonRootActive by NonRootRuntimeState.active.collectAsStateWithLifecycle()
     val isXposedFeatureAvailable = { feature: FeatureGate.Feature ->
-        FeatureGate.isAvailable(feature, xposedActive)
+        FeatureGate.isAvailable(feature, xposedActive, nonRootActive = nonRootActive)
     }
     val xposedDisabledHint = stringResource(R.string.feature_requires_xposed)
     var smsBlacklistEnabled by remember { mutableStateOf(false) }

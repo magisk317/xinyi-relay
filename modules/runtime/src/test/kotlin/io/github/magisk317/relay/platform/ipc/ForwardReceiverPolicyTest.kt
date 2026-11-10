@@ -10,6 +10,29 @@ import io.github.magisk317.forward.runtime.ingress.ForwardReceiverPolicy
 
 class ForwardReceiverPolicyTest {
     @Test
+    fun notificationCopiesDeduplicateAcrossCapturePathsAndTypes() {
+        val types = listOf(ForwardBroadcastContract.MSG_TYPE_APP_NOTIFY, ForwardBroadcastContract.MSG_TYPE_SMS)
+        val random = kotlin.random.Random(317)
+        repeat(128) { iteration ->
+            types.forEach { firstType ->
+                types.forEach { secondType ->
+                    val cache = linkedMapOf<String, Long>()
+                    val start = 100_000L + iteration * 100_000L
+                    val delay = if (iteration == 0) 10_000L else random.nextLong(0L, 10_001L)
+                    fun receive(type: String, source: String, time: Long) = ForwardReceiverPolicy.shouldDropDuplicateForward(
+                        msgType = type, forwardSource = source, packageName = "com.android.messaging",
+                        sender = "Bank", body = "body-$source", notifyChannelId = "channel-$source",
+                        smsCode = "123456", recentNotify = cache, nowMs = time,
+                    )
+                    assertFalse(receive(firstType, "nls", start))
+                    assertTrue(receive(secondType, ForwardBroadcastContract.SOURCE_SMS_HOOK, start + delay))
+                    assertFalse(receive(secondType, "nls", start + 10_001L))
+                }
+            }
+        }
+    }
+
+    @Test
     fun resolveSimSlot_prefersSubIdResolverThenNormalizesLegacySlotValues() {
         assertEquals(
             0,

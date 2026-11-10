@@ -9,6 +9,7 @@ import io.github.magisk317.xposed.runtime.state.RuntimeStateStore
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.mobile.core.BuildConfig
 import io.github.magisk317.relay.feature.reminder.SpecialAlertCoordinator
+import io.github.magisk317.relay.feature.mode.NonRootRuntimeState
 import io.github.magisk317.relay.platform.ipc.AppNotificationIngressAdapter
 import io.github.magisk317.relay.platform.ipc.ForwardBroadcastDispatcher
 import io.github.magisk317.xposed.logging.MagiskOtel
@@ -24,6 +25,7 @@ class AppNotificationListenerService : NotificationListenerService() {
 
     override fun onListenerConnected() {
         super.onListenerConnected()
+        NonRootRuntimeState.onListenerConnected()
         XLog.i("AppNotificationListenerService connected")
         emitNotify(
             result = "ok",
@@ -34,6 +36,7 @@ class AppNotificationListenerService : NotificationListenerService() {
 
     override fun onListenerDisconnected() {
         super.onListenerDisconnected()
+        NonRootRuntimeState.onListenerDisconnected()
         XLog.w("AppNotificationListenerService disconnected, requestRebind")
         val rebound = runCatching {
             requestRebind(ComponentName(this, AppNotificationListenerService::class.java))
@@ -145,6 +148,7 @@ class AppNotificationListenerService : NotificationListenerService() {
     }
 
     override fun onDestroy() {
+        NonRootRuntimeState.onListenerDisconnected()
         serviceScope.cancel()
         super.onDestroy()
     }

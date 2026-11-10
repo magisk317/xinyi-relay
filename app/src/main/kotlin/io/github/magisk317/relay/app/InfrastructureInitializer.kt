@@ -5,53 +5,43 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import io.github.magisk317.relay.BuildConfig
-import io.github.magisk317.xposed.logging.XLog
-import io.github.magisk317.relay.feature.mode.NonRootRuntimeState
-import io.github.magisk317.relay.feature.mode.XposedRuntimeState
-import io.github.magisk317.xposed.runtime.state.RuntimeStateStore
 import io.github.magisk317.relay.android.otel.MagiskOtelBootstrap
+import io.github.magisk317.relay.feature.mode.NonRootRuntimeState
+import io.github.magisk317.relay.feature.mode.RuntimeSignalRefresher
+import io.github.magisk317.relay.feature.mode.XposedRuntimeState
 import io.github.magisk317.xposed.logging.MagiskOtel
+import io.github.magisk317.xposed.logging.XLog
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.koin.core.context.GlobalContext
 
-class InfrastructureInitializer : AppInitializer {
+class InfrastructureInitializer(
+    private val runtimeSignals: RuntimeSignalRefresher,
+) : AppInitializer {
     override fun init(application: Application) {
-        MagiskOtelBootstrap.install(
-            application,
-            serviceVersion = BuildConfig.VERSION_NAME,
-        )
-        MagiskOtel.event(
-            name = "app.boot",
-            attributes = mapOf(
-                "result" to "ok",
-                "process" to "main",
-            ),
-        )
-
+        MagiskOtelBootstrap.install(application, serviceVersion = BuildConfig.VERSION_NAME)
+        MagiskOtel.event(name = "app.boot", attributes = mapOf("result" to "ok", "process" to "main"))
         FlavorXposedRuntimeInitializer.installPlatformBridges()
-        XposedRuntimeState.refresh(application)
-        refreshNonRootRuntime(application)
+        NonRootRuntimeState.configure(BuildConfig.ENABLE_NONROOT_MODE)
         AppInfrastructureCoordinator.initialize(
             application = application,
             shouldSuppressSystemHooks = FlavorXposedRuntimeInitializer::shouldSuppressSystemHooks,
         )
-
-        // Activation can lag ~tens-hundreds of ms after process start (LSPosed bind),
-        // so wait for the runtime to report active, or a short timeout, before settling.
-        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-        scope.launch {
-            settleAndReconcile(application, reason = "app_init_settled")
+        runtimeScope.launch {
+            runtimeSignals.refresh()
+            settleAndReconcile(application, "app_init_settled")
         }
-
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onResume(owner: LifecycleOwner) {
-                // Defer reconcile until the cold-start settle has decided.
-                // A runtime stop is always safe and may arrive via Xposed bind earlier.
-                reconcileAfterEnvironmentKnown(application, "process_resume")
+                runtimeScope.launch {
+                    // Reading signals must not wait for cold-start reconciliation.
+                    runtimeSignals.refresh()
+                    reconcileAfterEnvironmentKnown("process_resume")
+                }
             }
         })
     }
@@ -59,28 +49,24 @@ class InfrastructureInitializer : AppInitializer {
     companion object {
         private const val SETTLE_TIMEOUT_MS = 800L
         private const val SETTLE_POLL_MS = 50L
-        private const val NLS_COMPONENT_CLASS = "io.github.magisk317.relay.service.AppNotificationListenerService"
         private val environmentSettled = AtomicBoolean(false)
+        private val runtimeScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
         suspend fun settleAndReconcile(application: Application, reason: String) {
+            val signals = GlobalContext.get().get<RuntimeSignalRefresher>()
             val deadline = System.currentTimeMillis() + SETTLE_TIMEOUT_MS
             while (System.currentTimeMillis() < deadline) {
-                XposedRuntimeState.refresh(application)
-                if (XposedRuntimeState.xposedActive.value ||
-                    RuntimeStateStore.isModuleActivated(application)
-                ) {
-                    break
-                }
+                signals.refresh()
+                if (XposedRuntimeState.xposedActive.value) break
                 delay(SETTLE_POLL_MS)
             }
-            val xposedActive = XposedRuntimeState.refresh(application)
-            refreshNonRootRuntime(application)
+            signals.refresh()
             environmentSettled.set(true)
             XLog.i(
-                message = "Xposed runtime settle complete: active=%s reason=%s activated=%s",
-                xposedActive,
+                message = "Xposed runtime settle complete: active=%s reason=%s package=%s",
+                XposedRuntimeState.xposedActive.value,
                 reason,
-                RuntimeStateStore.isModuleActivated(application),
+                application.packageName,
             )
         }
 
@@ -88,20 +74,10 @@ class InfrastructureInitializer : AppInitializer {
             environmentSettled.set(true)
         }
 
-        private fun refreshNonRootRuntime(application: Application) {
-            NonRootRuntimeState.refresh(
-                context = application,
-                enabledInThisBuild = BuildConfig.ENABLE_NONROOT_MODE,
-                notificationListenerComponent = "${application.packageName}/$NLS_COMPONENT_CLASS",
-            )
-        }
-
-        fun reconcileAfterEnvironmentKnown(application: Application, reason: String) {
-            XposedRuntimeState.refresh(application)
-            val xposedActive = XposedRuntimeState.xposedActive.value
-            if (!environmentSettled.get() && !xposedActive) {
-                XLog.i(message = "Xposed runtime reconcile deferred until settle: reason=%s active=%s", reason, xposedActive)
-                return
+        private fun reconcileAfterEnvironmentKnown(reason: String) {
+            val active = XposedRuntimeState.xposedActive.value
+            if (!environmentSettled.get() && !active) {
+                XLog.i(message = "Xposed runtime reconcile deferred until settle: reason=%s active=%s", reason, active)
             }
         }
     }

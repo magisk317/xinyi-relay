@@ -7,7 +7,6 @@ import android.os.Build
 import android.provider.Telephony
 import io.github.magisk317.relay.hookentry.BuildConfig
 import io.github.magisk317.relay.xp.HookTargetDiagnostics
-import io.github.magisk317.xposed.capability.utils.ModuleActivationStore
 import io.github.magisk317.relay.xpbridge.SmsMsg
 import io.github.magisk317.relay.xpbridge.XpDispatchCoordinator
 import io.github.magisk317.relay.xpbridge.XpPrefs

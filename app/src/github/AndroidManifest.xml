@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-permission android:name="android.permission.READ_SMS" />
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
@@ -10,7 +12,7 @@
         android:required="false" />
 
     <!--
-      This build does not request RECEIVE_SMS or ROLE_SMS.
+      This build does not request ROLE_SMS.
       Android 17 can delay SMS OTP broadcasts/provider queries for non-default SMS apps:
       https://developer.android.com/about/versions/17/behavior-changes-all
       https://developer.android.com/about/versions/17/behavior-changes-17

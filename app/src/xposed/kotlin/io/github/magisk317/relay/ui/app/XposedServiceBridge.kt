@@ -13,6 +13,8 @@ import io.github.magisk317.relay.domain.diagnostics.XposedScopeAccessHolder
 import io.github.magisk317.relay.domain.diagnostics.XposedScopeState
 import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
 import io.github.magisk317.xposed.logging.XLog
+import io.github.magisk317.xposed.runtime.state.FrameworkRead
+import org.koin.core.context.GlobalContext
 import io.github.magisk317.xposed.service.FrameworkHookTargets
 import io.github.magisk317.xposed.service.ServiceState
 import io.github.magisk317.xposed.service.XposedServiceBridge as KitServiceBridge
@@ -129,13 +131,17 @@ internal object XposedServiceBridge {
         // The framework is the only side that knows which processes carry the module, so this keeps
         // the activation status independent from the hook having to reach the app through a
         // content provider the system may refuse to start.
-        FrameworkHookTargets.record(application, service)
+        runCatching { FrameworkHookTargets.record(application, service) }
+            .onFailure { error -> XLog.w(message = "Failed to record framework targets: %s", error) }
+        val signals = GlobalContext.get().get<XposedRuntimeSignals>()
+        val identity = signals.frameworkIdentity()
         XposedServiceRuntimeCoordinator.handleServiceBound(
             application = application,
             applicationScope = applicationScope,
             remotePrefsProvider = { service.getRemotePreferences(RelayPrefConst.REMOTE_PREFS_GROUP) },
-            frameworkName = service.frameworkName,
-            frameworkVersion = service.frameworkVersion,
+            frameworkName = identity.name,
+            frameworkVersion = identity.version,
+            frameworkRead = signals.currentFrameworkRead(),
         )
         InfrastructureInitializer.markEnvironmentSettled()
         PhoneProcessRestartCoordinator.requestAfterInstallOrUpdate(application, applicationScope)
@@ -144,7 +150,7 @@ internal object XposedServiceBridge {
     private fun onRetracted(application: SmsCodeApplication) {
         ProviderCallerPolicy.updateLiveScope(emptyList())
         XposedScopeAccessHolder.update(XposedScopeState())
-        XposedServiceRuntimeCoordinator.handleServiceDied(application)
+        XposedServiceRuntimeCoordinator.handleServiceDied(application, FrameworkRead.Unavailable)
         InfrastructureInitializer.markEnvironmentSettled()
     }
 
@@ -162,11 +168,12 @@ internal object XposedServiceBridge {
                 XLog.w(message = "failed to cache the live Xposed scope: ${error.message}", error)
             }
         }
+        val identity = GlobalContext.get().get<XposedRuntimeSignals>().frameworkIdentity()
         XposedScopeAccessHolder.update(
             XposedScopeState(
                 connected = true,
-                frameworkName = service.frameworkName,
-                frameworkVersion = service.frameworkVersion,
+                frameworkName = identity.name.orEmpty(),
+                frameworkVersion = identity.version.orEmpty(),
                 packages = packages,
                 refreshedAtMs = System.currentTimeMillis(),
             ),
