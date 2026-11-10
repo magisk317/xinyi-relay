@@ -1111,8 +1111,9 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
     }
 
     private fun updateState(block: (MatrixE2eeVerificationState) -> MatrixE2eeVerificationState) {
-        val before = _state.value
-        val after = block(before)
+        val transition = _state.updateWithTransition(block)
+        val before = transition.before
+        val after = transition.after
         if (before != after) {
             SLog.d(
                 TAG,
@@ -1144,7 +1145,6 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
                 )
             }
         }
-        _state.value = after
     }
 
     private fun summarizeSas(data: SessionVerificationData): SasSummary {
