@@ -38,6 +38,7 @@ dependencies {
     implementation(libs.koin.compose.viewmodel)
     implementation(libs.kotlinx.coroutines.core)
 
+    testImplementation(libs.mockk)
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.platform.launcher)
 }

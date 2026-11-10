@@ -26,6 +26,11 @@ import rikka.shizuku.Shizuku
  */
 object ShizukuGrantBridge {
 
+    fun shizukuVersion(context: Context): String? = runCatching {
+        context.packageManager.getPackageInfo(SHIZUKU_PACKAGE, 0).versionName
+            ?.trim()?.takeIf { it.isNotEmpty() && !it.equals("unknown", ignoreCase = true) }
+    }.getOrNull()
+
     private const val REQUEST_CODE = 0x5348
     private const val SHIZUKU_PACKAGE = "moe.shizuku.privileged.api"
     private const val WARMUP_DELAY_MS = 400L

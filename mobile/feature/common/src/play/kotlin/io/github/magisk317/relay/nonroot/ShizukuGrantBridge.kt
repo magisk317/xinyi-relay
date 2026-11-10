@@ -5,6 +5,8 @@ import io.github.magisk317.xposed.permission.StartupPermissionConfig
 
 /** Play builds keep the non-root flow disabled. */
 object ShizukuGrantBridge {
+
+    fun shizukuVersion(context: Context): String? = null
     fun isSupported(): Boolean = false
 
     fun isAuthorized(): Boolean = false

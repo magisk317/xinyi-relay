@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.ui.home.overview
 
+import io.github.magisk317.relay.feature.mode.StatusCardState
 import io.github.magisk317.uikit.common.showLatestSnackbar
 import io.github.magisk317.uikit.surface.AppCard
 import io.github.magisk317.uikit.surface.AppIcon
@@ -48,17 +49,23 @@ import io.github.magisk317.uikit.theme.appShape
 
 @Composable
 fun StatusCard(
-    isEnhancedModeEnabled: Boolean,
+    statusCard: StatusCardState,
     isEntitled: Boolean = false,
     showEntitlement: Boolean = true,
     onActivateClick: (() -> Unit)? = null,
     onOpenDiagnostics: (() -> Unit)? = null,
 ) {
-    val isWorking = isEnhancedModeEnabled
+    val isWorking = statusCard !is StatusCardState.Inactive
     val isAllOk = if (showEntitlement) isWorking && isEntitled else isWorking
-    val moduleStatusText = when {
-        isEnhancedModeEnabled -> stringResource(id = R.string.status_module_activated)
-        else -> stringResource(id = R.string.status_module_not_activated)
+    val moduleStatusText = when (statusCard) {
+        is StatusCardState.Framework -> listOfNotNull(
+            statusCard.identity.name ?: stringResource(R.string.overview_framework),
+            statusCard.identity.version,
+        ).joinToString(" ")
+        is StatusCardState.Shizuku -> listOfNotNull(
+            stringResource(R.string.overview_shizuku), statusCard.version,
+        ).joinToString(" ")
+        StatusCardState.Inactive -> stringResource(R.string.status_not_active)
     }
     val entitlementStatusText = if (!showEntitlement) {
         ""
@@ -76,14 +83,12 @@ fun StatusCard(
         onDiagnosticsToggle = onOpenDiagnostics,
     )
 
-    // Miuix hero card adopts the KernelSU-style oversized corner check mark shared via ui-kit
-    // (MiPush OverviewMiuix lineage). The auth state (mobile automation entitlement) drives the
-    // pass branch: entitled shows the check mark, otherwise the error mark.
+    // Runtime identity is the primary status in both styles; entitlement remains secondary.
     if (currentUiKitStyle() == UiKitStyle.Miuix) {
         MiuixStatusCheckCard(
-            passed = if (showEntitlement) isEntitled else isWorking,
-            title = if (showEntitlement) entitlementStatusText else moduleStatusText,
-            badge = if (showEntitlement) moduleStatusText else "",
+            passed = isAllOk,
+            title = moduleStatusText,
+            badge = entitlementStatusText,
             summary = when {
                 !isWorking -> stringResource(id = R.string.status_activate_hint)
                 else -> null
