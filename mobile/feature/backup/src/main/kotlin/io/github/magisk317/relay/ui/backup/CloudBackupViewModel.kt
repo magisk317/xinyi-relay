@@ -238,14 +238,17 @@ class CloudBackupViewModel(application: Application) : AndroidViewModel(applicat
         if (!canUseCloudBackup()) return
         viewModelScope.launch {
             _isLoading.value = true
-            val provider = getActiveProvider()
-            val result = provider.restoreFromBackup(backupId)
-            if (result.isSuccess) {
+            try {
+                // Providers may either return a failure or throw before producing a Result.
+                getActiveProvider().restoreFromBackup(backupId).getOrThrow()
                 _events.emit(CloudBackupEvent.RestoreSuccess)
-            } else {
-                handleDriveFailure(result.exceptionOrNull(), DriveAction.Restore(backupId), string(R.string.restore_failed))
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                handleDriveFailure(error, DriveAction.Restore(backupId), string(R.string.restore_failed))
+            } finally {
+                _isLoading.value = false
             }
-            _isLoading.value = false
         }
     }
 

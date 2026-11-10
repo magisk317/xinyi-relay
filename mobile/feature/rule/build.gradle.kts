@@ -19,6 +19,8 @@ android {
 }
 
 dependencies {
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
     implementation(project(":relay:android"))
     implementation(project(":relay:contract"))
     implementation(project(":magisk-forward-core:engine:api"))

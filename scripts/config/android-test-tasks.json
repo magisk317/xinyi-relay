@@ -43,7 +43,9 @@
     ":magisk-forward-core:contract:jvmTest",
     ":magisk-forward-core:capture:testDebugUnitTest",
     ":magisk-forward-core:runtime:testDebugUnitTest",
-    ":magisk-forward-core:db:testDebugUnitTest"
+    ":magisk-forward-core:db:testDebugUnitTest",
+    ":mobile:feature:rule:testGithubDebugUnitTest",
+    ":mobile:feature:backup:testGithubDebugUnitTest"
   ],
   "full_paths": [
     "build.gradle*",
@@ -155,7 +157,9 @@
         ":mobile:feature:scheduled:testGithubDebugUnitTest",
         ":hook:entry:testGithubDebugUnitTest",
         ":mobile:ui:testGithubDebugUnitTest",
-        ":relay:android:testGithubDebugUnitTest"
+        ":relay:android:testGithubDebugUnitTest",
+        ":mobile:feature:rule:testGithubDebugUnitTest",
+        ":mobile:feature:backup:testGithubDebugUnitTest"
       ]
     },
     {

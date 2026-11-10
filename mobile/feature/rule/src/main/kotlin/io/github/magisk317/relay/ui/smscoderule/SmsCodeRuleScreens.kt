@@ -54,7 +54,6 @@ import io.github.magisk317.uikit.preference.UrlSourceSettingsScreen
 import org.koin.compose.koinInject
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
-import java.util.regex.Pattern
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -454,40 +453,27 @@ fun SmsCodeRuleEditorScreen(
     fun saveRule() {
         if (isBuiltinRule) return
         scope.launch {
-            val normalizedCompany = company.trim().ifBlank { null }
-            val normalizedKeyword = keyword.trim()
-            val normalizedRegex = regex.trim()
-            when {
-                normalizedKeyword.isEmpty() -> {
-                    snackbarHostState.showLatestSnackbar(keywordEmptyText)
-                    return@launch
+            val validation = validateSmsCodeRuleInput(company, keyword, regex)
+            val input = validation.input
+            if (input == null) {
+                val message = when (validation.error) {
+                    SmsCodeRuleInputError.EMPTY_KEYWORD -> keywordEmptyText
+                    SmsCodeRuleInputError.EMPTY_REGEX -> regexEmptyText
+                    SmsCodeRuleInputError.INVALID_REGEX -> validation.errorMessage ?: saveFailedText
+                    null -> saveFailedText
                 }
-                normalizedRegex.isEmpty() -> {
-                    snackbarHostState.showLatestSnackbar(regexEmptyText)
-                    return@launch
-                }
-            }
-            runCatching {
-                Pattern.compile(normalizedRegex)
-            }.onFailure {
-                snackbarHostState.showLatestSnackbar(it.message ?: saveFailedText)
+                snackbarHostState.showLatestSnackbar(message)
                 return@launch
             }
-            val duplicated = repository.getAllSmsCodeRules().firstOrNull { existing ->
-                existing.id != ruleId &&
-                    existing.company.orEmpty().trim() == normalizedCompany.orEmpty() &&
-                    existing.codeKeyword.trim() == normalizedKeyword &&
-                    existing.codeRegex.trim() == normalizedRegex
-            }
-            if (duplicated != null) {
+            if (isDuplicateSmsCodeRule(input, ruleId, repository.getAllSmsCodeRules())) {
                 snackbarHostState.showLatestSnackbar(duplicateText)
                 return@launch
             }
             repository.upsertSmsCodeRule(
                 AppCodeRuleImpl(
-                    company = normalizedCompany,
-                    codeKeyword = normalizedKeyword,
-                    codeRegex = normalizedRegex,
+                    company = input.company,
+                    codeKeyword = input.keyword,
+                    codeRegex = input.regex,
                     id = ruleId,
                 ),
             )

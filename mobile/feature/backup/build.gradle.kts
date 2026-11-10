@@ -19,6 +19,10 @@ android {
 }
 
 dependencies {
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test)
     implementation(project(":mobile:core"))
     implementation(project(":mobile:feature:common"))
     implementation(project(":magisk-ui-kit"))
