@@ -2,7 +2,7 @@ module github.com/magisk317/xinyi-relay/backend/api
 
 go 1.27.0
 
-toolchain go1.27.3
+toolchain go1.27.4
 
 require (
 	github.com/gorilla/websocket v1.5.3
