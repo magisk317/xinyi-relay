@@ -1,11 +1,24 @@
 package io.github.magisk317.relay.backup
 
 import android.content.Context
+import io.github.magisk317.xposed.backup.BackupSource
+import io.github.magisk317.xposed.backup.CloudBackupMeta
+import io.github.magisk317.xposed.backup.CloudBackupProvider
+import io.github.magisk317.xposed.backup.CloudBackupSettingsStore
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.auth.AuthManager
 import io.github.magisk317.relay.backup.drive.GoogleDriveBackupConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+
+/**
+ * Relay-owned configuration seam for Google Drive: the kit intentionally does
+ * not carry a configurable-provider interface, so the relay resolver and the
+ * backup UI refresh the persisted folder path through this seam.
+ */
+interface GoogleDriveConfigurableBackupProvider {
+    fun updateGoogleDriveConfig(config: GoogleDriveBackupConfig)
+}
 
 class GoogleDriveCloudBackupProvider(
     private val context: Context,

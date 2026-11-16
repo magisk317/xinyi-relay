@@ -10,19 +10,20 @@ import io.github.magisk317.relay.auth.AuthManager
 import io.github.magisk317.relay.auth.GoogleDriveAuthorizationRequiredException
 import io.github.magisk317.relay.auth.GoogleSignInCancelledException
 import io.github.magisk317.relay.auth.GoogleSignInHelper
-import io.github.magisk317.relay.backup.BackupSource
-import io.github.magisk317.relay.backup.CloudBackupMeta
-import io.github.magisk317.relay.backup.CloudBackupProvider
-import io.github.magisk317.relay.backup.CloudBackupSettingsStore
 import io.github.magisk317.relay.backup.GoogleDriveConfigurableBackupProvider
-import io.github.magisk317.relay.backup.WebDavCloudBackupProvider
 import io.github.magisk317.relay.backup.drive.GoogleDriveBackupConfig
 import io.github.magisk317.relay.backup.drive.GoogleDriveBackupConfigStore
-import io.github.magisk317.relay.backup.webdav.WebDavConfig
-import io.github.magisk317.relay.backup.webdav.WebDavConfigStore
+import io.github.magisk317.xposed.backup.BackupSource
+import io.github.magisk317.xposed.backup.CloudBackupMeta
+import io.github.magisk317.xposed.backup.CloudBackupProvider
+import io.github.magisk317.xposed.backup.CloudBackupSettingsStore
+import io.github.magisk317.xposed.backup.webdav.WebDavCloudBackupProvider
+import io.github.magisk317.xposed.backup.webdav.WebDavConfig
+import io.github.magisk317.xposed.backup.webdav.WebDavConfigStore
 import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.relay.mobilefeature.backup.BuildConfig
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -30,6 +31,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -140,13 +142,38 @@ class CloudBackupViewModel(application: Application) : AndroidViewModel(applicat
             _events.tryEmit(CloudBackupEvent.Error(string(R.string.cloud_backup_webdav_required)))
             return null
         }
-        if (!WebDavConfigStore.saveConfig(getApplication(), normalizedConfig)) {
+        // Persist off the main thread; the UI closes the config dialog on the
+        // non-null return and a failed persist surfaces as an error event.
+        viewModelScope.launch {
+            persistWebDavConfig(normalizedConfig)
+        }
+        return normalizedConfig
+    }
+
+    fun testWebDavConfig(config: WebDavConfig) {
+        val normalizedConfig = config.normalizedOrNull()
+        if (normalizedConfig == null) {
+            _events.tryEmit(CloudBackupEvent.Error(string(R.string.cloud_backup_webdav_required)))
+            return
+        }
+        viewModelScope.launch {
+            if (persistWebDavConfig(normalizedConfig)) {
+                testWebDavConnection()
+            }
+        }
+    }
+
+    private suspend fun persistWebDavConfig(normalizedConfig: WebDavConfig): Boolean {
+        val persisted = runCatching {
+            withContext(Dispatchers.IO) { WebDavConfigStore.saveConfig(getApplication(), normalizedConfig) }
+        }.getOrDefault(false)
+        if (!persisted) {
             _events.tryEmit(CloudBackupEvent.Error(string(R.string.cloud_backup_webdav_save_failed)))
-            return null
+            return false
         }
         _webDavConfig.value = normalizedConfig
         webDavCloudBackupProvider.updateConfig(normalizedConfig)
-        return normalizedConfig
+        return true
     }
 
     fun updateGoogleDriveConfig(config: GoogleDriveBackupConfig): GoogleDriveBackupConfig {
@@ -238,14 +265,17 @@ class CloudBackupViewModel(application: Application) : AndroidViewModel(applicat
         if (!canUseCloudBackup()) return
         viewModelScope.launch {
             _isLoading.value = true
-            val provider = getActiveProvider()
-            val result = provider.restoreFromBackup(backupId)
-            if (result.isSuccess) {
+            try {
+                // Providers may either return a failure or throw before producing a Result.
+                getActiveProvider().restoreFromBackup(backupId).getOrThrow()
                 _events.emit(CloudBackupEvent.RestoreSuccess)
-            } else {
-                handleDriveFailure(result.exceptionOrNull(), DriveAction.Restore(backupId), string(R.string.restore_failed))
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                handleDriveFailure(error, DriveAction.Restore(backupId), string(R.string.restore_failed))
+            } finally {
+                _isLoading.value = false
             }
-            _isLoading.value = false
         }
     }
 
