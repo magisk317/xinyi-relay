@@ -1,5 +1,7 @@
 package io.github.magisk317.relay.ui.home.overview
 
+import io.github.magisk317.relay.feature.mode.StatusCardState
+
 internal const val CARD_STATUS = "status"
 internal const val CARD_APP_INFO = "app_info"
 internal const val CARD_DEVICE_INFO = "device_info"
@@ -30,8 +32,7 @@ internal data class OverviewUiState(
 )
 
 internal data class OverviewRuntimeUiState(
-    val frameworkType: String = "",
-    val frameworkVersion: String = "",
+    val statusCard: StatusCardState = StatusCardState.Inactive,
     val hasRootAccess: Boolean = false,
     val appVersionName: String = "",
     val commitInfo: String = "",

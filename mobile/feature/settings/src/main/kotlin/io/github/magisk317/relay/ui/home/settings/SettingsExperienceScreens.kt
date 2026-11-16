@@ -63,7 +63,7 @@ fun SettingsHomeScreen(
     onOpenVerification: () -> Unit,
     onOpenThemeSettings: () -> Unit,
     onOpenAdvancedRelay: () -> Unit,
-    onOpenCloudBackup: (io.github.magisk317.relay.backup.BackupSource?, Boolean) -> Unit = { _, _ -> },
+    onOpenCloudBackup: (io.github.magisk317.xposed.backup.BackupSource?, Boolean) -> Unit = { _, _ -> },
     onOpenDeviceControl: () -> Unit = {},
     onOpenDiagnostics: () -> Unit = {},
     onBack: (() -> Unit)? = null,
@@ -94,8 +94,8 @@ fun SettingsHomeScreen(
         isActive = isActive,
         onNavigateToCloudBackup = { source, backupNow ->
             val typedSource = when (source) {
-                BackupSourceType.GOOGLE_DRIVE -> io.github.magisk317.relay.backup.BackupSource.GOOGLE_DRIVE
-                BackupSourceType.WEBDAV -> io.github.magisk317.relay.backup.BackupSource.WEBDAV
+                BackupSourceType.GOOGLE_DRIVE -> io.github.magisk317.xposed.backup.BackupSource.GOOGLE_DRIVE
+                BackupSourceType.WEBDAV -> io.github.magisk317.xposed.backup.BackupSource.WEBDAV
                 else -> null
             }
             onOpenCloudBackup(typedSource, backupNow)

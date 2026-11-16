@@ -559,6 +559,14 @@
           "s"
         ],
         "requiredForEnable": false
+      },
+      {
+        "name": "titleTemplate",
+        "type": "TEXT",
+        "aliases": [
+          "t"
+        ],
+        "requiredForEnable": false
       }
     ]
   },
@@ -691,6 +699,14 @@
         ],
         "requiredForEnable": false,
         "defaultValue": "https://qyapi.weixin.qq.com"
+      },
+      {
+        "name": "titleTemplate",
+        "type": "TEXT",
+        "aliases": [
+          "C"
+        ],
+        "requiredForEnable": false
       }
     ]
   },
@@ -863,6 +879,14 @@
             "value": "MarkdownV2"
           }
         ]
+      },
+      {
+        "name": "titleTemplate",
+        "type": "TEXT",
+        "aliases": [
+          "title"
+        ],
+        "requiredForEnable": false
       }
     ]
   },
@@ -894,6 +918,14 @@
         ],
         "requiredForEnable": false,
         "defaultValue": "false"
+      },
+      {
+        "name": "titleTemplate",
+        "type": "TEXT",
+        "aliases": [
+          "r"
+        ],
+        "requiredForEnable": false
       }
     ]
   },

@@ -267,10 +267,10 @@
 
     <!-- preference experimental -->
     <string name="pref_experimental_title">實驗性功能</string>
-    <string name="pref_mark_as_read_title">標記為已讀 (可能不生效)</string>
-    <string name="pref_mark_as_read_summary">收到驗證碼簡訊後，嘗試將其標記為已讀。由於系統權限或定制 ROM 限制，該功能可能在某些設備上無法生效。</string>
-    <string name="pref_delete_sms_title">簡訊刪除</string>
-    <string name="pref_delete_sms_summary">警告：擷取成功后驗證碼簡訊將被刪除</string>
+    <string name="pref_mark_as_read_title">驗證碼簡訊標記為已讀</string>
+    <string name="pref_mark_as_read_summary">擷取成功後自動將驗證碼簡訊標記為已讀</string>
+    <string name="pref_delete_sms_title">驗證碼簡訊刪除</string>
+    <string name="pref_delete_sms_summary">警告：擷取成功後驗證碼簡訊將被刪除</string>
     <string name="pref_force_stop_recovery_title">強停後自恢復</string>
     <string name="pref_force_stop_recovery_summary">轉發檢測到應用被強停時，嘗試解除 stopped 並僅喚起必要背景服務（不拉起前台）。</string>
     <string name="pref_force_stop_recovery_relaunch_once_title">恢復失敗時前台拉起一次</string>
@@ -465,6 +465,24 @@
     <string name="setup_done_item_granted">已授予</string>
     <string name="setup_done_item_missing">未授予</string>
     <string name="setup_enter_app">進入應用</string>
+    <string name="setup_nonroot_hint">以下權限用於 GitHub 非 root 模式；如果 LSPosed 模組已啟用或已授予 root，可略過本頁。</string>
+    <string name="setup_nonroot_title">非 root 模式（可選）</string>
+    <string name="setup_shizuku_title">Shizuku</string>
+    <string name="setup_shizuku_unavailable_summary">未偵測到 Shizuku。請安裝並啟動 Shizuku 後返回；也可以繼續手動授權。</string>
+    <string name="setup_shizuku_available">Shizuku 可用，尚未授權。</string>
+    <string name="setup_shizuku_authorized">已授權</string>
+    <string name="setup_shizuku_request">授權 Shizuku</string>
+    <string name="setup_device_owner_title">裝置擁有者（可選）</string>
+    <string name="setup_device_owner_inactive">未啟用。</string>
+    <string name="setup_device_owner_active">已啟用。</string>
+    <string name="setup_device_owner_benefits">在自有裝置上增加防強停/隱藏卸載和權限自動授予。</string>
+    <string name="setup_device_owner_guide">查看啟用方法</string>
+    <string name="setup_device_owner_apply">套用增強策略</string>
+    <string name="setup_device_owner_guide_body">在沒有帳號的裝置上（通常恢復原廠後）透過 adb 執行一次：\n%1$s</string>
+    <string name="setup_device_owner_copy">複製命令</string>
+    <string name="setup_done_framework_mode">已啟用 LSPosed/root 模式，無需非 root 權限引導。</string>
+    <string name="setup_refresh_state">重新整理狀態</string>
+    <string name="setup_device_owner_remove_guide">之後若要解除安裝，先執行：%1$s</string>
     <string name="setup_root_skip">跳過</string>
     <string name="scheduled_task_cron_label">Cron 表達式 *</string>
     <string name="scheduled_task_cron_hint">格式：分 時 日 月 星期（例：0 10 * * 1,3 表示週一、週三 10:00）</string>
@@ -1400,7 +1418,11 @@
     <!-- translation audit end -->
     <string name="status_module_activated">模組啟用：已啟用</string>
     <string name="status_module_not_activated">模組啟用：未啟用</string>
-    <string name="status_entitlement_verified">服務鑑權：已通過</string>
+        <string name="pref_notification_access_required">需要通知使用權限才能同步消除驗證碼通知</string>
+<string name="status_framework_active">框架啟用：已啟用</string>
+    <string name="status_framework_inactive">框架啟用：未啟用</string>
+    <string name="overview_framework_unknown">未知</string>
+<string name="status_entitlement_verified">服務鑑權：已通過</string>
     <string name="status_entitlement_unverified">服務鑑權：未通過</string>
     <string name="status_activate_hint">請嘗試在 LSPosed 中啟用並勾選作用域</string>
     <string name="mobile_entitlement_settings_title">設備啟用狀態</string>

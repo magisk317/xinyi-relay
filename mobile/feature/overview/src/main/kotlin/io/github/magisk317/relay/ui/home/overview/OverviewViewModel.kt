@@ -4,9 +4,14 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.magisk317.relay.common.utils.relayPackageActions
-import io.github.magisk317.relay.contract.constant.RelayAppConst as Const
+import io.github.magisk317.relay.feature.mode.StatusCardState
+import io.github.magisk317.relay.feature.mode.RuntimeSignalRefresher
+import io.github.magisk317.relay.feature.mode.XposedRuntimeState
+import io.github.magisk317.relay.feature.mode.overviewStatusCard
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.OverviewSettingsUpdate
+import io.github.magisk317.relay.mobilefeature.overview.BuildConfig
+import io.github.magisk317.relay.nonroot.ShizukuGrantBridge
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -14,6 +19,8 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -23,6 +30,7 @@ import kotlinx.coroutines.withContext
 
 class OverviewViewModel(
     private val settingsRepository: SettingsPreferencesRepository,
+    private val runtimeSignals: RuntimeSignalRefresher,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(OverviewUiState())
@@ -31,7 +39,6 @@ class OverviewViewModel(
     private var settingsGeneration = 0L
     private var runtimeRefreshGeneration = 0L
     private val runtimeRefreshMutex = Mutex()
-    private var runtimeSnapshotLoaded = false
 
     internal fun setPageActive(active: Boolean) {
         if (pageActive == active) return
@@ -82,16 +89,44 @@ class OverviewViewModel(
         }
     }
 
+    /** Called only while the page is RESUMED; cancellation stops observing the runtime flows. */
+    internal suspend fun observeRuntimeSnapshot(context: Context) {
+        refreshRuntimeSnapshot(context)
+        val initial = _uiState.value.runtimeSnapshot
+        // Shizuku probes are resume-frozen: the status card already encodes online+authorized,
+        // and the app-info card derives its framework rows from the same state.
+        val shizukuState = initial.statusCard as? StatusCardState.Shizuku
+        val shizukuAuthorized = shizukuState != null
+        val shizukuOnline = shizukuAuthorized
+        val shizukuVersion = shizukuState?.version
+        XposedRuntimeState.xposedActive.collect { xposed ->
+            runtimeRefreshMutex.withLock {
+                if (!pageActive) return@withLock
+                // Binding/listener callbacks already refreshed these signals. Re-read only their
+                // display values here; full Shizuku, root and version probes happen once per resume.
+                val statusCard = overviewStatusCard(
+                    xposedActive = xposed,
+                    framework = runtimeSignals.frameworkIdentity(),
+                    nonRootBuild = BuildConfig.ENABLE_NONROOT_MODE,
+                    shizukuOnline = shizukuOnline,
+                    shizukuAuthorized = shizukuAuthorized,
+                    shizukuVersion = shizukuVersion,
+                )
+                _uiState.update { state ->
+                    state.copy(runtimeSnapshot = state.runtimeSnapshot.copy(statusCard = statusCard))
+                }
+            }
+        }
+    }
+
     internal suspend fun refreshRuntimeSnapshot(context: Context) {
         if (!pageActive) return
-        if (runtimeSnapshotLoaded) return
         runtimeRefreshMutex.withLock {
-            if (!pageActive || runtimeSnapshotLoaded) return@withLock
+            if (!pageActive) return@withLock
             val generation = ++runtimeRefreshGeneration
-            val runtimeSnapshot = loadOverviewRuntimeUiState(context = context)
+            val runtimeSnapshot = loadOverviewRuntimeUiState(context = context, runtimeSignals = runtimeSignals)
             currentCoroutineContext().ensureActive()
             if (!pageActive || generation != runtimeRefreshGeneration) return@withLock
-            runtimeSnapshotLoaded = true
             _uiState.update { it.copy(runtimeSnapshot = runtimeSnapshot) }
         }
     }
@@ -169,31 +204,26 @@ class OverviewViewModel(
 
 private suspend fun loadOverviewRuntimeUiState(
     context: Context,
+    runtimeSignals: RuntimeSignalRefresher,
 ): OverviewRuntimeUiState = withContext(Dispatchers.IO) {
+    runtimeSignals.refresh()
     coroutineScope {
-        val frameworkInfoDeferred = async { relayPackageActions.getLsposedModuleInfo(context) }
         val hasRootAccessDeferred = async { relayPackageActions.hasRootAccess() }
         val appVersionNameDeferred = async {
             relayPackageActions.getPackageVersion(context, context.packageName)?.first
         }
-
-        val frameworkInfo = frameworkInfoDeferred.await()
-        val frameworkType = frameworkInfo?.first ?: context.getString(io.github.magisk317.relay.mobile.core.R.string.unknown)
-        val frameworkVersion = frameworkInfo?.second ?: run {
-            val lsposedVersion = relayPackageActions.getPackageVersion(context, Const.LSPOSED_MANAGER_PACKAGE_NAME)
-            when {
-                lsposedVersion != null && lsposedVersion.first.isNotBlank() ->
-                    "${lsposedVersion.first} (${lsposedVersion.second})"
-
-                relayPackageActions.isPackageInstalled(context, Const.LSPOSED_MANAGER_PACKAGE_NAME) ->
-                    context.getString(io.github.magisk317.relay.mobile.core.R.string.unknown)
-
-                else -> context.getString(io.github.magisk317.relay.mobile.core.R.string.not_installed)
-            }
-        }
+        val xposedActive = XposedRuntimeState.xposedActive.value
+        val shizukuOnline = BuildConfig.ENABLE_NONROOT_MODE && ShizukuGrantBridge.isSupported()
+        val shizukuAuthorized = shizukuOnline && ShizukuGrantBridge.isAuthorized()
         OverviewRuntimeUiState(
-            frameworkType = frameworkType,
-            frameworkVersion = frameworkVersion,
+            statusCard = overviewStatusCard(
+                xposedActive = xposedActive,
+                framework = runtimeSignals.frameworkIdentity(),
+                nonRootBuild = BuildConfig.ENABLE_NONROOT_MODE,
+                shizukuOnline = shizukuOnline,
+                shizukuAuthorized = shizukuAuthorized,
+                shizukuVersion = if (shizukuAuthorized) ShizukuGrantBridge.shizukuVersion(context) else null,
+            ),
             hasRootAccess = hasRootAccessDeferred.await(),
             appVersionName = appVersionNameDeferred.await()?.takeIf { it.isNotBlank() }
                 ?: context.getString(io.github.magisk317.relay.mobile.core.R.string.unknown),

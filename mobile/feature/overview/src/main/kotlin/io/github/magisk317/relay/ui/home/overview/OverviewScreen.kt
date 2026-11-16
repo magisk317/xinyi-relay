@@ -14,7 +14,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import androidx.activity.compose.LocalActivity
-import io.github.magisk317.relay.feature.mode.XposedRuntimeState
+import io.github.magisk317.relay.feature.mode.StatusCardState
 import io.github.magisk317.uikit.foundation.LocalSnackbarHostState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -67,7 +67,6 @@ import io.github.magisk317.uikit.surface.AppIcon
 import io.github.magisk317.uikit.surface.AppIconButton
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
-import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -116,9 +115,6 @@ fun OverviewScreen(
         isActive = isActive,
         dataStoreReader = ::readEntitlementAutomationAllowed,
     )
-
-    val xposedActive by XposedRuntimeState.xposedActive.collectAsStateWithLifecycle()
-    val isEnabled = xposedActive
 
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -177,15 +173,13 @@ fun OverviewScreen(
             return@LaunchedEffect
         }
         lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-            viewModel.refreshRuntimeSnapshot(
-                context = context,
-            )
-            awaitCancellation()
+            viewModel.observeRuntimeSnapshot(context)
         }
     }
     val cardOrder = overviewUiState.cardOrder
     val enabledCardIds = overviewUiState.enabledCardIds
     val runtimeUiState = overviewUiState.runtimeSnapshot
+    val frameworkInfo = frameworkInfoRows(runtimeUiState.statusCard)
     val editMode = overviewUiState.editMode
 
     val visibleCardIds = remember(cardOrder, enabledCardIds) {
@@ -237,11 +231,11 @@ fun OverviewScreen(
                 cardOrder = cardOrder,
                 enabledCardIds = enabledCardIds,
                 editMode = editMode,
-                isEnabled = isEnabled,
+                statusCard = runtimeUiState.statusCard,
                 appVersionName = runtimeUiState.appVersionName,
                 commitInfo = runtimeUiState.commitInfo,
-                frameworkType = runtimeUiState.frameworkType,
-                frameworkVersion = runtimeUiState.frameworkVersion,
+                frameworkType = frameworkInfo.first,
+                frameworkVersion = frameworkInfo.second,
                 hasRootAccess = runtimeUiState.hasRootAccess,
                 mobileAutomationAllowed = mobileAutomationAllowed,
                 showEntitlement = entitlementUiAvailable,
@@ -318,7 +312,7 @@ private fun OverviewContent(
     cardOrder: List<String>,
     enabledCardIds: Set<String>,
     editMode: Boolean,
-    isEnabled: Boolean,
+    statusCard: StatusCardState,
     appVersionName: String,
     commitInfo: String,
     frameworkType: String,
@@ -369,7 +363,7 @@ private fun OverviewContent(
                 cardOrder = cardOrder,
                 enabledCardIds = enabledCardIds,
                 editMode = editMode,
-                isEnabled = isEnabled,
+                statusCard = statusCard,
                 appVersionName = appVersionName,
                 commitInfo = commitInfo,
                 frameworkType = frameworkType,
@@ -402,7 +396,7 @@ private fun OverviewCardItem(
     cardOrder: List<String>,
     enabledCardIds: Set<String>,
     editMode: Boolean,
-    isEnabled: Boolean,
+    statusCard: StatusCardState,
     appVersionName: String,
     commitInfo: String,
     frameworkType: String,
@@ -471,7 +465,7 @@ private fun OverviewCardItem(
         when (spec.id) {
             CARD_STATUS -> {
                 StatusCard(
-                    isEnhancedModeEnabled = isEnabled,
+                    statusCard = statusCard,
                     isEntitled = mobileAutomationAllowed,
                     showEntitlement = showEntitlement,
                     onActivateClick = if (editMode) {

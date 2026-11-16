@@ -49,7 +49,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import io.github.magisk317.relay.backup.BackupSource
+import io.github.magisk317.xposed.backup.BackupSource
 import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.relay.mobileui.BuildConfig
 import io.github.magisk317.relay.ui.home.appconfig.AppConfigDetailScreen

@@ -1,5 +1,6 @@
 package io.github.magisk317.relay.ui.home.overview
 
+import io.github.magisk317.relay.feature.mode.StatusCardState
 import io.github.magisk317.uikit.common.showLatestSnackbar
 import io.github.magisk317.uikit.surface.AppCard
 import io.github.magisk317.uikit.surface.AppIcon
@@ -48,18 +49,19 @@ import io.github.magisk317.uikit.theme.appShape
 
 @Composable
 fun StatusCard(
-    isEnhancedModeEnabled: Boolean,
+    statusCard: StatusCardState,
     isEntitled: Boolean = false,
     showEntitlement: Boolean = true,
     onActivateClick: (() -> Unit)? = null,
     onOpenDiagnostics: (() -> Unit)? = null,
 ) {
-    val isWorking = isEnhancedModeEnabled
+    val isWorking = statusCard !is StatusCardState.Inactive
     val isAllOk = if (showEntitlement) isWorking && isEntitled else isWorking
-    val moduleStatusText = when {
-        isEnhancedModeEnabled -> stringResource(id = R.string.status_module_activated)
-        else -> stringResource(id = R.string.status_module_not_activated)
-    }
+    // Title always carries both state lines: framework activation here, service entitlement
+    // as the secondary line. The framework identity itself lives in the app-info card rows.
+    val moduleStatusText = stringResource(
+        if (isWorking) R.string.status_framework_active else R.string.status_framework_inactive,
+    )
     val entitlementStatusText = if (!showEntitlement) {
         ""
     } else if (isEntitled) {
@@ -76,14 +78,12 @@ fun StatusCard(
         onDiagnosticsToggle = onOpenDiagnostics,
     )
 
-    // Miuix hero card adopts the KernelSU-style oversized corner check mark shared via ui-kit
-    // (MiPush OverviewMiuix lineage). The auth state (mobile automation entitlement) drives the
-    // pass branch: entitled shows the check mark, otherwise the error mark.
+    // Runtime identity is the primary status in both styles; entitlement remains secondary.
     if (currentUiKitStyle() == UiKitStyle.Miuix) {
         MiuixStatusCheckCard(
-            passed = if (showEntitlement) isEntitled else isWorking,
-            title = if (showEntitlement) entitlementStatusText else moduleStatusText,
-            badge = if (showEntitlement) moduleStatusText else "",
+            passed = isAllOk,
+            title = moduleStatusText,
+            badge = entitlementStatusText,
             summary = when {
                 !isWorking -> stringResource(id = R.string.status_activate_hint)
                 else -> null
@@ -169,4 +169,18 @@ fun InfoItem(icon: ImageVector, label: String, value: String, onClick: (() -> Un
             )
         }
     }
+}
+
+
+/** App-info card framework rows; 未知 placeholders when no runtime is in use. */
+@Composable
+internal fun frameworkInfoRows(statusCard: StatusCardState): Pair<String, String> = when (statusCard) {
+    is StatusCardState.Framework -> {
+        val unknown = stringResource(R.string.overview_framework_unknown)
+        (statusCard.identity.name ?: unknown) to (statusCard.identity.version ?: unknown)
+    }
+    is StatusCardState.Shizuku -> stringResource(R.string.overview_shizuku) to
+        (statusCard.version ?: stringResource(R.string.overview_framework_unknown))
+    StatusCardState.Inactive -> stringResource(R.string.overview_framework_unknown) to
+        stringResource(R.string.overview_framework_unknown)
 }

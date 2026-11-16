@@ -155,6 +155,7 @@ const SENDER_FIELD_SCHEMAS: Record<number, SenderFieldSchema[]> = {
     field('atAll', 'boolean', '艾特所有人', 'Mention all'),
     field('atUserIds', 'textarea', '艾特成员 ID', 'Mention user IDs', { rows: 3 }),
     field('atMobiles', 'textarea', '艾特手机号', 'Mention mobiles', { rows: 3 }),
+    field('titleTemplate', 'text', '标题模板', 'Title template'),
   ],
   5: [
     field('corpID', 'text', '企业 ID', 'Corp ID'),
@@ -171,6 +172,7 @@ const SENDER_FIELD_SCHEMAS: Record<number, SenderFieldSchema[]> = {
     field('proxyAuthenticator', 'boolean', '代理鉴权', 'Proxy auth'),
     field('proxyUsername', 'text', '代理用户名', 'Proxy username'),
     field('proxyPassword', 'text', '代理密码', 'Proxy password'),
+    field('titleTemplate', 'text', '标题模板', 'Title template'),
   ],
   6: [
     field('sendKey', 'text', 'SendKey', 'SendKey'),
@@ -191,11 +193,13 @@ const SENDER_FIELD_SCHEMAS: Record<number, SenderFieldSchema[]> = {
     field('proxyAuthenticator', 'boolean', '代理鉴权', 'Proxy auth'),
     field('proxyUsername', 'text', '代理用户名', 'Proxy username'),
     field('proxyPassword', 'text', '代理密码', 'Proxy password'),
+    field('titleTemplate', 'text', '标题模板', 'Title template'),
   ],
   8: [
     field('simSlot', 'number', 'SIM 卡槽', 'SIM slot'),
     field('mobiles', 'textarea', '目标号码', 'Target numbers', { rows: 3 }),
     field('onlyNoNetwork', 'boolean', '仅无网络时发送', 'Only when no network'),
+    field('titleTemplate', 'text', '标题模板', 'Title template'),
   ],
   9: [
     field('webhook', 'text', 'Webhook 地址', 'Webhook URL'),

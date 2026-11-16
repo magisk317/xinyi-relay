@@ -270,10 +270,10 @@
 
     <!-- preference experimental -->
     <string name="pref_experimental_title">Experimental</string>
-    <string name="pref_mark_as_read_title">Mark as read (Experimental, may not work)</string>
-    <string name="pref_mark_as_read_summary">Attempt to mark the verification code SMS as read. Due to system limitations, this feature may not work on some devices.</string>
-    <string name="pref_delete_sms_title">Delete SMS</string>
-    <string name="pref_delete_sms_summary">Warning! Code SMS will be deleted if extract succeed</string>
+    <string name="pref_mark_as_read_title">Mark code SMS as read</string>
+    <string name="pref_mark_as_read_summary">Automatically mark verification code SMS as read after extraction</string>
+    <string name="pref_delete_sms_title">Delete code SMS</string>
+    <string name="pref_delete_sms_summary">Warning! Code SMS will be deleted if extraction succeeds</string>
     <string name="pref_force_stop_recovery_title">Force-stop self recovery</string>
     <string name="pref_force_stop_recovery_summary">When forwarding detects app force-stopped, try to unstop and wake required background service only.</string>
     <string name="pref_force_stop_recovery_relaunch_once_title">Relaunch once on recovery failure</string>
@@ -468,6 +468,24 @@
     <string name="setup_done_item_granted">Granted</string>
     <string name="setup_done_item_missing">Not granted</string>
     <string name="setup_enter_app">Enter the app</string>
+    <string name="setup_nonroot_hint">These permissions are for the GitHub non-root mode. Skip this page if the LSPosed module is active or root is already granted.</string>
+    <string name="setup_nonroot_title">Non-root mode (optional)</string>
+    <string name="setup_shizuku_title">Shizuku</string>
+    <string name="setup_shizuku_unavailable_summary">Shizuku was not detected. Install and start Shizuku, then return here. Manual grants still work.</string>
+    <string name="setup_shizuku_available">Shizuku is available but not authorized.</string>
+    <string name="setup_shizuku_authorized">Authorized</string>
+    <string name="setup_shizuku_request">Authorize Shizuku</string>
+    <string name="setup_device_owner_title">Device owner (optional)</string>
+    <string name="setup_device_owner_inactive">Not enabled.</string>
+    <string name="setup_device_owner_active">Enabled.</string>
+    <string name="setup_device_owner_benefits">Adds force-stop/uninstall protection and permission auto-grant on devices you own.</string>
+    <string name="setup_device_owner_guide">How to enable</string>
+    <string name="setup_device_owner_apply">Apply enhanced policies</string>
+    <string name="setup_device_owner_guide_body">Set the device owner once from adb on a device without accounts (usually after a factory reset):\n%1$s</string>
+    <string name="setup_device_owner_copy">Copy command</string>
+    <string name="setup_done_framework_mode">LSPosed/root mode is active; no non-root permission setup is needed.</string>
+    <string name="setup_refresh_state">Refresh status</string>
+    <string name="setup_device_owner_remove_guide">To remove it later, first run: %1$s</string>
     <string name="setup_root_skip">Skip</string>
     <string name="scheduled_task_cron_label">Cron expression *</string>
     <string name="scheduled_task_cron_hint">Format: minute hour day month weekday (example: 0 10 * * 1,3 means Monday and Wednesday 10:00)</string>
@@ -1453,7 +1471,11 @@
 
     <string name="status_module_activated">Module status: Activated</string>
     <string name="status_module_not_activated">Module status: Not Activated</string>
-    <string name="status_entitlement_verified">Entitlement: Verified</string>
+        <string name="pref_notification_access_required">Notification access is required to clear code SMS notifications</string>
+<string name="status_framework_active">Framework: active</string>
+    <string name="status_framework_inactive">Framework: inactive</string>
+    <string name="overview_framework_unknown">Unknown</string>
+<string name="status_entitlement_verified">Entitlement: Verified</string>
     <string name="status_entitlement_unverified">Entitlement: Unverified</string>
     <string name="status_activate_hint">Please enable module and scope in LSPosed</string>
     <string name="app_config_sort_mode">Sort by</string>
