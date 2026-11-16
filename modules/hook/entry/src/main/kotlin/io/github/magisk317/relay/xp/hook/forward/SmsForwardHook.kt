@@ -37,6 +37,7 @@ import io.github.magisk317.xposed.runtime.contract.logging.LogRoute
 import io.github.magisk317.xposed.logging.XLog
 import kotlinx.coroutines.runBlocking
 import java.lang.reflect.Method
+import io.github.magisk317.smscode.runtime.verification.BoundedSmsRetryQueue
 import java.util.concurrent.Executors
 
 /**
@@ -57,7 +58,19 @@ class SmsForwardHook : BaseHook() {
         val prepared: io.github.magisk317.relay.xpbridge.PreparedSmsHookDispatch,
     )
 
-    private val smsOperationExecutor = Executors.newSingleThreadExecutor()
+    private val smsOperationExecutor = Executors.newSingleThreadScheduledExecutor()
+    private val blockedSmsRecovery = BoundedSmsRetryQueue(
+        scheduler = smsOperationExecutor,
+        onFinished = { eventId, reason, attempts ->
+            XLog.w(
+                message = "Blocked SMS recovery: event_id=%s result=%s attempts=%d",
+                eventId,
+                reason.name.lowercase(),
+                attempts,
+            )
+        },
+    )
+
     private val runtimeSession: SmsHookRuntimeSession = XinyiHookHostCapabilities.smsHookRuntimeSession
     private val inboundSmsBlocker = InboundSmsBlocker(SMS_HANDLER_CLASS)
     private val parsedCodeSmsForwarder = ParsedCodeSmsForwarder()
@@ -71,7 +84,11 @@ class SmsForwardHook : BaseHook() {
                 eventId = eventId,
             )
         },
-        parsedCodeForwarder = parsedCodeSmsForwarder::forwardIfCodeSms,
+        parsedCodeForwarder = { pluginContext, phoneContext, smsMsg, intent, eventId ->
+            blockedSmsRecovery.submit(eventId) {
+                parsedCodeSmsForwarder.forwardIfCodeSms(pluginContext, phoneContext, smsMsg, intent, eventId)
+            }
+        },
     )
     @Volatile
     private var suppressionLogged = false
@@ -578,6 +595,7 @@ class SmsForwardHook : BaseHook() {
     }
 
     override fun onHotReloading() {
+        blockedSmsRecovery.close()
         smsOperationExecutor.shutdownNow()
         runtimeSession.reset()
     }

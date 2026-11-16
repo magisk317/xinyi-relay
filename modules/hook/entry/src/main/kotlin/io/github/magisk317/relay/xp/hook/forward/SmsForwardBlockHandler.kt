@@ -93,31 +93,28 @@ internal class SmsForwardBlockHandler(
             return Outcome(suppressForward = true)
         }
 
+        if (reason == SmsBlockEvaluator.BLOCK_REASON_PREF_BLOCK) {
+            val smsMsg = evaluation.smsMsg
+            // True means a bounded asynchronous recovery queue took responsibility, not that
+            // a receiver already delivered the broadcast. Never delete before that admission.
+            val accepted = smsMsg != null && parsedCodeForwarder(
+                request.pluginContext,
+                request.phoneContext,
+                smsMsg,
+                request.intent,
+                request.eventId,
+            )
+            if (!accepted) {
+                XLog.w(message = "SMS block skipped: recovery unavailable event_id=%s", request.eventId)
+                emit(result = "skip", reason = "recovery_unavailable")
+                return Outcome()
+            }
+        }
         val blocked = inboundBlocker(inbound, receiver, reason, request.eventId)
         if (!blocked) {
             XLog.w(message = "SmsForwardHook block aborted: cleanup incomplete event_id=%s", request.eventId)
             emit(result = "error", statusOk = false, reason = "cleanup_incomplete")
             return Outcome(suppressForward = true)
-        }
-        if (reason == SmsBlockEvaluator.BLOCK_REASON_PREF_BLOCK) {
-            evaluation.smsMsg?.let { smsMsg ->
-                // The forwarder answers whether it took the message. On the block path a false
-                // means the suppressed SMS produced no forwarded copy, so it is logged instead of
-                // being dropped on the floor.
-                val forwarded = parsedCodeForwarder(
-                    request.pluginContext,
-                    request.phoneContext,
-                    smsMsg,
-                    request.intent,
-                    request.eventId,
-                )
-                if (!forwarded) {
-                    XLog.w(
-                        message = "SmsForwardHook block: code-sms forwarder took nothing event_id=%s",
-                        request.eventId,
-                    )
-                }
-            }
         }
         emit(result = "ok", reason = reason)
         return Outcome(

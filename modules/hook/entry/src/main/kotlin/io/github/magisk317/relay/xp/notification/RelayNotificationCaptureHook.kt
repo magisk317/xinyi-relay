@@ -13,6 +13,7 @@ import io.github.magisk317.relay.xp.hook.helper.XinyiHookHostCapabilities
 import io.github.magisk317.smscode.rule.model.SmsCodeParseSource
 import io.github.magisk317.smscode.rule.model.SmsCodeParseSourceKind
 import io.github.magisk317.smscode.xposed.hook.telephony.SmsHookCapabilities
+import java.util.Locale
 import io.github.magisk317.xposed.capture.CapturedNotification
 import io.github.magisk317.xposed.capture.DefaultNotificationCapturePolicy
 import io.github.magisk317.xposed.capture.NotificationCaptureEmit
@@ -296,6 +297,16 @@ class RelayNotificationCaptureHook(
     )
 
     private class RelayNotificationCapturePolicy : DefaultNotificationCapturePolicy() {
+        override fun skipReason(capture: CapturedNotification, isPriorityRoute: Boolean): String? {
+            // The hook itself posts the code notification on the relay_notification channel
+            // (phone-process NotifyAction); letting it re-enter the capture pipeline records
+            // a duplicate event for every verification code.
+            if (capture.channelId.trim().lowercase(Locale.ROOT) == RELAY_NOTIFICATION_CHANNEL_ID) {
+                return REASON_RELAY_OWNED
+            }
+            return super.skipReason(capture, isPriorityRoute)
+        }
+
         override fun isGroupSummaryBypassed(packageName: String): Boolean = packageName == WECHAT_PACKAGE
     }
 
@@ -303,6 +314,8 @@ class RelayNotificationCaptureHook(
         const val TAG = "RelayNotificationCaptureHook"
         const val EVENT_PREFIX = "nms"
         const val WECHAT_PACKAGE = "com.tencent.mm"
+        const val RELAY_NOTIFICATION_CHANNEL_ID = "relay_notification"
+        const val REASON_RELAY_OWNED = "relay_owned"
         const val CALL_SOURCE_REPORT_INTERVAL_MS = 10_000L
         const val NOTIFY_REPORT_INTERVAL_MS = 1_000L
         const val DIAG_ENTRY_FORMAT = "Diag nms_hook entry: event_id=%s pkg=%s route=%s"

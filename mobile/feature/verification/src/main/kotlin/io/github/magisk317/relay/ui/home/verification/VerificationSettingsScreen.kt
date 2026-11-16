@@ -66,6 +66,7 @@ import io.github.magisk317.uikit.theme.currentUiKitStyle
 import io.github.magisk317.relay.mobilefeature.verification.BuildConfig
 import io.github.magisk317.relay.feature.mode.FeatureGate
 import io.github.magisk317.relay.feature.mode.FeatureGate.Feature.*
+import io.github.magisk317.relay.feature.mode.NonRootRuntimeState
 import io.github.magisk317.relay.feature.mode.XposedRuntimeState
 import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
 import io.github.magisk317.relay.ui.common.normalizeIntegerInput
@@ -102,9 +103,17 @@ fun VerificationSettingsScreen(
     }
     val accordionMode = rememberPrefBoolean(PrefConst.KEY_SETTINGS_ACCORDION_MODE, true)
     val xposedActive by XposedRuntimeState.xposedActive.collectAsStateWithLifecycle()
-    val canCopyToClipboard = FeatureGate.isAvailable(COPY_CODE_TO_CLIPBOARD, xposedActive)
+    val nonRootActive by NonRootRuntimeState.active.collectAsStateWithLifecycle()
+    val canCopyToClipboard = FeatureGate.isAvailable(
+        COPY_CODE_TO_CLIPBOARD,
+        xposedActive,
+        nonRootActive = nonRootActive,
+    )
     val canBlockSms = FeatureGate.isAvailable(BLOCK_SMS, xposedActive)
+    val canMarkAsRead = FeatureGate.isAvailable(MARK_AS_READ, xposedActive)
+    val canDeleteSms = FeatureGate.isAvailable(DELETE_SMS, xposedActive)
     val xposedDisabledHint = stringResource(R.string.feature_requires_xposed)
+    val notificationAccessHint = stringResource(R.string.pref_notification_access_required)
     var settings by remember { mutableStateOf<VerificationSettingsSnapshot?>(null) }
     var recordSettings by remember { mutableStateOf<RecordSettingsSnapshot?>(null) }
     var showDelayDialog by remember { mutableStateOf(false) }
@@ -597,6 +606,49 @@ fun VerificationSettingsScreen(
                 ) { enabled ->
                     scope.launch {
                         settings = repository.updateVerificationSettings(VerificationSettingsUpdate(blockSmsEnabled = enabled))
+                        notifySaved()
+                    }
+                }
+                StateSwitchItem(
+                    title = stringResource(id = R.string.pref_mark_as_read_title),
+                    summary = if (canMarkAsRead) {
+                        stringResource(id = R.string.pref_mark_as_read_summary)
+                    } else {
+                        stringResource(id = R.string.pref_mark_as_read_summary) + "\n" + xposedDisabledHint
+                    },
+                    checked = current.markAsReadEnabled && canMarkAsRead,
+                    enabled = current.verificationFeaturesEnabled && canMarkAsRead,
+                ) { enabled ->
+                    scope.launch {
+                        settings = repository.updateVerificationSettings(VerificationSettingsUpdate(markAsReadEnabled = enabled))
+                        notifySaved()
+                    }
+                    if (enabled) {
+                        val listenerComponent = ComponentName(
+                            context,
+                            io.github.magisk317.relay.service.AppNotificationListenerService::class.java,
+                        )
+                        if (!NonRootRuntimeState.isListenerEnabledInSettings(context, listenerComponent.flattenToString())) {
+                            scope.launch { snackbarHostState.showLatestSnackbar(notificationAccessHint) }
+                            context.startActivity(
+                                android.content.Intent(android.provider.Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
+                                    .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+                            )
+                        }
+                    }
+                }
+                StateSwitchItem(
+                    title = stringResource(id = R.string.pref_delete_sms_title),
+                    summary = if (canDeleteSms) {
+                        stringResource(id = R.string.pref_delete_sms_summary)
+                    } else {
+                        stringResource(id = R.string.pref_delete_sms_summary) + "\n" + xposedDisabledHint
+                    },
+                    checked = current.deleteSmsEnabled && canDeleteSms,
+                    enabled = current.verificationFeaturesEnabled && canDeleteSms,
+                ) { enabled ->
+                    scope.launch {
+                        settings = repository.updateVerificationSettings(VerificationSettingsUpdate(deleteSmsEnabled = enabled))
                         notifySaved()
                     }
                 }

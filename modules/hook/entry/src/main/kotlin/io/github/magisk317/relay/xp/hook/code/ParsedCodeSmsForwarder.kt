@@ -11,6 +11,8 @@ import io.github.magisk317.relay.xpbridge.XpMessageTypes
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.xposed.logging.MagiskOtel
 import kotlinx.coroutines.runBlocking
+import java.util.Collections
+import java.util.WeakHashMap
 
 internal class ParsedCodeSmsForwarder(
     private val smsForwardPreparer: suspend (Context, Context, SmsMsg, Intent, String) -> PreparedSmsHookDispatch? =
@@ -56,6 +58,26 @@ internal class ParsedCodeSmsForwarder(
     private val parsedForwardMarker: (Intent) -> Unit = SmsForwardConvergence::markParsedSmsForwardDispatched,
 ) {
     fun forwardIfCodeSms(
+        pluginContext: Context,
+        phoneContext: Context,
+        smsMsg: SmsMsg,
+        sourceIntent: Intent,
+        eventId: String,
+    ): Boolean {
+        // Separate instances serve the live and recovery hooks. Claim only the Intent identity;
+        // never hold this lock while provider preparation or broadcast dispatch may block.
+        synchronized(inFlight) {
+            if (SmsForwardConvergence.wasParsedSmsForwardDispatched(sourceIntent)) return true
+            if (!inFlight.add(sourceIntent)) return false
+        }
+        return try {
+            forwardClaimed(pluginContext, phoneContext, smsMsg, sourceIntent, eventId)
+        } finally {
+            synchronized(inFlight) { inFlight.remove(sourceIntent) }
+        }
+    }
+
+    private fun forwardClaimed(
         pluginContext: Context,
         phoneContext: Context,
         smsMsg: SmsMsg,
@@ -118,7 +140,7 @@ internal class ParsedCodeSmsForwarder(
 
         val dispatched = smsForwardDispatcher(pluginContext, preparedForward, eventId)
         if (dispatched) {
-            parsedForwardMarker(sourceIntent)
+            synchronized(inFlight) { parsedForwardMarker(sourceIntent) }
             emit(
                 result = "ok",
                 statusOk = true,
@@ -134,5 +156,11 @@ internal class ParsedCodeSmsForwarder(
             )
         }
         return dispatched
+    }
+
+    private companion object {
+        // Intent keeps Object equality (filterEquals is a separate Android API), so keys are
+        // identities. Weak keys also avoid retaining an intercepted message after cancellation.
+        val inFlight: MutableSet<Intent> = Collections.newSetFromMap(WeakHashMap<Intent, Boolean>())
     }
 }

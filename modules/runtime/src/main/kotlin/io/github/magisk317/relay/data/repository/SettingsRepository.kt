@@ -72,6 +72,8 @@ class SettingsRepository(
                 PrefConst.SMSCODE_KEYWORDS_DEFAULT,
             ),
             blockSmsEnabled = preferenceDataSource.getBoolean(PrefConst.KEY_BLOCK_SMS, false),
+            markAsReadEnabled = preferenceDataSource.getBoolean(PrefConst.KEY_MARK_AS_READ, false),
+            deleteSmsEnabled = preferenceDataSource.getBoolean(PrefConst.KEY_DELETE_SMS, false),
         )
     }
 
@@ -92,6 +94,8 @@ class SettingsRepository(
             update.autoInputInterval?.let { set(HookPreferenceSpecs.autoInputInterval, it) }
             update.relayKeywords?.let { set(VerificationPreferenceSpecs.relayKeywords, it) }
             update.blockSmsEnabled?.let { set(VerificationPreferenceSpecs.blockSms, it) }
+            update.markAsReadEnabled?.let { set(VerificationPreferenceSpecs.markAsRead, it) }
+            update.deleteSmsEnabled?.let { set(VerificationPreferenceSpecs.deleteSms, it) }
         }
         handleVerificationCommitResult(result)
         return getVerificationSettings()
@@ -759,4 +763,6 @@ private object VerificationPreferenceSpecs {
     )
     val relayKeywords = PreferenceSpec.string(PrefConst.KEY_SMSCODE_KEYWORDS, PrefConst.SMSCODE_KEYWORDS_DEFAULT)
     val blockSms = PreferenceSpec.boolean(PrefConst.KEY_BLOCK_SMS, false)
+    val markAsRead = PreferenceSpec.boolean(PrefConst.KEY_MARK_AS_READ, false)
+    val deleteSms = PreferenceSpec.boolean(PrefConst.KEY_DELETE_SMS, false)
 }

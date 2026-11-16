@@ -16,6 +16,8 @@ import io.github.magisk317.relay.xp.hook.code.SmsHandlerHook
 import io.github.magisk317.relay.xp.hook.forward.SmsForwardHook
 import io.github.magisk317.relay.xp.hook.me.ModuleUtilsHook
 import io.github.magisk317.relay.xp.hook.mms.MmsMessagesHook
+import io.github.magisk317.relay.xp.hook.helper.XinyiBugleReadStateHost
+import io.github.magisk317.smscode.xposed.hook.vendor.MiuiBugleReadStateHook
 import io.github.magisk317.relay.xp.hook.helper.XinyiHookHostCapabilities
 import io.github.magisk317.relay.xp.hook.keepalive.RelayKeepAliveHook
 import io.github.magisk317.relay.xp.hook.telephony.SmsProviderHook
@@ -57,6 +59,7 @@ class LibXposedEntry : BaseLibXposedEntry {
     override val hooks: List<BaseHook> = listOf(
         SmsHandlerHook(),
         MmsMessagesHook(),
+        MiuiBugleReadStateHook(XinyiBugleReadStateHost),
         SmsForwardHook(),
         ModuleUtilsHook(),
         PermissionGranterHook(),

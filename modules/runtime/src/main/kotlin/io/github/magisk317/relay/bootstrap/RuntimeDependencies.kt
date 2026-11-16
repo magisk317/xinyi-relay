@@ -2,7 +2,7 @@ package io.github.magisk317.relay.bootstrap
 
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.AppDatabase
-import io.github.magisk317.relay.contract.backup.AutoBackupTrigger
+import io.github.magisk317.xposed.backup.AutoBackupTrigger
 import io.github.magisk317.relay.contract.repository.ConfigSyncCoordinator
 import io.github.magisk317.relay.contract.repository.LocalConfigRepository
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository

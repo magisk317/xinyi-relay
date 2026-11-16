@@ -96,6 +96,14 @@ object RelayPreferenceHooks : AppPreferencesHooks {
             )
             editor.putBoolean(PrefConst.KEY_BLOCK_SMS, AppPreferencesDataStore.getBoolean(context, PrefConst.KEY_BLOCK_SMS, false))
             editor.putBoolean(
+                PrefConst.KEY_MARK_AS_READ,
+                AppPreferencesDataStore.getBoolean(context, PrefConst.KEY_MARK_AS_READ, false),
+            )
+            editor.putBoolean(
+                PrefConst.KEY_DELETE_SMS,
+                AppPreferencesDataStore.getBoolean(context, PrefConst.KEY_DELETE_SMS, false),
+            )
+            editor.putBoolean(
                 PrefConst.KEY_SHOW_CODE_NOTIFICATION,
                 AppPreferencesDataStore.getBoolean(context, PrefConst.KEY_SHOW_CODE_NOTIFICATION, true),
             )
