@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+TOOLKIT_DIR="${MAGISK_CI_TOOLKIT_DIR:-$("$ROOT_DIR/scripts/resolve_ci_toolkit.sh")}"
 VERSION_FILE="$ROOT_DIR/gradle/libs.versions.toml"
 FASTLANE_ROOT="$ROOT_DIR/fastlane/metadata/android"
 MODE="write"
@@ -62,18 +63,18 @@ if [[ -z "$VERSION_CODE" ]]; then
   exit 2
 fi
 
+sync_args=(--root "$ROOT_DIR")
+if [[ "$MODE" == "check" ]]; then
+  sync_args+=(--check)
+fi
+bash "$TOOLKIT_DIR/release/sync_fastlane_changelogs.sh" "${sync_args[@]}"
+
 sync_locale() {
   local locale="$1"
-  local whatsnew_source="$2"
-  local art_source="$3"
+  local art_source="$2"
   local locale_root="$FASTLANE_ROOT/$locale"
-  local changelog_target="$locale_root/changelogs/$VERSION_CODE.txt"
   local screenshots_dir="$locale_root/images/phoneScreenshots"
 
-  if [[ ! -f "$whatsnew_source" ]]; then
-    fail "missing source file: $whatsnew_source"
-    return
-  fi
   if [[ ! -d "$art_source" ]]; then
     fail "missing screenshot source directory: $art_source"
     return
@@ -87,23 +88,36 @@ sync_locale() {
   fi
 
   if [[ "$MODE" == "write" ]]; then
-    mkdir -p "$locale_root/changelogs" "$screenshots_dir"
-    cp "$whatsnew_source" "$changelog_target"
-    find "$screenshots_dir" -maxdepth 1 -type f -name '*.png' -delete
+    mkdir -p "$screenshots_dir"
+    local -a expected_targets=()
     local i=1
     local src=""
     for src in "${files[@]}"; do
-      cp "$src" "$screenshots_dir/${i}.png"
+      local target="$screenshots_dir/${i}.png"
+      expected_targets+=("$target")
+      if [[ ! -f "$target" ]] || ! cmp -s "$src" "$target"; then
+        cp "$src" "$target"
+        echo "SYNC: $locale screenshot $i"
+      fi
       i=$((i + 1))
     done
-    echo "SYNC: $locale changelog and ${#files[@]} screenshots"
+    local existing keep
+    for existing in "$screenshots_dir"/*.png; do
+      [[ -f "$existing" ]] || continue
+      keep=false
+      for target in "${expected_targets[@]}"; do
+        if [[ "$existing" == "$target" ]]; then
+          keep=true
+          break
+        fi
+      done
+      if [[ "$keep" != true ]]; then
+        rm -- "$existing"
+        echo "REMOVE: stale $locale screenshot ${existing##*/}"
+      fi
+    done
+    echo "VERIFIED: $locale screenshots match the source set (${#files[@]} files)"
     return
-  fi
-
-  if [[ ! -f "$changelog_target" ]]; then
-    fail "missing target changelog: $changelog_target"
-  elif ! cmp -s "$whatsnew_source" "$changelog_target"; then
-    fail "changelog out of sync for $locale: $changelog_target"
   fi
 
   if [[ ! -d "$screenshots_dir" ]]; then
@@ -129,18 +143,16 @@ sync_locale() {
   if [[ "$actual_count" != "$expected_count" ]]; then
     fail "unexpected screenshot count for $locale: expected=$expected_count actual=$actual_count"
   else
-    echo "CHECK: $locale changelog and screenshots are synchronized"
+    echo "CHECK: $locale screenshots are synchronized"
   fi
 }
 
 sync_locale \
   "en-US" \
-  "$ROOT_DIR/distribution/whatsnew/whatsnew-en-US" \
   "$ROOT_DIR/docs/assets/common"
 
 sync_locale \
   "zh-CN" \
-  "$ROOT_DIR/distribution/whatsnew/whatsnew-zh-CN" \
   "$ROOT_DIR/docs/assets/common"
 
 if (( STATUS != 0 )); then

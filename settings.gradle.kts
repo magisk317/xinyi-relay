@@ -78,11 +78,15 @@ include(
     ":smscode-core:contract",
     ":smscode-core:runtime",
     ":smscode-core:verification",
+    ":smscode-core:verification-runtime",
     ":smscode-core:db",
     ":magisk-ui-kit",
     ":magisk-ui-kit:billing",
     ":magisk-ui-kit:update",
+    ":magisk-ui-kit:backup",
     ":magisk-xposed-kit",
+    ":magisk-xposed-kit:backup",
+    ":magisk-xposed-kit:backup-webdav",
     ":magisk-xposed-kit:contract",
     ":magisk-xposed-kit:logging",
     ":magisk-xposed-kit:diagnostics",
@@ -115,9 +119,12 @@ project(":smscode-core:domain").projectDir = file("smscode/core/domain")
 project(":smscode-core:contract").projectDir = file("smscode/core/contract")
 project(":smscode-core:runtime").projectDir = file("smscode/core/runtime")
 project(":smscode-core:verification").projectDir = file("smscode/core/verification")
+project(":smscode-core:verification-runtime").projectDir = file("smscode/core/verification-runtime")
 project(":smscode-core:db").projectDir = file("smscode/core/db")
 project(":smscode-core").projectDir = file("smscode/core")
 project(":magisk-xposed-kit:contract").projectDir = file("magisk-xposed-kit/contract")
+project(":magisk-xposed-kit:backup").projectDir = file("magisk-xposed-kit/backup")
+project(":magisk-xposed-kit:backup-webdav").projectDir = file("magisk-xposed-kit/backup-webdav")
 project(":magisk-xposed-kit:logging").projectDir = file("magisk-xposed-kit/logging")
 project(":magisk-xposed-kit:capture").projectDir = file("magisk-xposed-kit/capture")
 project(":magisk-xposed-kit:diagnostics").projectDir = file("magisk-xposed-kit/diagnostics")
@@ -140,6 +147,7 @@ project(":magisk-xposed-kit:entitlement").projectDir = file("magisk-xposed-kit/e
 project(":magisk-xposed-kit:keepalive").projectDir = file("magisk-xposed-kit/keepalive")
 project(":magisk-ui-kit:billing").projectDir = file("magisk-ui-kit/billing")
 project(":magisk-ui-kit:update").projectDir = file("magisk-ui-kit/update")
+project(":magisk-ui-kit:backup").projectDir = file("magisk-ui-kit/backup")
 
 // Explicitly remap moved android libraries physical paths to 'modules/'
 project(":policy").projectDir = file("modules/policy")

@@ -19,9 +19,15 @@ android {
 }
 
 dependencies {
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.platform.launcher)
+    testImplementation(libs.mockk)
+    testImplementation(libs.kotlinx.coroutines.test)
     implementation(project(":mobile:core"))
     implementation(project(":mobile:feature:common"))
     implementation(project(":magisk-ui-kit"))
+    implementation(project(":magisk-ui-kit:backup"))
+    implementation(project(":magisk-xposed-kit:backup-webdav"))
     implementation(libs.androidx.material.icons.core)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.koin.android)

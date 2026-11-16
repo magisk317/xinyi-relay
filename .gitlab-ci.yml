@@ -1,31 +1,31 @@
 include:
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "faaef5053270cf29bcf3d6568c52a8592386e230"
+    ref: "ae9df2649ee47934c35f676439e1ffd9528db604"
     file: /.gitlab/ci/android.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "faaef5053270cf29bcf3d6568c52a8592386e230"
+    ref: "ae9df2649ee47934c35f676439e1ffd9528db604"
     file: /.gitlab/ci/android-release.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "faaef5053270cf29bcf3d6568c52a8592386e230"
+    ref: "ae9df2649ee47934c35f676439e1ffd9528db604"
     file: /.gitlab/ci/telegram.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "faaef5053270cf29bcf3d6568c52a8592386e230"
+    ref: "ae9df2649ee47934c35f676439e1ffd9528db604"
     file: /.gitlab/ci/renovate.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "faaef5053270cf29bcf3d6568c52a8592386e230"
+    ref: "ae9df2649ee47934c35f676439e1ffd9528db604"
     file: /.gitlab/ci/cancel-mr-pipelines.yml
   # Utility-job anchor (alpine, pinned): the GitHub mirror and the README-badge
   # job extend it instead of pinning their own image. Language-tool jobs
   # (backend:go, webui:check, the docker/node jobs) keep their own pinned tool
   # images by design.
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "faaef5053270cf29bcf3d6568c52a8592386e230"
+    ref: "ae9df2649ee47934c35f676439e1ffd9528db604"
     file: /.gitlab/ci/utility.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "faaef5053270cf29bcf3d6568c52a8592386e230"
+    ref: "ae9df2649ee47934c35f676439e1ffd9528db604"
     file: /.gitlab/ci/github-sync.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: "faaef5053270cf29bcf3d6568c52a8592386e230"
+    ref: "ae9df2649ee47934c35f676439e1ffd9528db604"
     file: /.gitlab/ci/readme-badges.yml
 
 workflow:
@@ -51,7 +51,7 @@ stages:
 
 variables:
   MAGISK_CI_TOOLKIT_REPOSITORY: "https://gitlab.com/magisk3171/shared/magisk-ci-toolkit.git"
-  MAGISK_CI_TOOLKIT_REF: "faaef5053270cf29bcf3d6568c52a8592386e230"
+  MAGISK_CI_TOOLKIT_REF: "ae9df2649ee47934c35f676439e1ffd9528db604"
   MAGISK_CANCEL_OLDER_MR_PIPELINES: "true"
   # Cancel the merged MR's own merge_request_event pipeline from the push
   # pipeline that lands the merge. GitLab has no cancel-on-merge hook and
@@ -243,39 +243,18 @@ variables:
   # jpackage and jlink included). Keep "-resolute" so the OS base stays Ubuntu
   # 26.04 and "_<build>" so the two runners cannot drift -- they pull
   # if-not-present. See "CI Java Runtime" in AGENTS.md for the fallback recipe.
-  image: "eclipse-temurin:27_35-jdk-resolute"
+  image: "registry.gitlab.com/magisk3171/shared/magisk-ci-toolkit/android-jdk:27_35"
   before_script:
     - |
       set -euo pipefail
-      export DEBIAN_FRONTEND=noninteractive
-      use_mirror="${MAGISK_LINUX_USE_MIRROR:-true}"
-      if [[ "$use_mirror" == "true" ]]; then
-        sed -i \
-          -e 's#http://deb.debian.org/debian-security#https://mirrors.tuna.tsinghua.edu.cn/debian-security#g' \
-          -e 's#http://security.debian.org/debian-security#https://mirrors.tuna.tsinghua.edu.cn/debian-security#g' \
-          -e 's#http://deb.debian.org/debian#https://mirrors.tuna.tsinghua.edu.cn/debian#g' \
-          -e 's#http://archive.ubuntu.com/ubuntu#https://mirrors.tuna.tsinghua.edu.cn/ubuntu#g' \
-          -e 's#http://security.ubuntu.com/ubuntu#https://mirrors.tuna.tsinghua.edu.cn/ubuntu#g' \
-          /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
-        if ! apt-get -o APT::Update::Error-Mode=any update; then
-          echo "Mirror apt-get update failed, falling back to official sources" >&2
-          sed -i \
-            -e 's#https://mirrors.tuna.tsinghua.edu.cn/debian-security#http://deb.debian.org/debian-security#g' \
-            -e 's#https://mirrors.tuna.tsinghua.edu.cn/debian#http://deb.debian.org/debian#g' \
-            -e 's#https://mirrors.tuna.tsinghua.edu.cn/ubuntu#http://archive.ubuntu.com/ubuntu#g' \
-            /etc/apt/sources.list /etc/apt/sources.list.d/*.sources 2>/dev/null || true
-          apt-get -o APT::Update::Error-Mode=any update
-        fi
-      else
-        apt-get -o APT::Update::Error-Mode=any update
-      fi
-      apt-get install -y --no-install-recommends git dpkg fakeroot
-      rm -rf /var/lib/apt/lists/*
+      # The JDK (jpackage/jlink included) plus git, fakeroot, zip and
+      # unzip are pre-baked into the android-jdk CI image
+      # (toolkit docker/ci/Dockerfile); no apt traffic at job time.
     - chmod +x scripts/ci/gitlab_desktop_kmp_package.sh
 
 backend:go:
   extends: .xinyi_backend_validation_rules
-  image: "golang:1.27.3-bookworm"
+  image: "golang:1.27.4-bookworm"
   stage: build
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
@@ -465,7 +444,7 @@ desktop:release:gitlab:
 
 webui:check:
   extends: .xinyi_android_rules
-  image: "oven/bun:1.4.4-alpine"
+  image: "registry.gitlab.com/magisk3171/shared/magisk-ci-toolkit/webui-bun:1.4.4"
   stage: quality
   tags:
     - $XINYI_GITLAB_LINUX_ARM64_RUNNER_TAG
@@ -497,7 +476,6 @@ webui:check:
     paths:
       - .bun-cache/
   script:
-    - apk add --no-cache bash ca-certificates git
     - export MAGISK_CI_TOOLKIT_DIR="$(bash scripts/resolve_ci_toolkit.sh)"
     - export BUN_CONFIG_REGISTRY="${BUN_CONFIG_REGISTRY:-https://registry.npmmirror.com}"
     - bash "$MAGISK_CI_TOOLKIT_DIR/ci/ensure_bun.sh" frontend/webui/package.json
@@ -532,6 +510,9 @@ android:build:
   extends:
     - .magisk_android_build
     - .xinyi_signed_android_rules
+    # Last so its job-level rules win over the anchors above; the shared
+    # anchor skips MR/renovate/schedule pipelines and gates on signing creds.
+    - .magisk_android_build_rules
   tags:
     - $XINYI_BUILD_RUNNER_TAG
   # The registry has to serve the catalog's rustls-platform-verifier version
@@ -542,20 +523,6 @@ android:build:
     - job: rustls-platform-verifier:publish
       optional: true
       artifacts: false
-  rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: never
-    # Job-level rules replace the ones inherited via extends, so the
-    # renovate/schedule exclusions from .xinyi_ci_rules must be restated
-    # here. Without them every renovate branch push and every scheduled
-    # pipeline burned a full ~20min android:build on the shared arm64
-    # runner, even for webui-only dependency bumps.
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH =~ /^renovate\//'
-      when: never
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
-      when: never
-    - if: '$CI_COMMIT_BRANCH && $RELEASE_KEYSTORE != "" && $STORE_PASSWORD != "" && $KEY_ALIAS != "" && $KEY_PASSWORD != ""'
-    - when: never
   variables:
     MAGISK_IS_CI_BUILD: "true"
     MAGISK_ANDROID_BUILD_TASKS: >-
@@ -611,6 +578,18 @@ android:check:
       :app:compileGithubDebugKotlin
       -PskipGoogleServices=true
 
+uikit:duplicates:
+  extends:
+    - .magisk_utility_base
+    - .xinyi_android_rules
+  stage: quality
+  tags:
+    - $XINYI_ANDROID_TEST_RUNNER_TAG
+  before_script:
+    - apk add --no-cache bash ca-certificates curl git python3
+  script:
+    - python3 magisk-ui-kit/tools/uikit_governance.py check-app "$CI_PROJECT_DIR" --name xinyi-relay --kit "$CI_PROJECT_DIR/magisk-ui-kit"
+
 cancel:older:mr:pipelines:
   extends: .magisk_cancel_older_mr_pipelines
 
@@ -622,12 +601,12 @@ cancel:older:mr:pipelines:
   # Switchable via XINYI_ANDROID_TEST_RUNNER_TAG (see variables above).
   tags:
     - $XINYI_ANDROID_TEST_RUNNER_TAG
-  # Wait for automatic Renovate delivery when present; the optional manual
-  # Play action on human beta pipelines does not block this quality job.
+  # Prioritize build so compilation fails fast and releases/APKs are produced
+  # first; detekt and tests run automatically after build and do not depend on
+  # delivery or manual release actions.
   needs:
-    - job: android:ci:publish-play
+    - job: android:build
       artifacts: false
-      optional: true
     # Also wait for the rustls-platform-verifier publish: the selected test
     # tasks compile the app, which resolves the catalog's AAR.
     - job: rustls-platform-verifier:publish
@@ -637,16 +616,19 @@ cancel:older:mr:pipelines:
     - |
       set -euo pipefail
       : "${MAGISK_GRADLE_ARGS:=--warning-mode all}"
-      mapfile -t selected_tasks < <(
-        python3 "$MAGISK_CI_TOOLKIT_DIR/ci/select_gradle_tasks.py" \
+      # Preserve selector failure instead of treating a failed subprocess as an empty selection.
+      if ! selected="$(python3 "$MAGISK_CI_TOOLKIT_DIR/ci/select_gradle_tasks.py" \
           --root "$CI_PROJECT_DIR" \
           --toolkit "$MAGISK_CI_TOOLKIT_DIR" \
-          --config "$CI_PROJECT_DIR/scripts/config/android-test-tasks.json"
-      )
-      if ((${#selected_tasks[@]} == 0)); then
+          --config "$CI_PROJECT_DIR/scripts/config/android-test-tasks.json")"; then
+        echo "the test task selector failed; refusing to report a passing job with no tests" >&2
+        exit 1
+      fi
+      if [[ -z "$selected" ]]; then
         echo "No Android test tasks selected for this change."
         exit 0
       fi
+      mapfile -t selected_tasks <<< "$selected"
       bash "$MAGISK_CI_TOOLKIT_DIR/gradle/run_gradle_with_retry.sh" $MAGISK_GRADLE_ARGS \
         "${selected_tasks[@]}" -PskipGoogleServices=true
   artifacts:
@@ -700,12 +682,12 @@ android:detekt:
   stage: quality
   tags:
     - $XINYI_BUILD_RUNNER_TAG
-  # Wait for automatic Renovate delivery when present; the optional manual
-  # Play action on human beta pipelines does not block this quality job.
+  # Prioritize build so compilation fails fast and releases/APKs are produced
+  # first; detekt and tests run automatically after build and do not depend on
+  # delivery or manual release actions.
   needs:
-    - job: android:ci:publish-play
+    - job: android:build
       artifacts: false
-      optional: true
     # Detekt resolves the compile classpath, so it needs the catalog's
     # rustls-platform-verifier AAR to exist first.
     - job: rustls-platform-verifier:publish
@@ -916,14 +898,10 @@ android:release:apk:
       optional: true
       artifacts: false
   artifacts:
+    # Only the name is job-specific; when/expire_in/paths inherit the shared
+    # .magisk_android_release_apk defaults (mapping.txt included there). The
+    # aab job keeps its own block because it does not extend the template.
     name: "XinyiRelay-release-apks-$CI_COMMIT_TAG"
-    when: always
-    expire_in: 30 days
-    paths:
-      - app/build/outputs/apk/**/release/*.apk
-      - app/build/outputs/apk/**/debug/*.apk
-      - app/build/outputs/mapping/**/mapping.txt
-      - play-release.env
 
 android:release:aab:
   extends:
@@ -1221,10 +1199,6 @@ sync:github:
   needs:
     - job: android:release:guard
       optional: true
-    - job: android:release:apk
-      artifacts: true
-    - job: android:release:aab
-      artifacts: true
   variables:
     # Written out rather than reused from MAGISK_ANDROID_RELEASE_GITHUB_REPOSITORY:
     # the mirror target is its own contract and must not follow a release setting.

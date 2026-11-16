@@ -61,6 +61,8 @@ androidComponents {
 }
 
 dependencies {
+    api(project(":magisk-xposed-kit:backup-webdav"))
+    api(project(":magisk-ui-kit:backup"))
     implementation(project(":magisk-xposed-kit:logging"))
     implementation(project(":magisk-xposed-kit:capability"))
     implementation(project(":policy"))
@@ -77,6 +79,7 @@ dependencies {
     implementation(project(":smscode-core:db"))
     implementation(project(":smscode-core:runtime"))
     implementation(project(":smscode-core:verification"))
+    implementation(project(":smscode-core:verification-runtime"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.room.runtime)
     implementation(libs.kotlinx.serialization.json)

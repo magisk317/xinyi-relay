@@ -62,7 +62,11 @@ kotlin {
             kotlin.srcDir(generatedDesktopBuildConfig)
         }
         jvmMain.dependencies {
-            implementation(compose.desktop.currentOs)
+            // Compose publishes desktop runtimes through these platform-neutral artifacts;
+            // native packaging filters binaries for its target operating system.
+            implementation(libs.compose.desktop.ui)
+            implementation(libs.compose.desktop.foundation)
+            implementation(libs.compose.desktop.material)
             implementation(libs.compose.desktop.material3)
             implementation(libs.compose.desktop.material.icons.extended)
             implementation(project(":relay:contract"))

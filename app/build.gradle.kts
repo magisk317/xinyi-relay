@@ -176,6 +176,7 @@ dependencies {
     implementation(project(":magisk-xposed-kit:logging"))
     implementation(project(":magisk-xposed-kit:capability"))
     implementation(project(":smscode-core:runtime"))
+    implementation(project(":smscode-core:verification-runtime"))
     implementation(project(":smscode-core:verification"))
     implementation(project(":magisk-forward-core:engine"))
 
@@ -197,6 +198,8 @@ dependencies {
     add("playImplementation", libs.google.id)
     add("githubImplementation", platform(libs.firebase.bom))
     add("githubImplementation", libs.firebase.analytics)
+    add("githubImplementation", libs.shizuku.api)
+    add("githubImplementation", libs.shizuku.provider)
 
     listOf("play", "github").forEach { flavor ->
         add("${flavor}Implementation", project(":hook:entry"))

@@ -20,6 +20,7 @@ dependencies {
     implementation(project(":relay:contract"))
     implementation(project(":mobile:core"))
     implementation(project(":runtime"))
+    implementation(project(":policy"))
     implementation(project(":magisk-ui-kit"))
     implementation(project(":mobile:feature:common"))
     implementation(libs.androidx.material.icons.core)

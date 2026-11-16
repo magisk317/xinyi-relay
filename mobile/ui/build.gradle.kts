@@ -39,6 +39,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":policy"))
     implementation(libs.okhttp)
     implementation(project(":magisk-xposed-kit:logging"))
     implementation(project(":magisk-xposed-kit:runtime"))

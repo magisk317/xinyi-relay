@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 TOOLKIT_DIR="$("$ROOT_DIR/scripts/resolve_ci_toolkit.sh")"
+export MAGISK_CI_TOOLKIT_DIR="$TOOLKIT_DIR"
 bash "$TOOLKIT_DIR/ci/verify_toolkit_pin.sh" --root "$ROOT_DIR"
 
 # Source the toolkit's modular release tag
