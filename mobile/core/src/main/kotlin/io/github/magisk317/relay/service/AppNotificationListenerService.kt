@@ -1,14 +1,22 @@
 package io.github.magisk317.relay.service
 
+import android.app.Notification
 import android.content.ComponentName
 import android.content.Context
 import android.os.PowerManager
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
+import io.github.magisk317.relay.android.sms.SmsCodeUtils as RelaySmsCodeUtils
+import io.github.magisk317.relay.contract.constant.RelayPrefConst
+import io.github.magisk317.smscode.rule.model.SmsCodeParseSource
+import io.github.magisk317.smscode.rule.model.SmsCodeParseSourceKind
+import io.github.magisk317.smscode.runtime.common.prefs.AppPreferencesDataStore
+import io.github.magisk317.smscode.runtime.verification.CodeNotificationReadCoordinator
 import io.github.magisk317.xposed.runtime.state.RuntimeStateStore
 import io.github.magisk317.xposed.logging.XLog
 import io.github.magisk317.relay.mobile.core.BuildConfig
 import io.github.magisk317.relay.feature.reminder.SpecialAlertCoordinator
+import io.github.magisk317.relay.feature.mode.NonRootRuntimeState
 import io.github.magisk317.relay.platform.ipc.AppNotificationIngressAdapter
 import io.github.magisk317.relay.platform.ipc.ForwardBroadcastDispatcher
 import io.github.magisk317.xposed.logging.MagiskOtel
@@ -24,6 +32,7 @@ class AppNotificationListenerService : NotificationListenerService() {
 
     override fun onListenerConnected() {
         super.onListenerConnected()
+        NonRootRuntimeState.onListenerConnected()
         XLog.i("AppNotificationListenerService connected")
         emitNotify(
             result = "ok",
@@ -34,6 +43,7 @@ class AppNotificationListenerService : NotificationListenerService() {
 
     override fun onListenerDisconnected() {
         super.onListenerDisconnected()
+        NonRootRuntimeState.onListenerDisconnected()
         XLog.w("AppNotificationListenerService disconnected, requestRebind")
         val rebound = runCatching {
             requestRebind(ComponentName(this, AppNotificationListenerService::class.java))
@@ -54,6 +64,18 @@ class AppNotificationListenerService : NotificationListenerService() {
         super.onNotificationPosted(sbn)
 
         serviceScope.launch {
+            // Mark-as-read runs on the raw sbn BEFORE ingress filtering: the adapter may skip
+            // or reclassify telephony-posted notifications, but the notification-side backup
+            // must see every SMS-app notification regardless.
+            runCatching { maybeMarkSmsNotificationRead(applicationContext, sbn) }
+                .onFailure { error ->
+                    XLog.w(
+                        message = "NLS: notification mark-as-read failed pkg=%s err=%s",
+                        sbn.packageName,
+                        error.message ?: error.javaClass.simpleName,
+                    )
+                }
+
             val startedAt = System.nanoTime()
             val payload = AppNotificationIngressAdapter.toPayloadWithParsedSmsCode(applicationContext, sbn)
                 ?: return@launch
@@ -145,8 +167,61 @@ class AppNotificationListenerService : NotificationListenerService() {
     }
 
     override fun onDestroy() {
+        NonRootRuntimeState.onListenerDisconnected()
         serviceScope.cancel()
         super.onDestroy()
+    }
+
+    /**
+     * App-side backup of the mark-as-read pipeline: when the hook-side DB write leaves the
+     * SMS app's notification standing (vendor apps that keep unread state outside the
+     * telephony provider), click the app's own mark-as-read semantic action, or cancel the
+     * notification when the app exposes none. No-ops unless the user enabled mark-as-read.
+     */
+    private suspend fun maybeMarkSmsNotificationRead(
+        context: Context,
+        sbn: StatusBarNotification,
+    ) {
+        if (!AppPreferencesDataStore.getBoolean(
+                context,
+                RelayPrefConst.KEY_MARK_AS_READ,
+                false,
+            )
+        ) {
+            return
+        }
+        val notification = sbn.notification ?: return
+        val extras = notification.extras
+        val title = extras?.getCharSequence(Notification.EXTRA_TITLE)
+        val text = extras?.getCharSequence(Notification.EXTRA_TEXT)
+            ?: extras?.getCharSequence(Notification.EXTRA_BIG_TEXT)
+        val decision = CodeNotificationReadCoordinator(
+            codeParser = { input ->
+                RelaySmsCodeUtils.parseSmsCodeIfExists(
+                    context,
+                    input,
+                    source = SmsCodeParseSource(
+                        packageName = sbn.packageName,
+                        sourceKind = SmsCodeParseSourceKind.APP_NOTIFICATION,
+                    ),
+                ).takeIf { it.isNotBlank() }
+            },
+            actionSender = { action -> action.actionIntent?.send() },
+        ).maybeMarkAsRead(
+            packageName = sbn.packageName,
+            title = title,
+            text = text,
+            notification = notification,
+        )
+        if (decision == CodeNotificationReadCoordinator.Decision.NO_READ_ACTION) {
+            runCatching { cancelNotification(sbn.key) }.onFailure { error ->
+                XLog.w(
+                    message = "NLS: notification cancel failed pkg=%s err=%s",
+                    sbn.packageName,
+                    error.message ?: error.javaClass.simpleName,
+                )
+            }
+        }
     }
 
     private fun acquireWakeLock(): PowerManager.WakeLock? {

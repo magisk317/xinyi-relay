@@ -8,6 +8,7 @@ import io.github.magisk317.smscode.runtime.common.appentry.SecretCodeEntry
 
 class SecretCodeReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action != SecretCodeEntry.ACTION_SECRET_CODE) return
         SecretCodeEntry.onReceive(context, intent, MainActivity::class.java)
     }
 }

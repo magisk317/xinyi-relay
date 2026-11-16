@@ -20,6 +20,7 @@ object RelayAppConst {
 
     const val LSPOSED_MANAGER_PACKAGE_NAME = "org.lsposed.manager"
     const val LSPOSED_RELEASE_URL = "https://github.com/LSPosed/LSPosed/releases/latest"
+    const val SHIZUKU_MANAGER_PACKAGE_NAME = "moe.shizuku.privileged.api"
     const val XPOSED_SMSCODE_PACKAGE_NAME = "com.github.tianma8023.xposed.smscode"
     const val TARGET_RELAY_PACKAGE = XPOSED_SMSCODE_PACKAGE_NAME
 

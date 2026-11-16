@@ -32,6 +32,8 @@ data class VerificationSettingsSnapshot(
     val autoInputInterval: String,
     val relayKeywords: String,
     val blockSmsEnabled: Boolean,
+    val markAsReadEnabled: Boolean,
+    val deleteSmsEnabled: Boolean,
 )
 
 @Serializable
@@ -48,6 +50,8 @@ data class VerificationSettingsUpdate(
     val autoInputInterval: String? = null,
     val relayKeywords: String? = null,
     val blockSmsEnabled: Boolean? = null,
+    val markAsReadEnabled: Boolean? = null,
+    val deleteSmsEnabled: Boolean? = null,
 )
 
 // ── Relay ────────────────────────────────────────────────────────────────────

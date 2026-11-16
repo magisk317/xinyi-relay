@@ -1,26 +1,27 @@
 package io.github.magisk317.relay.feature.mode
 
 import android.content.Context
+import android.os.SystemClock
+import io.github.magisk317.xposed.runtime.state.FrameworkRead
 import io.github.magisk317.xposed.runtime.state.RuntimeStateStore
+import io.github.magisk317.xposed.runtime.state.XposedActivation
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/**
- * Tracks whether the Xposed runtime is currently live.
- *
- * Xposed is the only runtime path: with no active hook runtime there is
- * nothing to forward through, so every Xposed-backed feature stays off. The
- * state is published as a plain boolean so callers cannot keep re-deriving
- * the answer from an enum that no longer says anything.
- */
+/** Publishes current hook activity from the fresh framework read and this boot's heartbeat. */
 object XposedRuntimeState {
     private val _xposedActive = MutableStateFlow(false)
     val xposedActive: StateFlow<Boolean> = _xposedActive.asStateFlow()
 
-    /** Recomputes the activation state, publishes it, and returns the fresh value. */
-    fun refresh(context: Context): Boolean {
-        val active = RuntimeStateStore.isModuleActivated(context)
+    fun refresh(context: Context, frameworkRead: FrameworkRead): Boolean {
+        val now = System.currentTimeMillis()
+        val active = XposedActivation.isActive(
+            frameworkRead = frameworkRead,
+            lastHeartbeatAtMs = RuntimeStateStore.snapshot(context).lastHookAtMs,
+            nowMs = now,
+            bootStartMs = now - SystemClock.elapsedRealtime(),
+        )
         _xposedActive.value = active
         return active
     }
