@@ -91,11 +91,12 @@ class SmsForwardBlockHandlerTest {
     }
 
     @Test
-    fun handle_forwardsParsedCodeCopyAfterPrefBlock() {
+    fun handle_acceptsRecoveryBeforePrefBlock() {
         installSilentXpLogSink()
         val contexts = relaxedHookContexts()
         val smsMsg = hookSmsMsg(sender = "10001", body = "code 123456", smsCode = "123456")
         var parsedForwardedSms: SmsMsg? = null
+        val order = mutableListOf<String>()
         val handler = handler(
             result = result(
                 smsMsg = smsMsg,
@@ -105,9 +106,10 @@ class SmsForwardBlockHandlerTest {
             ),
             parsedCodeForwarder = { _, _, msg, _, _ ->
                 parsedForwardedSms = msg
+                order += "accept"
                 true
             },
-            inboundBlocker = { _, _, _, _ -> true },
+            inboundBlocker = { _, _, _, _ -> order += "block"; true },
         )
 
         val outcome = handler.handle(request(contexts.pluginContext, contexts.phoneContext))
@@ -115,6 +117,31 @@ class SmsForwardBlockHandlerTest {
         assertTrue(outcome.suppressForward)
         assertTrue(outcome.inboundBlocked)
         assertSame(smsMsg, parsedForwardedSms)
+        assertEquals(listOf("accept", "block"), order)
+    }
+
+    @Test
+    fun handle_preservesOriginalDeliveryWhenRecoveryCannotAcceptPrefBlock() {
+        installSilentXpLogSink()
+        val contexts = relaxedHookContexts()
+        var blocked = false
+        val handler = handler(
+            result = result(
+                smsMsg = hookSmsMsg(body = "code 123456", smsCode = "123456"),
+                blacklistResult = blacklist(),
+                blockReason = SmsBlockEvaluator.BLOCK_REASON_PREF_BLOCK,
+                decision = decision(SmsHandlerDispatchDecision.BlockReason.PREF_BLOCK),
+            ),
+            parsedCodeForwarder = { _, _, _, _, _ -> false },
+            inboundBlocker = { _, _, _, _ -> blocked = true; true },
+        )
+
+        val outcome = handler.handle(request(contexts.pluginContext, contexts.phoneContext))
+
+        assertFalse(blocked)
+        assertFalse(outcome.inboundBlocked)
+        assertFalse(outcome.shouldSetMethodResult)
+        assertFalse(outcome.suppressForward)
     }
 
     @Test

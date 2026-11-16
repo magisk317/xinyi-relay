@@ -8,6 +8,7 @@ import io.github.magisk317.relay.xpbridge.XpSharedRuntimeGate
 import io.github.magisk317.smscode.runtime.verification.SmsCodePostParseCoordinator
 import io.github.magisk317.smscode.verification.SmsInboxObserverDecision
 import io.github.magisk317.smscode.verification.SmsDuplicateCheckResult
+import io.github.magisk317.smscode.verification.SmsProcessingClaims
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -31,6 +32,7 @@ class ObservedSmsHandlerTest {
         val handler = ObservedSmsHandler(
             pluginContext = pluginContext,
             phoneContext = phoneContext,
+            processingClaims = SmsProcessingClaims(),
             settingsLoader = { settings() },
             planFactory = { observedPlan() },
             moduleEnabledReader = { true },
@@ -59,6 +61,7 @@ class ObservedSmsHandlerTest {
         val handler = ObservedSmsHandler(
             pluginContext = pluginContext,
             phoneContext = phoneContext,
+            processingClaims = SmsProcessingClaims(),
             settingsLoader = { settings(recordSmsEnabled = true, deduplicateSmsEnabled = false) },
             planFactory = { observedPlan(autoInputEnabled = true, shouldRecord = true) },
             moduleEnabledReader = { true },
@@ -113,6 +116,7 @@ class ObservedSmsHandlerTest {
         val handler = ObservedSmsHandler(
             pluginContext = pluginContext,
             phoneContext = phoneContext,
+            processingClaims = SmsProcessingClaims(),
             settingsLoader = { settings() },
             planFactory = { observedPlan() },
             moduleEnabledReader = { true },
@@ -138,6 +142,7 @@ class ObservedSmsHandlerTest {
         val handler = ObservedSmsHandler(
             pluginContext = pluginContext,
             phoneContext = phoneContext,
+            processingClaims = SmsProcessingClaims(),
             settingsLoader = { settings() },
             planFactory = { observedPlan() },
             moduleEnabledReader = { true },
@@ -163,6 +168,7 @@ class ObservedSmsHandlerTest {
         val handler = ObservedSmsHandler(
             pluginContext = pluginContext,
             phoneContext = phoneContext,
+            processingClaims = SmsProcessingClaims(),
             settingsLoader = { settings() },
             planFactory = { observedPlan() },
             moduleEnabledReader = { true },

@@ -1,5 +1,7 @@
 package io.github.magisk317.relay.ui.home.overview
 
+import io.github.magisk317.relay.feature.mode.FrameworkIdentity
+import io.github.magisk317.relay.feature.mode.RuntimeSignalRefresher
 import io.github.magisk317.forward.contract.model.ForwardCommonConfig
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
 import io.github.magisk317.relay.contract.settings.*
@@ -20,7 +22,7 @@ class OverviewViewModelTest {
                 chartWindow = "unknown",
             ),
         )
-        val viewModel = OverviewViewModel(repository)
+        val viewModel = OverviewViewModel(repository, NoOpRuntimeSignals)
 
         viewModel.loadSettings()
 
@@ -39,7 +41,7 @@ class OverviewViewModelTest {
                 chartWindow = "all",
             ),
         )
-        val viewModel = OverviewViewModel(repository)
+        val viewModel = OverviewViewModel(repository, NoOpRuntimeSignals)
         viewModel.loadSettings()
 
         viewModel.updateEnabledCardIdsLocally(setOf(CARD_STATUS, CARD_LINKS))
@@ -61,6 +63,7 @@ class OverviewViewModelTest {
                     "all",
                 ),
             ),
+            NoOpRuntimeSignals,
         )
 
         viewModel.toggleEditMode()
@@ -138,4 +141,9 @@ private class FakeOverviewSettingsRepository(
 
     @Suppress("UNCHECKED_CAST")
     private fun <T> unsupported(): T = throw UnsupportedOperationException()
+}
+
+internal object NoOpRuntimeSignals : RuntimeSignalRefresher {
+    override suspend fun refresh() = Unit
+    override fun frameworkIdentity() = FrameworkIdentity(null, null)
 }

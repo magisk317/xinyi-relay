@@ -123,6 +123,7 @@ class RelayManifestContractTest {
         val features = featureNames("app/src/main/AndroidManifest.xml")
 
         assertFalse("android.permission.SEND_SMS" in permissions)
+        assertFalse("android.permission.READ_SMS" in permissions)
         assertFalse("android.permission.RECEIVE_SMS" in permissions)
         assertFalse("android.permission.RECEIVE_MMS" in permissions)
         assertFalse("android.permission.READ_PHONE_STATE" in permissions)
@@ -187,6 +188,7 @@ class RelayManifestContractTest {
         val features = featureNames("app/src/play/AndroidManifest.xml")
 
         assertFalse("android.permission.SEND_SMS" in permissions)
+        assertFalse("android.permission.READ_SMS" in permissions)
         assertFalse("android.permission.RECEIVE_SMS" in permissions)
         assertFalse("android.permission.RECEIVE_MMS" in permissions)
         assertFalse("android.permission.READ_PHONE_STATE" in permissions)
@@ -200,6 +202,8 @@ class RelayManifestContractTest {
             val features = featureNames(manifest)
 
             assertTrue("android.permission.SEND_SMS" in permissions)
+            assertTrue("android.permission.READ_SMS" in permissions)
+            assertTrue("android.permission.RECEIVE_SMS" in permissions)
             assertTrue("android.permission.READ_PHONE_STATE" in permissions)
             assertTrue("android.hardware.telephony" in features)
         }

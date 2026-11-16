@@ -42,6 +42,9 @@ class RoomCryptoStatePropertyTest {
             .connectTimeout(connectTimeoutSeconds, TimeUnit.SECONDS)
             .readTimeout(readTimeoutSeconds, TimeUnit.SECONDS)
             .callTimeout(callTimeoutSeconds, TimeUnit.SECONDS)
+            // Each generated case supplies one response. OkHttp otherwise retries HTTP 408,
+            // consumes the empty queue, and can steal the next case's response after timeout.
+            .retryOnConnectionFailure(false)
             .followRedirects(false)
             .followSslRedirects(false)
             .build()
@@ -194,6 +197,44 @@ class RoomCryptoStatePropertyTest {
                     assertEquals(false, result, "expected encrypted=false for statusCode=$statusCode")
                 }
             }
+        }
+    }
+
+    @Test
+    fun `HTTP 408 classification uses one request and leaves the next response aligned`() = runBlocking {
+        withRoomCryptoServer { server, client ->
+            server.enqueue(
+                MockResponse.Builder()
+                    .code(408)
+                    .body("""{"algorithm":"m.megolm.v1.aes-sha2"}""")
+                    .build()
+            )
+
+            val timedOutStatus = RoomCryptoState.isRoomEncrypted(
+                homeserver = server.url("/").toString(),
+                accessToken = "test-token",
+                roomId = "!http-408:example.com",
+                client = client,
+            )
+
+            assertEquals(false, timedOutStatus)
+            assertEquals(1, server.requestCount, "one HTTP response must classify without a transport retry")
+            server.enqueue(
+                MockResponse.Builder()
+                    .code(200)
+                    .body("""{"algorithm":"m.megolm.v1.aes-sha2"}""")
+                    .build()
+            )
+
+            val nextCase = RoomCryptoState.isRoomEncrypted(
+                homeserver = server.url("/").toString(),
+                accessToken = "test-token",
+                roomId = "!after-408:example.com",
+                client = client,
+            )
+
+            assertEquals(true, nextCase, "the next response must reach its own case")
+            assertEquals(2, server.requestCount)
         }
     }
 
