@@ -1,1 +1,1 @@
-Senders gain mTLS client certificates; logging is now gated by the build channel to reduce plaintext logs in release builds.
+Fix network SMS bypassing the sender blacklist. (#307)

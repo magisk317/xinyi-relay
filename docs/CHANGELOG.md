@@ -3,6 +3,17 @@
 本日志记录了项目近期的主要变更。 
 
 ---
+## [v0.4.4] - 2026-11-16
+- 版本：`versionCode 57` / `versionName 0.4.4`。
+- `[feat]` 优化 WebDAV 备份
+- `[fix]` 修复验证状态并发更新与通知捕获边界。
+- `[fix]` 修复网络短信绕过黑名单的问题。#307
+- `[deps]` 升级 Kotlin 2.5.0 RC、Gradle 9.9.1 与相关依赖。
+
+> Full Changelog: https://gitlab.com/magisk3171/xinyi-relay/-/compare/v0.4.3...v0.4.4
+
+---
+
 ## [v0.4.3] - 2026-11-06
 - 版本：`versionCode 56` / `versionName 0.4.3`。
 - `[feat]` ntfy/webhook 发件通道支持 mTLS 客户端证书。
