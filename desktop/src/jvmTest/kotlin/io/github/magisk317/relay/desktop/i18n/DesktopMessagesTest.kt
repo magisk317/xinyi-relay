@@ -47,7 +47,7 @@ class DesktopMessagesTest {
     @Test
     fun `zh-tw entries shadow the zh-cn base table`() {
         // zh-TW spreads zh-CN in the source; only the overrides differ.
-        val overridden = DesktopMessages.zhCn.filter { (key, zh) -> DesktopMessages.zhTw[key] != zh }
+        val overridden = zhCn.filter { (key, zh) -> zhTw[key] != zh }
         assertTrue(overridden.isNotEmpty(), "zh-TW carries traditional-character overrides")
     }
 
