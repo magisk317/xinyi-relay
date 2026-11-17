@@ -7,14 +7,10 @@ import io.github.magisk317.forward.sender.MatrixE2eeVerificationEmoji
 import io.github.magisk317.forward.sender.MatrixE2eeVerificationState
 import io.github.magisk317.forward.sender.MatrixE2eeVerificationStatus
 import io.github.magisk317.forward.sender.SenderSettingSanitizer
-import java.util.concurrent.atomic.AtomicBoolean
 import io.github.magisk317.forward.sender.config.MatrixSetting
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,7 +18,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
 import org.matrix.rustcomponents.sdk.Client
 import org.matrix.rustcomponents.sdk.SessionVerificationController
 import org.matrix.rustcomponents.sdk.SessionVerificationControllerDelegate
@@ -38,14 +33,7 @@ import io.github.magisk317.xposed.logging.MagiskOtel
 @Suppress("TooGenericExceptionCaught")
 object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
     private const val TAG = "MatrixE2eeVerification"
-    private const val VERIFICATION_INIT_TIMEOUT_MS = 15_000L
     private const val VERIFICATION_SYNC_TIMEOUT_MS = 30_000L
-    private const val VERIFICATION_KEY_QUERY_FLUSH_DELAY_MS = 3_000L
-    private const val OUTGOING_SAS_START_INITIAL_DELAY_MS = 1_500L
-    private const val OUTGOING_SAS_START_RETRY_DELAY_MS = 2_500L
-    private const val OUTGOING_SAS_START_MAX_ATTEMPTS = 24
-    private const val SYNC_BATCH_SUMMARY_LENGTH = 12
-    private const val VALUE_SUMMARY_LENGTH = 16
 
     private val managerScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val operationMutex = Mutex()
@@ -57,14 +45,15 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
     private var delegate: SessionVerificationControllerDelegate? = null
     private var syncHandle: TaskHandle? = null
     private var verificationStateHandle: TaskHandle? = null
-    private var outgoingSasStartJob: Job? = null
-    private val outgoingSasStartAttemptInProgress = AtomicBoolean(false)
-    private var pendingRequest: SessionVerificationRequestDetails? = null
-    private var pendingRequestAckJob: Job? = null
-    private var pendingRequestAckFlowId: String? = null
-    private var acknowledgedRequestFlowId: String? = null
     private var lastContext: Context? = null
     private var lastSetting: MatrixSetting? = null
+    private val sasCoordinator = MatrixVerificationSasCoordinator(
+        managerScope = managerScope,
+        operationMutex = operationMutex,
+        state = _state,
+        controllerProvider = { controller },
+        snapshotLogger = { reason -> logLocalSnapshot(reason) },
+    )
 
     override suspend fun prepare(context: Context, setting: MatrixSetting) {
         val safeSetting = SenderSettingSanitizer.sanitizeMatrixSetting(setting)
@@ -91,7 +80,7 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
                 "Matrix verification prepare started: " +
                     "roomIdPresent=${safeSetting.roomId.isNotBlank()}",
             )
-            resetPendingRequestAcknowledgement(cancelActiveJob = true)
+            sasCoordinator.resetPendingRequestAcknowledgement(cancelActiveJob = true)
             updateState { current ->
                 val nextStatus = if (current.status == MatrixE2eeVerificationStatus.VERIFIED || current.verificationState == "VERIFIED") {
                     MatrixE2eeVerificationStatus.VERIFIED
@@ -111,16 +100,16 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
 
             try {
                 val nextClient = withContext(Dispatchers.IO) {
-                    MatrixE2eeRuntime.getClientForVerification(context.applicationContext, safeSetting)
+                    MatrixClientSession.getClientForVerification(context.applicationContext, safeSetting)
                 }
                 client = nextClient
                 stopSync()
-                SLog.d(TAG, "Matrix verification client acquired: ${summarizeClientSession(nextClient)}")
-                waitForE2eeInitialization(nextClient)
-                ensureOwnIdentityAvailable(nextClient)
+                SLog.d(TAG, "Matrix verification client acquired: ${MatrixVerificationDiagnostics.summarizeClientSession(nextClient)}")
+                MatrixVerificationBootstrap.waitForE2eeInitialization(nextClient)
+                MatrixVerificationBootstrap.ensureOwnIdentityAvailable(nextClient)
                 installController(nextClient)
-                refreshDeviceKeysForVerification(nextClient, safeSetting)
-                runInitialVerificationSync(nextClient)
+                MatrixVerificationBootstrap.refreshDeviceKeysForVerification(nextClient, safeSetting)
+                MatrixVerificationBootstrap.runInitialVerificationSync(nextClient)
                 val readyState = mergeReadyState(buildReadyState(nextClient))
                 if (readyState.status == MatrixE2eeVerificationStatus.VERIFIED) {
                     stopSync()
@@ -131,7 +120,7 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
                     TAG,
                     "Matrix verification prepare completed: " +
                         "status=${readyState.status} verificationState=${readyState.verificationState} " +
-                        "hasDevices=${readyState.hasDevicesToVerifyAgainst} ${summarizeStateSession(readyState)}",
+                        "hasDevices=${readyState.hasDevicesToVerifyAgainst} ${MatrixVerificationDiagnostics.summarizeStateSession(readyState)}",
                 )
                 updateState { readyState }
                 logLocalSnapshot("prepare-completed")
@@ -140,17 +129,17 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
                 if (MatrixE2eeRuntime.isAuthError(e)) {
                     SLog.w(TAG, "Matrix verification prepare auth expired, auto-refreshing: ${e.message}")
                     try {
-                        MatrixE2eeRuntime.invalidateClientAndSession(context.applicationContext, safeSetting)
+                        MatrixClientSession.invalidateClientAndSession(context.applicationContext, safeSetting)
                         val refreshedClient = withContext(Dispatchers.IO) {
-                            MatrixE2eeRuntime.getClientForVerification(context.applicationContext, safeSetting, forceRefresh = true)
+                            MatrixClientSession.getClientForVerification(context.applicationContext, safeSetting, forceRefresh = true)
                         }
                         client = refreshedClient
                         stopSync()
-                        waitForE2eeInitialization(refreshedClient)
-                        ensureOwnIdentityAvailable(refreshedClient)
+                        MatrixVerificationBootstrap.waitForE2eeInitialization(refreshedClient)
+                        MatrixVerificationBootstrap.ensureOwnIdentityAvailable(refreshedClient)
                         installController(refreshedClient)
-                        refreshDeviceKeysForVerification(refreshedClient, safeSetting)
-                        runInitialVerificationSync(refreshedClient)
+                        MatrixVerificationBootstrap.refreshDeviceKeysForVerification(refreshedClient, safeSetting)
+                        MatrixVerificationBootstrap.runInitialVerificationSync(refreshedClient)
                         val readyState = mergeReadyState(buildReadyState(refreshedClient))
                         if (readyState.status == MatrixE2eeVerificationStatus.VERIFIED) {
                             stopSync()
@@ -175,7 +164,7 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
     override suspend fun requestVerification() {
         runControllerAction(MatrixE2eeVerificationStatus.REQUESTING, "requestDeviceVerification") {
             requestDeviceVerification()
-            SLog.d(TAG, "Matrix verification request sent: ${summarizeClientSession(client)}")
+            SLog.d(TAG, "Matrix verification request sent: ${MatrixVerificationDiagnostics.summarizeClientSession(client)}")
             updateState {
                 it.copy(
                     status = MatrixE2eeVerificationStatus.REQUEST_SENT,
@@ -193,8 +182,8 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
     }
 
     override suspend fun acceptRequest() {
-        pendingRequest?.let { request ->
-            awaitPendingRequestAcknowledgement(
+        sasCoordinator.pendingRequest?.let { request ->
+            sasCoordinator.awaitPendingRequestAcknowledgement(
                 details = request,
                 trigger = "acceptVerificationRequest",
             )
@@ -205,7 +194,7 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
         // local ACCEPTED state here rather than in the delegate callback.
         runControllerAction(MatrixE2eeVerificationStatus.ACCEPTED, "acceptVerificationRequest") {
             acceptVerificationRequest()
-            SLog.d(TAG, "Matrix verification request accepted: pending=${summarizePendingRequest()}")
+            SLog.d(TAG, "Matrix verification request accepted: pending=${MatrixVerificationDiagnostics.summarizePendingRequest(sasCoordinator.pendingRequest)}")
             updateState {
                 it.copy(
                     status = MatrixE2eeVerificationStatus.ACCEPTED,
@@ -223,7 +212,7 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
             SLog.w(
                 TAG,
                 "Matrix SAS verification start skipped: " +
-                    "state=$currentStatus pending=${summarizePendingRequest()}",
+                    "state=$currentStatus pending=${MatrixVerificationDiagnostics.summarizePendingRequest(sasCoordinator.pendingRequest)}",
             )
             return
         }
@@ -235,13 +224,13 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
                 SLog.w(
                     TAG,
                     "Matrix SAS verification start returned after failure callback: " +
-                        "pending=${summarizePendingRequest()}",
+                        "pending=${MatrixVerificationDiagnostics.summarizePendingRequest(sasCoordinator.pendingRequest)}",
                 )
             } else {
                 SLog.d(
                     TAG,
                     "Matrix SAS verification start returned: " +
-                        "state=$statusAfterStart pending=${summarizePendingRequest()}",
+                        "state=$statusAfterStart pending=${MatrixVerificationDiagnostics.summarizePendingRequest(sasCoordinator.pendingRequest)}",
                 )
             }
             logLocalSnapshot("startSasVerification-returned")
@@ -252,7 +241,7 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
     override suspend fun approve() {
         runControllerAction(MatrixE2eeVerificationStatus.SAS_READY, "approveVerification") {
             approveVerification()
-            SLog.d(TAG, "Matrix SAS verification approved: pending=${summarizePendingRequest()}")
+            SLog.d(TAG, "Matrix SAS verification approved: pending=${MatrixVerificationDiagnostics.summarizePendingRequest(sasCoordinator.pendingRequest)}")
             logLocalSnapshot("approveVerification-completed")
             logSdkSnapshot("approveVerification-completed")
         }
@@ -262,7 +251,7 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
         runControllerAction(MatrixE2eeVerificationStatus.CANCELLED, "declineVerification") {
             declineVerification()
             val sdkCancelInfo = controller?.requestCancelInfo() ?: controller?.sasCancelInfo()
-            SLog.d(TAG, "Matrix verification declined: pending=${summarizePendingRequest()}")
+            SLog.d(TAG, "Matrix verification declined: pending=${MatrixVerificationDiagnostics.summarizePendingRequest(sasCoordinator.pendingRequest)}")
             updateState {
                 it.copy(
                     status = MatrixE2eeVerificationStatus.CANCELLED,
@@ -283,7 +272,7 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
         runControllerAction(MatrixE2eeVerificationStatus.CANCELLED, "cancelVerification") {
             cancelVerification()
             val sdkCancelInfo = controller?.requestCancelInfo() ?: controller?.sasCancelInfo()
-            SLog.d(TAG, "Matrix verification cancelled by local action: pending=${summarizePendingRequest()}")
+            SLog.d(TAG, "Matrix verification cancelled by local action: pending=${MatrixVerificationDiagnostics.summarizePendingRequest(sasCoordinator.pendingRequest)}")
             updateState {
                 it.copy(
                     status = MatrixE2eeVerificationStatus.CANCELLED,
@@ -301,7 +290,7 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
     }
 
     override suspend fun revokeDevice(context: Context, setting: MatrixSetting) {
-        SLog.d(TAG, "Matrix verification revoke device requested: ${summarizeClientSession(client)}")
+        SLog.d(TAG, "Matrix verification revoke device requested: ${MatrixVerificationDiagnostics.summarizeClientSession(client)}")
         val activeClient = client
         if (activeClient != null) {
             try {
@@ -318,7 +307,7 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
 
         // Force clear the DB even if logout failed
         try {
-            MatrixE2eeRuntime.forceClearDeviceStore(context, setting)
+            MatrixClientSession.forceClearDeviceStore(context, setting)
             SLog.d(TAG, "Matrix verification device store forcefully cleared")
         } catch (e: Exception) {
             SLog.w(TAG, "Failed to forcefully clear Matrix device store: ${e.message}")
@@ -328,8 +317,8 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
     }
 
     override fun reset() {
-        SLog.d(TAG, "Matrix verification reset requested: ${summarizeClientSession(client)}")
-        stopOutgoingSasStart()
+        SLog.d(TAG, "Matrix verification reset requested: ${MatrixVerificationDiagnostics.summarizeClientSession(client)}")
+        sasCoordinator.stopOutgoingSasStart()
         stopSync()
         stopVerificationStateListener()
         controller?.setDelegate(null)
@@ -339,14 +328,14 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
         }
         controller = null
         delegate = null
-        resetPendingRequestAcknowledgement(cancelActiveJob = true)
+        sasCoordinator.resetPendingRequestAcknowledgement(cancelActiveJob = true)
         updateState { MatrixE2eeVerificationState() }
         logLocalSnapshot("reset")
     }
 
     override fun stop() {
-        SLog.d(TAG, "Matrix verification stop requested: ${summarizeClientSession(client)}")
-        stopOutgoingSasStart()
+        SLog.d(TAG, "Matrix verification stop requested: ${MatrixVerificationDiagnostics.summarizeClientSession(client)}")
+        sasCoordinator.stopOutgoingSasStart()
         stopSync()
         stopVerificationStateListener()
         controller?.setDelegate(null)
@@ -356,7 +345,7 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
         }
         controller = null
         delegate = null
-        resetPendingRequestAcknowledgement(cancelActiveJob = true)
+        sasCoordinator.resetPendingRequestAcknowledgement(cancelActiveJob = true)
         // Keep verified state if it was verified, so returning to the page doesn't flash unverified
         updateState { current ->
             if (current.status == MatrixE2eeVerificationStatus.VERIFIED || current.verificationState == "VERIFIED") {
@@ -373,141 +362,6 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
             }
         }
         logLocalSnapshot("stop")
-    }
-
-    private suspend fun waitForE2eeInitialization(client: Client) {
-        try {
-            SLog.d(TAG, "Matrix verification waiting for E2EE init: ${summarizeClientSession(client)}")
-            withTimeout(VERIFICATION_INIT_TIMEOUT_MS) {
-                client.encryption().waitForE2eeInitializationTasks()
-            }
-            SLog.d(TAG, "Matrix verification E2EE init completed")
-        } catch (e: TimeoutCancellationException) {
-            throw IllegalStateException(
-                "Matrix verification E2EE init timed out: ${e.message}",
-                e,
-            )
-        } catch (e: Exception) {
-            throw IllegalStateException(
-                "Matrix verification E2EE init failed: " +
-                    "${e.javaClass.simpleName}: ${e.message}",
-                e,
-            )
-        }
-    }
-
-    private suspend fun ensureOwnIdentityAvailable(client: Client) {
-        try {
-            val session = client.session()
-            val identity = withTimeout(VERIFICATION_INIT_TIMEOUT_MS) {
-                client.encryption().userIdentity(session.userId, true)
-            }
-            SLog.d(
-                TAG,
-                "Matrix verification own identity checked: " +
-                    "present=${identity != null} verified=${identity?.isVerified()} " +
-                    "user=${summarizeValue(session.userId)}",
-            )
-        } catch (e: TimeoutCancellationException) {
-            throw IllegalStateException(
-                "Matrix verification own identity check timed out: ${e.message}",
-                e,
-            )
-        } catch (e: Exception) {
-            throw IllegalStateException(
-                "Matrix verification own identity check failed: " +
-                    "${e.javaClass.simpleName}: ${e.message}",
-                e,
-            )
-        }
-    }
-
-    private suspend fun refreshDeviceKeysForVerification(client: Client, setting: MatrixSetting) {
-        if (setting.roomId.isBlank()) {
-            SLog.d(TAG, "Matrix verification device key refresh skipped: roomId missing")
-            return
-        }
-
-        val room = runCatching { client.getRoom(setting.roomId) }.getOrElse { error ->
-            throw IllegalStateException(
-                "Matrix verification room lookup failed before key refresh: " +
-                    "${error.javaClass.simpleName}: ${error.message}",
-                error,
-            )
-        } ?: throw IllegalStateException(
-            "Matrix verification device key refresh failed: room not found: ${setting.roomId}",
-        )
-
-        try {
-            val memberCount = withTimeout(VERIFICATION_INIT_TIMEOUT_MS) {
-                room.members().use { members -> members.len() }
-            }
-            SLog.d(TAG, "Matrix verification room members fetched for key refresh: count=$memberCount")
-        } catch (e: TimeoutCancellationException) {
-            throw IllegalStateException(
-                "Matrix verification member fetch timed out before key refresh: ${e.message}",
-                e,
-            )
-        } catch (e: Exception) {
-            throw IllegalStateException(
-                "Matrix verification member fetch failed before key refresh: " +
-                    "${e.javaClass.simpleName}: ${e.message}",
-                e,
-            )
-        }
-
-        try {
-            SLog.d(TAG, "Matrix verification running device key refresh sync")
-            val response = withTimeout(VERIFICATION_INIT_TIMEOUT_MS) {
-                client.syncOnceV2(SyncSettingsV2(timeoutMs = 0u.toULong()))
-            }
-            SLog.d(
-                TAG,
-                "Matrix verification device key refresh sync completed: " +
-                    "nextBatch=${summarizeBatch(response.nextBatch)}",
-            )
-            delay(VERIFICATION_KEY_QUERY_FLUSH_DELAY_MS)
-            val encryption = client.encryption()
-            val verificationState = runCatching { encryption.verificationState().name }.getOrDefault("UNKNOWN")
-            val hasDevices = runCatching { encryption.hasDevicesToVerifyAgainst() }.getOrDefault(false)
-            SLog.d(
-                TAG,
-                "Matrix verification device key refresh state: " +
-                    "verificationState=$verificationState hasDevices=$hasDevices",
-            )
-        } catch (e: TimeoutCancellationException) {
-            throw IllegalStateException(
-                "Matrix verification device key refresh sync timed out: ${e.message}",
-                e,
-            )
-        } catch (e: Exception) {
-            throw IllegalStateException(
-                "Matrix verification device key refresh sync failed: " +
-                    "${e.javaClass.simpleName}: ${e.message}",
-                e,
-            )
-        }
-    }
-
-    private suspend fun runInitialVerificationSync(client: Client) {
-        try {
-            SLog.d(TAG, "Matrix verification running initial syncOnce with controller installed")
-            withTimeout(VERIFICATION_INIT_TIMEOUT_MS) {
-                client.syncOnceV2(SyncSettingsV2(timeoutMs = 0u.toULong()))
-            }
-            SLog.d(TAG, "Matrix verification initial sync completed")
-        } catch (e: TimeoutCancellationException) {
-            throw IllegalStateException(
-                "Matrix verification initial sync timed out: ${e.message}",
-                e,
-            )
-        } catch (e: Exception) {
-            throw IllegalStateException(
-                "Matrix verification initial sync failed: " +
-                    "${e.javaClass.simpleName}: ${e.message}",
-                e,
-            )
-        }
     }
 
     private fun mergeReadyState(readyState: MatrixE2eeVerificationState): MatrixE2eeVerificationState {
@@ -552,7 +406,7 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
 
     private suspend fun installController(client: Client) {
         if (controller != null && this.client === client) {
-            SLog.d(TAG, "Matrix verification controller already installed: ${summarizeClientSession(client)}")
+            SLog.d(TAG, "Matrix verification controller already installed: ${MatrixVerificationDiagnostics.summarizeClientSession(client)}")
             installVerificationStateListener(client)
             return
         }
@@ -569,7 +423,7 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
         controller = nextController
         delegate = nextDelegate
         installVerificationStateListener(client)
-        SLog.d(TAG, "Matrix verification controller installed: ${summarizeClientSession(client)}")
+        SLog.d(TAG, "Matrix verification controller installed: ${MatrixVerificationDiagnostics.summarizeClientSession(client)}")
     }
 
     private fun installVerificationStateListener(client: Client) {
@@ -595,29 +449,29 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
                 }
             },
         )
-        SLog.d(TAG, "Matrix verification state listener installed: ${summarizeClientSession(client)}")
+        SLog.d(TAG, "Matrix verification state listener installed: ${MatrixVerificationDiagnostics.summarizeClientSession(client)}")
     }
 
     private fun startSync(client: Client) {
         val currentHandle = syncHandle
         if (currentHandle != null && !runCatching { currentHandle.isFinished() }.getOrDefault(true)) {
-            SLog.d(TAG, "Matrix verification sync already running: ${summarizeClientSession(client)}")
+            SLog.d(TAG, "Matrix verification sync already running: ${MatrixVerificationDiagnostics.summarizeClientSession(client)}")
             return
         }
         syncHandle = client.syncV2(
             SyncSettingsV2(timeoutMs = VERIFICATION_SYNC_TIMEOUT_MS.toULong()),
             object : SyncListenerV2 {
                 override fun onUpdate(response: SyncResponseV2) {
-                    SLog.d(TAG, "Matrix verification sync update: nextBatch=${summarizeBatch(response.nextBatch)}")
+                    SLog.d(TAG, "Matrix verification sync update: nextBatch=${MatrixVerificationDiagnostics.summarizeBatch(response.nextBatch)}")
                 }
             },
         )
-        SLog.d(TAG, "Matrix verification sync started: ${summarizeClientSession(client)}")
+        SLog.d(TAG, "Matrix verification sync started: ${MatrixVerificationDiagnostics.summarizeClientSession(client)}")
     }
 
     private fun stopSync() {
         if (syncHandle != null) {
-            SLog.d(TAG, "Matrix verification sync stopping: ${summarizeClientSession(client)}")
+            SLog.d(TAG, "Matrix verification sync stopping: ${MatrixVerificationDiagnostics.summarizeClientSession(client)}")
         }
         syncHandle?.let { handle ->
             runCatching { handle.cancel() }.onFailure {
@@ -642,243 +496,12 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
         verificationStateHandle = null
     }
 
-    private fun scheduleOutgoingSasStart() {
-        stopOutgoingSasStart()
-        outgoingSasStartJob = managerScope.launch {
-            repeat(OUTGOING_SAS_START_MAX_ATTEMPTS) { attempt ->
-                delay(
-                    if (attempt == 0) {
-                        OUTGOING_SAS_START_INITIAL_DELAY_MS
-                    } else {
-                        OUTGOING_SAS_START_RETRY_DELAY_MS
-                    },
-                )
-                val currentStatus = _state.value.status
-                if (currentStatus != MatrixE2eeVerificationStatus.REQUEST_SENT &&
-                    currentStatus != MatrixE2eeVerificationStatus.ACCEPTED
-                ) {
-                    SLog.d(
-                        TAG,
-                        "Matrix outgoing SAS auto-start stopped: " +
-                            "state=$currentStatus attempt=${attempt + 1}",
-                    )
-                    return@launch
-                }
-
-                operationMutex.withLock {
-                    val activeController = controller
-                    if (activeController == null) {
-                        SLog.w(TAG, "Matrix outgoing SAS auto-start skipped without controller")
-                        return@launch
-                    }
-                    val stateBeforeStart = _state.value.status
-                    if (stateBeforeStart != MatrixE2eeVerificationStatus.REQUEST_SENT &&
-                        stateBeforeStart != MatrixE2eeVerificationStatus.ACCEPTED
-                    ) {
-                        return@withLock
-                    }
-
-                    SLog.d(
-                        TAG,
-                        "Matrix outgoing SAS auto-start attempt: " +
-                            "attempt=${attempt + 1} state=$stateBeforeStart",
-                    )
-                    outgoingSasStartAttemptInProgress.set(true)
-                    try {
-                        activeController.startSasVerification()
-                    } catch (e: Exception) {
-                        SLog.d(
-                            TAG,
-                            "Matrix outgoing SAS auto-start attempt failed: " +
-                                "${e.javaClass.simpleName}: ${e.message}",
-                        )
-                    } finally {
-                        outgoingSasStartAttemptInProgress.set(false)
-                    }
-                }
-
-                val stateAfterStart = _state.value.status
-                if (stateAfterStart == MatrixE2eeVerificationStatus.SAS_STARTED ||
-                    stateAfterStart == MatrixE2eeVerificationStatus.SAS_READY ||
-                    stateAfterStart == MatrixE2eeVerificationStatus.VERIFIED
-                ) {
-                    SLog.d(
-                        TAG,
-                        "Matrix outgoing SAS auto-start completed: state=$stateAfterStart",
-                    )
-                    return@launch
-                }
-            }
-            SLog.w(
-                TAG,
-                "Matrix outgoing SAS auto-start exhausted: state=${_state.value.status}",
-            )
-        }
-    }
-
-    private fun stopOutgoingSasStart() {
-        outgoingSasStartJob?.cancel()
-        outgoingSasStartJob = null
-        outgoingSasStartAttemptInProgress.set(false)
-    }
-
-    private fun resetPendingRequestAcknowledgement(cancelActiveJob: Boolean) {
-        if (cancelActiveJob) {
-            pendingRequestAckJob?.cancel()
-        }
-        pendingRequestAckJob = null
-        pendingRequestAckFlowId = null
-        acknowledgedRequestFlowId = null
-        pendingRequest = null
-    }
-
-    private fun schedulePendingRequestAcknowledgement(
-        details: SessionVerificationRequestDetails,
-        trigger: String,
-    ) {
-        val flowId = details.flowId
-        if (acknowledgedRequestFlowId == flowId) {
-            SLog.d(
-                TAG,
-                "Matrix verification request acknowledgement already completed: " +
-                    "trigger=$trigger flow=${summarizeValue(flowId)}",
-            )
-            return
-        }
-
-        val activeJob = pendingRequestAckJob
-        if (pendingRequestAckFlowId == flowId && activeJob != null &&
-            !runCatching { activeJob.isCompleted }.getOrDefault(false)
-        ) {
-            SLog.d(
-                TAG,
-                "Matrix verification request acknowledgement already pending: " +
-                    "trigger=$trigger flow=${summarizeValue(flowId)}",
-            )
-            return
-        }
-
-        if (pendingRequestAckFlowId != null && pendingRequestAckFlowId != flowId) {
-            pendingRequestAckJob?.cancel()
-        }
-
-        pendingRequestAckFlowId = flowId
-        val nextJob = managerScope.launch {
-            acknowledgePendingRequest(details, trigger)
-        }
-        pendingRequestAckJob = nextJob
-        nextJob.invokeOnCompletion {
-            if (pendingRequestAckJob === nextJob) {
-                pendingRequestAckJob = null
-            }
-        }
-    }
-
-    private suspend fun awaitPendingRequestAcknowledgement(
-        details: SessionVerificationRequestDetails,
-        trigger: String,
-    ) {
-        val flowId = details.flowId
-        pendingRequestAckJob
-            ?.takeIf { pendingRequestAckFlowId == flowId }
-            ?.let { job ->
-                SLog.d(
-                    TAG,
-                    "Matrix verification waiting for request acknowledgement: " +
-                        "trigger=$trigger flow=${summarizeValue(flowId)}",
-                )
-                job.join()
-            }
-
-        if (acknowledgedRequestFlowId == flowId) {
-            SLog.d(
-                TAG,
-                "Matrix verification request acknowledgement confirmed before accept: " +
-                    "trigger=$trigger flow=${summarizeValue(flowId)}",
-            )
-            return
-        }
-
-        SLog.w(
-            TAG,
-            "Matrix verification request acknowledgement missing before accept, retrying inline: " +
-                "trigger=$trigger request=${summarizeRequestDetails(details)}",
-        )
-        acknowledgePendingRequest(details, "$trigger-inline")
-    }
-
-    private suspend fun acknowledgePendingRequest(
-        details: SessionVerificationRequestDetails,
-        trigger: String,
-    ) {
-        operationMutex.withLock {
-            val activeController = controller
-            if (activeController == null) {
-                SLog.w(
-                    TAG,
-                    "Matrix verification request acknowledgement skipped without controller: " +
-                        "trigger=$trigger request=${summarizeRequestDetails(details)}",
-                )
-                return
-            }
-            if (pendingRequest?.flowId != details.flowId) {
-                SLog.d(
-                    TAG,
-                    "Matrix verification request acknowledgement skipped for stale request: " +
-                        "trigger=$trigger request=${summarizeRequestDetails(details)} " +
-                        "pending=${summarizePendingRequest()}",
-                )
-                return
-            }
-            if (acknowledgedRequestFlowId == details.flowId) {
-                SLog.d(
-                    TAG,
-                    "Matrix verification request acknowledgement already completed in action: " +
-                        "trigger=$trigger flow=${summarizeValue(details.flowId)}",
-                )
-                return
-            }
-
-            SLog.d(
-                TAG,
-                "Matrix verification request acknowledgement started: " +
-                    "trigger=$trigger request=${summarizeRequestDetails(details)}",
-            )
-            logLocalSnapshot("acknowledgeVerificationRequest-start:$trigger")
-            try {
-                withContext(Dispatchers.IO) {
-                    activeController.acknowledgeVerificationRequest(
-                        details.senderProfile.userId,
-                        details.flowId,
-                    )
-                }
-                acknowledgedRequestFlowId = details.flowId
-                SLog.d(
-                    TAG,
-                    "Matrix verification request acknowledgement completed: " +
-                        "trigger=$trigger pending=${summarizePendingRequest()}",
-                )
-                logLocalSnapshot("acknowledgeVerificationRequest-completed:$trigger")
-                logSdkSnapshot("acknowledgeVerificationRequest-completed:$trigger")
-            } catch (e: Exception) {
-                SLog.w(
-                    TAG,
-                    "Matrix verification request acknowledgement failed: " +
-                        "trigger=$trigger error=${e.javaClass.simpleName}: ${e.message} " +
-                        "request=${summarizeRequestDetails(details)}",
-                )
-                logLocalSnapshot("acknowledgeVerificationRequest-failed:$trigger")
-                logSdkSnapshot("acknowledgeVerificationRequest-failed:$trigger")
-            }
-        }
-    }
-
     private fun createDelegate(): SessionVerificationControllerDelegate {
         return object : SessionVerificationControllerDelegate {
             override fun didReceiveVerificationRequest(details: SessionVerificationRequestDetails) {
-                SLog.d(TAG, "Matrix verification callback didReceiveVerificationRequest: ${summarizeRequestDetails(details)}")
-                pendingRequest = details
-                schedulePendingRequestAcknowledgement(
+                SLog.d(TAG, "Matrix verification callback didReceiveVerificationRequest: ${MatrixVerificationDiagnostics.summarizeRequestDetails(details)}")
+                sasCoordinator.pendingRequest = details
+                sasCoordinator.schedulePendingRequestAcknowledgement(
                     details = details,
                     trigger = "didReceiveVerificationRequest",
                 )
@@ -899,7 +522,7 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
             override fun didAcceptVerificationRequest() {
                 // SDK >= 26.10.20: only fires when the other side accepted a
                 // request we started; incoming accepts transition in acceptRequest().
-                SLog.d(TAG, "Matrix verification callback didAcceptVerificationRequest: pending=${summarizePendingRequest()}")
+                SLog.d(TAG, "Matrix verification callback didAcceptVerificationRequest: pending=${MatrixVerificationDiagnostics.summarizePendingRequest(sasCoordinator.pendingRequest)}")
                 updateState {
                     it.copy(
                         status = MatrixE2eeVerificationStatus.ACCEPTED,
@@ -911,8 +534,8 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
             }
 
             override fun didStartSasVerification() {
-                SLog.d(TAG, "Matrix verification callback didStartSasVerification: pending=${summarizePendingRequest()}")
-                stopOutgoingSasStart()
+                SLog.d(TAG, "Matrix verification callback didStartSasVerification: pending=${MatrixVerificationDiagnostics.summarizePendingRequest(sasCoordinator.pendingRequest)}")
+                sasCoordinator.stopOutgoingSasStart()
                 updateState {
                     it.copy(
                         status = MatrixE2eeVerificationStatus.SAS_STARTED,
@@ -924,12 +547,12 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
             }
 
             override fun didReceiveVerificationData(data: SessionVerificationData) {
-                val sas = summarizeSas(data)
+                val sas = MatrixVerificationDiagnostics.summarizeSas(data)
                 SLog.d(
                     TAG,
                     "Matrix verification callback didReceiveVerificationData: " +
                         "type=${data.javaClass.simpleName} decimals=${sas.decimals.size} emojis=${sas.emojis.size} " +
-                        "pending=${summarizePendingRequest()}",
+                        "pending=${MatrixVerificationDiagnostics.summarizePendingRequest(sasCoordinator.pendingRequest)}",
                 )
                 updateState {
                     it.copy(
@@ -944,16 +567,16 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
             }
 
             override fun didFail() {
-                if (outgoingSasStartAttemptInProgress.get()) {
+                if (sasCoordinator.outgoingSasStartAttemptInProgress.get()) {
                     SLog.d(
                         TAG,
                         "Matrix verification callback didFail suppressed during outgoing SAS auto-start: " +
-                            "state=${_state.value.status} pending=${summarizePendingRequest()}",
+                            "state=${_state.value.status} pending=${MatrixVerificationDiagnostics.summarizePendingRequest(sasCoordinator.pendingRequest)}",
                     )
                     logLocalSnapshot("callback-didFail-suppressed")
                     return
                 }
-                SLog.w(TAG, "Matrix verification callback didFail: pending=${summarizePendingRequest()}")
+                SLog.w(TAG, "Matrix verification callback didFail: pending=${MatrixVerificationDiagnostics.summarizePendingRequest(sasCoordinator.pendingRequest)}")
                 updateState {
                     it.copy(
                         status = MatrixE2eeVerificationStatus.FAILED,
@@ -968,10 +591,10 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
                 val sdkCancelInfo = controller?.requestCancelInfo() ?: controller?.sasCancelInfo()
                 SLog.d(
                     TAG,
-                    "Matrix verification callback didCancel: pending=${summarizePendingRequest()} " +
+                    "Matrix verification callback didCancel: pending=${MatrixVerificationDiagnostics.summarizePendingRequest(sasCoordinator.pendingRequest)} " +
                         "cancelInfo=${sdkCancelInfo?.let { "code=${it.cancelCode} byUs=${it.cancelledByUs}" } ?: "n/a"}",
                 )
-                stopOutgoingSasStart()
+                sasCoordinator.stopOutgoingSasStart()
                 updateState {
                     it.copy(
                         status = MatrixE2eeVerificationStatus.CANCELLED,
@@ -990,8 +613,8 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
             }
 
             override fun didFinish() {
-                SLog.d(TAG, "Matrix verification callback didFinish: ${summarizeClientSession(client)}")
-                stopOutgoingSasStart()
+                SLog.d(TAG, "Matrix verification callback didFinish: ${MatrixVerificationDiagnostics.summarizeClientSession(client)}")
+                sasCoordinator.stopOutgoingSasStart()
                 stopSync()
                 updateState {
                     it.copy(
@@ -1030,8 +653,8 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
             SLog.d(
                 TAG,
                 "Matrix verification action started: action=$actionName " +
-                    "state=${_state.value.status} ${summarizeClientSession(client)} " +
-                    "pending=${summarizePendingRequest()}",
+                    "state=${_state.value.status} ${MatrixVerificationDiagnostics.summarizeClientSession(client)} " +
+                    "pending=${MatrixVerificationDiagnostics.summarizePendingRequest(sasCoordinator.pendingRequest)}",
             )
             updateState {
                 if (interimStatus == null) {
@@ -1048,7 +671,7 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
                 SLog.d(
                     TAG,
                     "Matrix verification action completed: action=$actionName " +
-                        "state=${_state.value.status} pending=${summarizePendingRequest()}",
+                        "state=${_state.value.status} pending=${MatrixVerificationDiagnostics.summarizePendingRequest(sasCoordinator.pendingRequest)}",
                 )
                 logLocalSnapshot("action-complete:$actionName")
                 logSdkSnapshot("action-complete:$actionName")
@@ -1061,17 +684,17 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
                         "Matrix verification action auth expired ($actionName): ${e.message}. Auto-refreshing session and retrying...",
                     )
                     try {
-                        MatrixE2eeRuntime.invalidateClientAndSession(ctx, setting)
+                        MatrixClientSession.invalidateClientAndSession(ctx, setting)
                         val refreshedClient = withContext(Dispatchers.IO) {
-                            MatrixE2eeRuntime.getClientForVerification(ctx, setting, forceRefresh = true)
+                            MatrixClientSession.getClientForVerification(ctx, setting, forceRefresh = true)
                         }
                         client = refreshedClient
                         stopSync()
-                        waitForE2eeInitialization(refreshedClient)
-                        ensureOwnIdentityAvailable(refreshedClient)
+                        MatrixVerificationBootstrap.waitForE2eeInitialization(refreshedClient)
+                        MatrixVerificationBootstrap.ensureOwnIdentityAvailable(refreshedClient)
                         installController(refreshedClient)
-                        refreshDeviceKeysForVerification(refreshedClient, setting)
-                        runInitialVerificationSync(refreshedClient)
+                        MatrixVerificationBootstrap.refreshDeviceKeysForVerification(refreshedClient, setting)
+                        MatrixVerificationBootstrap.runInitialVerificationSync(refreshedClient)
                         startSync(refreshedClient)
 
                         val retriedController = controller
@@ -1092,7 +715,7 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
                 SLog.w(
                     TAG,
                     "Matrix verification action failed: action=$actionName " +
-                        "error=${e.javaClass.simpleName}: ${e.message} pending=${summarizePendingRequest()}",
+                        "error=${e.javaClass.simpleName}: ${e.message} pending=${MatrixVerificationDiagnostics.summarizePendingRequest(sasCoordinator.pendingRequest)}",
                 )
                 updateFailure(e.message.orEmpty(), e)
                 logLocalSnapshot("action-failed:$actionName")
@@ -1118,9 +741,9 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
             SLog.d(
                 TAG,
                 "Matrix verification state updated: " +
-                    "before={${summarizeVerificationState(before)}} " +
-                    "after={${summarizeVerificationState(after)}} " +
-                    "pending=${summarizePendingRequest()}",
+                    "before={${MatrixVerificationDiagnostics.summarizeVerificationState(before)}} " +
+                    "after={${MatrixVerificationDiagnostics.summarizeVerificationState(after)}} " +
+                    "pending=${MatrixVerificationDiagnostics.summarizePendingRequest(sasCoordinator.pendingRequest)}",
             )
             if (before.status != after.status) {
                 val statusName = after.status.name.lowercase()
@@ -1147,87 +770,18 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
         }
     }
 
-    private fun summarizeSas(data: SessionVerificationData): SasSummary {
-        return when (data) {
-            is SessionVerificationData.Emojis -> SasSummary(
-                emojis = data.emojis.map { emoji ->
-                    MatrixE2eeVerificationEmoji(
-                        symbol = emoji.symbol(),
-                        description = emoji.description(),
-                    )
-                },
-                decimals = emptyList(),
-            )
-            is SessionVerificationData.Decimals -> SasSummary(
-                emojis = emptyList(),
-                decimals = data.values.map { it.toString() },
-            )
-        }
-    }
-
-    private fun summarizeBatch(nextBatch: String): String {
-        if (nextBatch.isBlank()) return "<blank>"
-        return if (nextBatch.length <= SYNC_BATCH_SUMMARY_LENGTH) {
-            nextBatch
-        } else {
-            "${nextBatch.take(SYNC_BATCH_SUMMARY_LENGTH)}..."
-        }
-    }
-
-    private fun summarizeClientSession(client: Client?): String {
-        if (client == null) return "session=<none>"
-        val session = runCatching { client.session() }.getOrNull() ?: return "session=<unavailable>"
-        return "user=${summarizeValue(session.userId)} device=${summarizeValue(session.deviceId)}"
-    }
-
-    private fun summarizeStateSession(state: MatrixE2eeVerificationState): String {
-        return "user=${summarizeValue(state.userId)} device=${summarizeValue(state.deviceId)}"
-    }
-
-    private fun summarizeVerificationState(state: MatrixE2eeVerificationState): String {
-        return "status=${state.status} " +
-            "trust=${state.verificationState.ifBlank { "<blank>" }} " +
-            "hasDevices=${state.hasDevicesToVerifyAgainst} " +
-            "requestUser=${summarizeValue(state.requestUserId)} " +
-            "requestDevice=${summarizeValue(state.requestDeviceId)} " +
-            "sasEmojis=${state.sasEmojis.size} " +
-            "sasDecimals=${state.sasDecimals.size} " +
-            "message=${summarizeValue(state.message)}"
-    }
-
-    private fun summarizePendingRequest(): String {
-        return pendingRequest?.let(::summarizeRequestDetails) ?: "<none>"
-    }
-
-    private fun summarizeRequestDetails(details: SessionVerificationRequestDetails): String {
-        return "flow=${summarizeValue(details.flowId)} " +
-            "sender=${summarizeValue(details.senderProfile.userId)} " +
-            "device=${summarizeValue(details.deviceId)} " +
-            "display=${summarizeValue(details.deviceDisplayName)}"
-    }
-
-    private fun summarizeValue(value: String?): String {
-        val normalized = value.orEmpty()
-        if (normalized.isBlank()) return "<blank>"
-        return if (normalized.length <= VALUE_SUMMARY_LENGTH) {
-            normalized
-        } else {
-            "${normalized.take(VALUE_SUMMARY_LENGTH)}...(${normalized.length})"
-        }
-    }
-
     private fun logLocalSnapshot(reason: String) {
         SLog.d(
             TAG,
             "Matrix verification snapshot[$reason]: " +
-                "state={${summarizeVerificationState(_state.value)}} " +
-                "pending=${summarizePendingRequest()} " +
+                "state={${MatrixVerificationDiagnostics.summarizeVerificationState(_state.value)}} " +
+                "pending=${MatrixVerificationDiagnostics.summarizePendingRequest(sasCoordinator.pendingRequest)} " +
                 "controller=${controller != null} " +
                 "syncRunning=${isHandleRunning(syncHandle)} " +
                 "stateListenerRunning=${isHandleRunning(verificationStateHandle)} " +
-                "outgoingSasJobActive=${outgoingSasStartJob?.isActive == true} " +
-                "outgoingSasAttempt=${outgoingSasStartAttemptInProgress.get()} " +
-                "${summarizeClientSession(client)}",
+                "outgoingSasJobActive=${sasCoordinator.outgoingSasStartJob?.isActive == true} " +
+                "outgoingSasAttempt=${sasCoordinator.outgoingSasStartAttemptInProgress.get()} " +
+                "${MatrixVerificationDiagnostics.summarizeClientSession(client)}",
         )
     }
 
@@ -1257,7 +811,7 @@ object MatrixE2eeVerificationRuntime : MatrixE2eeVerification {
                 TAG,
                 "Matrix verification sdk snapshot[$reason]: " +
                     "verificationState=$verificationState hasDevices=$hasDevices " +
-                    "${summarizeClientSession(activeClient)}",
+                    "${MatrixVerificationDiagnostics.summarizeClientSession(activeClient)}",
             )
         }
     }
