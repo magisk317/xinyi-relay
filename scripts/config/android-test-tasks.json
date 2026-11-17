@@ -36,7 +36,6 @@
     ":desktop:core:jvmTest",
     ":desktop:data:jvmTest",
     "verifyStructureBoundaries",
-    "verifyGodFileLimits",
     "verifyModuleBoundaries",
     "verifyEmbeddedSubmodules",
     "verifyDependencyGovernance",

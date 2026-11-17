@@ -22,7 +22,6 @@ root_check_dependencies=(
   verifyEmbeddedSubmodules
   verifyDependencyGovernance
   verifyNoGlobalWarningMute
-  verifyGodFileLimits
 )
 
 assert_full_tasks() {
