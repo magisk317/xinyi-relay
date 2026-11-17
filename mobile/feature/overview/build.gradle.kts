@@ -27,7 +27,7 @@ dependencies {
     implementation(project(":policy"))
     implementation(project(":mobile:core"))
     implementation(project(":magisk-ui-kit"))
-    implementation(project(":magisk-ui-kit:update"))
+    implementation(project(":magisk-ui-kit:governance"))
     implementation(project(":mobile:feature:common"))
     implementation(project(":smscode-core:runtime"))
     implementation(libs.mobile.entitlement.android)

@@ -63,7 +63,7 @@ dependencies {
     implementation(project(":magisk-forward-core:sender:api"))
     implementation(project(":relay:contract"))
     implementation(project(":magisk-ui-kit"))
-    implementation(project(":magisk-ui-kit:update"))
+    implementation(project(":magisk-ui-kit:governance"))
     implementation(libs.mobile.entitlement.android)
     implementation(project(":smscode-core:runtime"))
     implementation(libs.androidx.material.icons.core)

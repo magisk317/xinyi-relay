@@ -22,8 +22,8 @@
     ":magisk-ui-kit:testAndroidHostTest",
     ":magisk-ui-kit:jvmTest",
     ":magisk-ui-kit:billing:testDebugUnitTest",
-    ":magisk-ui-kit:update:testGithubDebugUnitTest",
-    ":magisk-ui-kit:update:testPlayDebugUnitTest",
+    ":magisk-ui-kit:governance:testGithubDebugUnitTest",
+    ":magisk-ui-kit:governance:testPlayDebugUnitTest",
     ":policy:jvmTest",
     ":relay:android:testGithubDebugUnitTest",
     ":runtime:testGithubDebugUnitTest",
@@ -113,8 +113,8 @@
         ":magisk-ui-kit:testAndroidHostTest",
         ":magisk-ui-kit:jvmTest",
         ":magisk-ui-kit:billing:testDebugUnitTest",
-        ":magisk-ui-kit:update:testGithubDebugUnitTest",
-        ":magisk-ui-kit:update:testPlayDebugUnitTest"
+        ":magisk-ui-kit:governance:testGithubDebugUnitTest",
+        ":magisk-ui-kit:governance:testPlayDebugUnitTest"
       ]
     },
     {
