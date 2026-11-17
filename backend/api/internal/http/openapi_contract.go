@@ -22,7 +22,7 @@ func BuildOpenAPIContractDocument() map[string]any {
 		"openapi": "3.1.0",
 		"info": map[string]any{
 			"title":       "Xinyi Relay Remote API",
-			"version":     "0.4.4",
+			"version":     "0.4.5",
 			"description": "Contract for the Xinyi Relay backend, Android agent, Web console, and Desktop console.",
 		},
 		"servers": []map[string]any{

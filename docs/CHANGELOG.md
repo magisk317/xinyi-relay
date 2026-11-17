@@ -2,6 +2,14 @@
 
 本日志记录了项目近期的主要变更。 
 
+
+---
+## [v0.4.5] - 2026-11-17
+- 版本：`versionCode 58` / `versionName 0.4.5`。
+- 下一轮开发占位，发布前补充具体变更。
+
+> Full Changelog: https://gitlab.com/magisk3171/xinyi-relay/-/compare/v0.4.4...v0.4.5
+
 ---
 ## [v0.4.4] - 2026-11-16
 - 版本：`versionCode 57` / `versionName 0.4.4`。

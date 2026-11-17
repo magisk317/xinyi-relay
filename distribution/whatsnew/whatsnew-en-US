@@ -1,1 +1,3 @@
-Fix network SMS bypassing the sender blacklist. (#307)
+- Updated to 0.4.5 (58).
+- Development build; release notes will be updated before publishing.
+- https://gitlab.com/magisk3171/xinyi-relay/-/releases
