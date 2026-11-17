@@ -232,6 +232,8 @@ export interface VerificationSettingsSnapshot {
   autoInputInterval: string
   relayKeywords: string
   blockSmsEnabled: boolean
+  markAsReadEnabled: boolean
+  deleteSmsEnabled: boolean
 }
 
 export interface GeneralSettingsSnapshot {
