@@ -92,6 +92,16 @@ dockerhub_image() {
   printf '%s\n' "${DOCKERHUB_IMAGE:-docker.io/${DOCKERHUB_USERNAME:-unknown}/xinyi-relay-backend}"
 }
 
+# Drop the registry credential when the job ends. docker writes it to
+# ~/.docker/config.json unencrypted (the "credentials are stored unencrypted"
+# warning in the container jobs), and logout also clears it from any configured
+# credential store, so the login window should end with the job instead of
+# outliving it inside the dind container.
+registry_logout() {
+  [[ -n "${CI_REGISTRY:-}" ]] || return 0
+  docker logout "$CI_REGISTRY" >/dev/null 2>&1 || true
+}
+
 docker_login_gitlab() {
   require_env CI_REGISTRY
   require_env CI_REGISTRY_USER
@@ -99,6 +109,11 @@ docker_login_gitlab() {
 
   printf '%s' "$CI_REGISTRY_PASSWORD" \
     | docker login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password-stdin
+
+  # build_arch calls create_builder right after this, and create_builder
+  # replaces this EXIT trap, so it re-registers registry_logout as well.
+  # publish-manifests never reaches create_builder and keeps this trap.
+  trap 'registry_logout' EXIT
 }
 
 backend_arches() {
@@ -156,9 +171,9 @@ BKC
     # EXIT, once the scope is gone, and `set -u` then kills a job that the
     # pipeline declares allow_failure. Bind the resolved path into the trap
     # string instead of the variable name.
-    trap 'rm -f "'"$config_file"'"; docker buildx rm "$BUILDX_BUILDER" >/dev/null 2>&1 || true' EXIT
+    trap 'rm -f "'"$config_file"'"; docker buildx rm "$BUILDX_BUILDER" >/dev/null 2>&1 || true; registry_logout' EXIT
   else
-    trap 'docker buildx rm "$BUILDX_BUILDER" >/dev/null 2>&1 || true' EXIT
+    trap 'docker buildx rm "$BUILDX_BUILDER" >/dev/null 2>&1 || true; registry_logout' EXIT
   fi
 }
 

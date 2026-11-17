@@ -200,6 +200,12 @@ tasks.register<Exec>("verifyNoGlobalWarningMute") {
     commandLine("bash", "${rootProject.projectDir}/scripts/checks/verify_no_global_warning_mute.sh")
 }
 
+tasks.register<Exec>("verifyCiToolkitRef") {
+    group = "verification"
+    description = "Verify all magisk-ci-toolkit references remain pinned to one full SHA."
+    commandLine("bash", "${System.getenv("MAGISK_CI_TOOLKIT_DIR") ?: ".magisk-ci-toolkit"}/ci/verify_toolkit_pin.sh", "--root", project.projectDir.absolutePath)
+}
+
 tasks.register<Exec>("reportGodFiles") {
     group = "verification"
     description = "Report large production Kotlin files outside shared-submodule roots."
@@ -223,6 +229,7 @@ tasks.register("check") {
         "verifyEmbeddedSubmodules",
         "verifyDependencyGovernance",
         "verifyNoGlobalWarningMute",
+        "verifyCiToolkitRef",
         "verifyGodFileLimits",
     )
 }
