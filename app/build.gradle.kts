@@ -90,7 +90,7 @@ android {
     }
 
     androidResources {
-        localeFilters.addAll(listOf("en", "zh-rCN", "zh-rTW"))
+        localeFilters.addAll(listOf("en", "ru", "zh-rCN", "zh-rTW"))
     }
 
     defaultConfig {
