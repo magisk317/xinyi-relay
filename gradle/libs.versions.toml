@@ -80,7 +80,7 @@ google-id = "1.2.1"
 mobile-entitlement = "0.4.0"
 versionCode = "58"
 versionName = "0.4.5"
-matrix-sdk-android = "26.11.05"
+matrix-sdk-android = "26.11.17"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activity-compose" }
