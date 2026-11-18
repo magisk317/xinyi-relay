@@ -212,6 +212,7 @@ class AppNotificationListenerService : NotificationListenerService() {
             title = title,
             text = text,
             notification = notification,
+            tag = sbn.tag,
         )
         if (decision == CodeNotificationReadCoordinator.Decision.NO_READ_ACTION) {
             runCatching { cancelNotification(sbn.key) }.onFailure { error ->
