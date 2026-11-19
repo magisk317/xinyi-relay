@@ -49,7 +49,7 @@ import io.github.magisk317.relay.contract.settings.SpecialAlertSettingsUpdate
 import io.github.magisk317.relay.platform.reminder.LowBatteryReminderScheduler
 import io.github.magisk317.relay.ui.common.filterNonNegativeIntegerInput
 import io.github.magisk317.relay.ui.common.parseIntInRangeInput
-import io.github.magisk317.uikit.surface.AppDropdownField
+import io.github.magisk317.uikit.preference.SettingsChoiceRow
 import io.github.magisk317.relay.ui.sender.displayName
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -79,9 +79,9 @@ private fun ChannelDropdown(
     options: List<ChannelOption>,
     onSelect: (ChannelOption) -> Unit,
 ) {
-    AppDropdownField(
+    SettingsChoiceRow(
         title = title,
-        value = value,
+        summary = value,
         options = options.map { it.label },
         selectedIndex = options.indexOfFirst { it.label == value },
         onSelect = { index ->

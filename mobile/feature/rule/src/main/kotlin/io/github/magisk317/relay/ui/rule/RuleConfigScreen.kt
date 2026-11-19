@@ -21,8 +21,8 @@ import org.koin.compose.viewmodel.koinViewModel
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
 import java.util.Date
+import io.github.magisk317.uikit.preference.SettingsChoiceRow
 import io.github.magisk317.uikit.surface.AppTextField
-import io.github.magisk317.uikit.surface.AppDropdownField
 import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.text.AppTextRole
 import io.github.magisk317.uikit.surface.AppCircularProgressIndicator
@@ -203,15 +203,15 @@ fun SenderDropdown(
     onSelect: (Long) -> Unit
 ) {
     val selectedIndex = senders.indexOfFirst { it.id == selectedId }
-    AppDropdownField(
+    SettingsChoiceRow(
         title = title,
-        value = senders.getOrNull(selectedIndex)?.displayName(context) ?: "",
+        summary = senders.getOrNull(selectedIndex)?.displayName(context)
+            ?: context.getString(R.string.rule_config_sender_placeholder),
         options = senders.map { it.displayName(context) },
         selectedIndex = selectedIndex,
         onSelect = { index ->
             onSelect(senders[index].id)
         },
-        placeholderText = context.getString(R.string.rule_config_sender_placeholder),
         modifier = Modifier.fillMaxWidth(),
     )
 }

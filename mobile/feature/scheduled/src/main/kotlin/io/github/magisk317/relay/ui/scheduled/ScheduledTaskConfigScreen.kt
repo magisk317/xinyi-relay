@@ -28,8 +28,8 @@ import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import io.github.magisk317.uikit.preference.AppSwitch
+import io.github.magisk317.uikit.preference.SettingsChoiceRow
 import io.github.magisk317.uikit.surface.AppTextField
-import io.github.magisk317.uikit.surface.AppDropdownField
 import io.github.magisk317.uikit.text.AppText
 import io.github.magisk317.uikit.theme.appColor
 import io.github.magisk317.uikit.theme.AppColorRole
@@ -395,9 +395,9 @@ fun ScheduledTaskConfigScreen(
             )
         }
 
-        AppDropdownField(
+        SettingsChoiceRow(
             title = stringResource(id = R.string.scheduled_task_query_preset_label),
-            value = selectedQueryPresetLabel,
+            summary = selectedQueryPresetLabel,
             options = listOf(queryPresetCustomLabel) + SCHEDULED_TASK_QUERY_PRESETS.map { it.label() },
             selectedIndex = queryPresetIndex,
             onSelect = { index ->
