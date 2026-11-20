@@ -83,6 +83,7 @@ const schemaCases = [
       'enabled',
       'revokedAt',
       'lastSeenAt',
+      'timeZone',
       'localAddresses',
       'capabilities',
       'createdAt',

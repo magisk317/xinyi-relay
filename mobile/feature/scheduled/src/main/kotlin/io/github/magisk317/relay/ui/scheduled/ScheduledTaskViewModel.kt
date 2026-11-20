@@ -11,6 +11,9 @@ import io.github.magisk317.forward.engine.model.MsgInfo
 import io.github.magisk317.forward.engine.model.ScheduledTask
 import io.github.magisk317.forward.engine.schedule.CronUtils
 import io.github.magisk317.forward.engine.service.ScheduledTaskRepository
+import io.github.magisk317.relay.data.repository.ScheduledTaskConflictResolution
+import io.github.magisk317.relay.data.repository.ScheduledTaskSyncMerger
+import io.github.magisk317.relay.data.repository.ScheduledTaskSyncRecord
 import io.github.magisk317.relay.mobilefeature.scheduled.BuildConfig
 import java.util.Date
 import kotlinx.coroutines.Dispatchers
@@ -56,6 +59,35 @@ class ScheduledTaskViewModel(
                 )
             } finally {
                 _isLoading.value = false
+            }
+        }
+    }
+
+    fun resolveConflict(
+        conflictId: String,
+        resolution: ScheduledTaskConflictResolution,
+        onError: (String) -> Unit = {},
+    ) {
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    val existing = scheduledTaskRepository.getAllTasks()
+                        .filter { it.conflictId == conflictId }
+                    val records = existing.map { it.toSyncRecord() }
+                    val resolved = ScheduledTaskSyncMerger.resolve(records, conflictId, resolution)
+                    val existingBySyncId = existing.associateBy(ScheduledTask::syncId)
+                    scheduledTaskRepository.resolveSyncConflict(
+                        conflictId = conflictId,
+                        resolvedTasks = resolved.map { record ->
+                            record.toScheduledTask(existingBySyncId[record.syncId]?.id ?: 0L)
+                        },
+                    )
+                }
+            } catch (e: Exception) {
+                XLog.e("Failed to resolve scheduled task conflict", e)
+                val message = string(R.string.scheduled_task_conflict_resolve_failed, e.messageOrType())
+                _errorMessage.value = message
+                onError(message)
             }
         }
     }
@@ -195,4 +227,37 @@ class ScheduledTaskViewModel(
     private fun Throwable.messageOrType(): String {
         return message ?: javaClass.simpleName
     }
+
+    private fun ScheduledTask.toSyncRecord() = ScheduledTaskSyncRecord(
+        syncId = syncId,
+        name = name,
+        taskType = taskType,
+        cronExpression = cronExpression,
+        simSlot = simSlot,
+        mobiles = mobiles,
+        content = content,
+        status = status,
+        createdAt = createdAt,
+        conflictId = conflictId,
+        conflictSide = conflictSide,
+        conflictPreviousStatus = conflictPreviousStatus,
+        syncDeleted = syncDeleted,
+    )
+
+    private fun ScheduledTaskSyncRecord.toScheduledTask(id: Long) = ScheduledTask(
+        id = id,
+        name = name,
+        taskType = taskType,
+        cronExpression = cronExpression,
+        simSlot = simSlot,
+        mobiles = mobiles,
+        content = content,
+        status = status,
+        createdAt = createdAt,
+        syncId = syncId,
+        conflictId = conflictId,
+        conflictSide = conflictSide,
+        conflictPreviousStatus = conflictPreviousStatus,
+        syncDeleted = syncDeleted,
+    )
 }

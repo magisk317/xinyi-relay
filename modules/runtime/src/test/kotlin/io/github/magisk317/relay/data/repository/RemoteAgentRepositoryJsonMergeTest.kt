@@ -24,6 +24,30 @@ class RemoteAgentRepositoryJsonMergeTest {
               "verification": {
                 "verificationFeaturesEnabled": true
               }
+
+    @Test
+    fun unrelatedSenderMutationPreservesScheduledTasks() {
+        val base = RelayJson.parseElement(
+            """
+            {
+              "senders":[{"id":1}],
+              "scheduledTasks":[{"syncId":"task-a","content":"keep"}]
+            }
+            """.trimIndent(),
+        ).jsonObject
+        val mutation = RelayJson.parseElement(
+            """
+            {"operations":[{"type":"replace_senders","senders":[{"id":2}]}]}
+            """.trimIndent(),
+        ).jsonObject
+
+        val applied = requireNotNull(applyConfigMutationBatch(base, mutation))
+
+        assertEquals(
+            base.getValue("scheduledTasks"),
+            applied.getValue("scheduledTasks"),
+        )
+    }
             }
             """.trimIndent(),
         ).jsonObject
@@ -143,6 +167,36 @@ class RemoteAgentRepositoryJsonMergeTest {
         val infos = applied.getValue("deviceAppInfos").jsonObject
         assertTrue(infos.getValue("1").toString().contains("\"packageName\":\"a\""))
         assertTrue(infos.getValue("2").toString().contains("\"packageName\":\"updated\""))
+    }
+
+    @Test
+    fun applyConfigMutationBatch_replaceScheduledTasks_preservesOtherDeviceConfig() {
+        val base = RelayJson.parseElement(
+            """
+            {
+              "senders":[{"id":1}],
+              "scheduledTasks":[{"syncId":"task-a","content":"old"}]
+            }
+            """.trimIndent(),
+        ).jsonObject
+        val mutation = RelayJson.parseElement(
+            """
+            {
+              "operations":[
+                {
+                  "type":"replace_scheduled_tasks",
+                  "tasks":[{"syncId":"task-a","content":"new"}]
+                }
+              ]
+            }
+            """.trimIndent(),
+        ).jsonObject
+
+        val applied = requireNotNull(applyConfigMutationBatch(base, mutation))
+
+        assertEquals("new", applied.getValue("scheduledTasks").jsonArray.single().jsonObject
+            .getValue("content").jsonPrimitive.content)
+        assertEquals(1, applied.getValue("senders").jsonArray.size)
     }
 
     @Test

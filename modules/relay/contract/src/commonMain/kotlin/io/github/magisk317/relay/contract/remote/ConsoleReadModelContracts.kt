@@ -15,6 +15,7 @@ data class DeviceItem(
     val enabled: Boolean = false,
     val revokedAt: String? = null,
     val lastSeenAt: String? = null,
+    val timeZone: String = "UTC",
     val localAddresses: JsonObject,
     val capabilities: JsonObject,
     val createdAt: String = "",

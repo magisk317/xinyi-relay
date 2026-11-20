@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -25,6 +26,153 @@ type deviceConfigFakeStore struct {
 	logsErr        error
 	pendingActions []store.DeviceAction
 	actionsErr     error
+}
+
+func TestHandleDeviceConfigCommandsMapsMissingScheduledTaskCapability(t *testing.T) {
+	s := &Server{
+		store: deviceConfigFakeStore{commandErr: store.ErrDeviceCapabilityMissing},
+		hub:   realtime.NewHub(),
+	}
+	requestBody := `{"baseRevision":4,"summary":"scheduled_tasks:update","mutation":{"operations":[{"type":"replace_scheduled_tasks","tasks":[]}]}}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/devices/7/config/commands", bytes.NewBufferString(requestBody))
+	req.Header.Set("X-CSRF-Token", "expected")
+	rec := httptest.NewRecorder()
+
+	s.handleDeviceConfigCommands(rec, req, authContext{
+		Kind:    authKindSession,
+		User:    store.User{ID: 9},
+		Session: store.Session{CSRFToken: "expected"},
+	}, 7)
+
+	if rec.Code != http.StatusConflict || !bytes.Contains(rec.Body.Bytes(), []byte("device_capability_required")) {
+		t.Fatalf("expected device_capability_required conflict, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestScheduledTaskMutationValidatesCronBoundsAndSimSlotRange(t *testing.T) {
+	validTask := `{"syncId":"550e8400-e29b-41d4-a716-446655440000","taskType":"sms","cronExpression":"*/5 0-23 * * 0,7","simSlot":2,"mobiles":"10086","content":"hello","status":1}`
+	if !isValidScheduledTaskMutation(json.RawMessage("[" + validTask + "]")) {
+		t.Fatal("expected a valid five-field cron expression and sim slot 2 to pass")
+	}
+	invalidCron := []string{
+		"60 * * * *",
+		"0 24 * * *",
+		"0 0 0 * *",
+		"0 0 * 13 *",
+		"0 0 * * 8",
+		"0 0 10-2 * *",
+		"0 0 */0 * *",
+	}
+	for _, cron := range invalidCron {
+		task := strings.Replace(validTask, "*/5 0-23 * * 0,7", cron, 1)
+		if isValidScheduledTaskMutation(json.RawMessage("[" + task + "]")) {
+			t.Errorf("expected invalid cron %q to be rejected", cron)
+		}
+	}
+}
+
+func TestHandleDeviceConfigCommandsMapsOfflineScheduledTaskTarget(t *testing.T) {
+	s := &Server{
+		store: deviceConfigFakeStore{commandErr: store.ErrDeviceOffline},
+		hub:   realtime.NewHub(),
+	}
+	requestBody := `{"baseRevision":4,"summary":"scheduled_tasks:update","mutation":{"operations":[{"type":"replace_scheduled_tasks","tasks":[]}]}}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/devices/7/config/commands", bytes.NewBufferString(requestBody))
+	req.Header.Set("X-CSRF-Token", "expected")
+	rec := httptest.NewRecorder()
+
+	s.handleDeviceConfigCommands(rec, req, authContext{
+		Kind:    authKindSession,
+		User:    store.User{ID: 9},
+		Session: store.Session{CSRFToken: "expected"},
+	}, 7)
+
+	if rec.Code != http.StatusConflict || !bytes.Contains(rec.Body.Bytes(), []byte("device_offline")) {
+		t.Fatalf("expected device_offline conflict, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestHandleAgentHeartbeatAcceptsIanaTimeZone(t *testing.T) {
+	fake := &heartbeatFakeStore{}
+	s := &Server{store: fake, hub: realtime.NewHub()}
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/api/v1/agent/heartbeat",
+		bytes.NewBufferString(`{"appVersion":"1.0","localAddresses":[],"capabilities":{},"timeZone":"Asia/Shanghai"}`),
+	)
+	rec := httptest.NewRecorder()
+
+	s.handleAgentHeartbeat(rec, req, authContext{
+		Kind:   authKindDevice,
+		Device: store.Device{ID: 7, UserID: 9},
+	})
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 for IANA timezone heartbeat, got %d: %s", rec.Code, rec.Body.String())
+	}
+	if fake.timeZone != "Asia/Shanghai" {
+		t.Fatalf("stored heartbeat timezone = %q, want Asia/Shanghai", fake.timeZone)
+	}
+}
+
+func TestHandleAgentHeartbeatRejectsNonIanaTimeZone(t *testing.T) {
+	s := &Server{store: &heartbeatFakeStore{}, hub: realtime.NewHub()}
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/api/v1/agent/heartbeat",
+		bytes.NewBufferString(`{"appVersion":"1.0","localAddresses":[],"capabilities":{},"timeZone":"GMT+08:00"}`),
+	)
+	rec := httptest.NewRecorder()
+
+	s.handleAgentHeartbeat(rec, req, authContext{
+		Kind:   authKindDevice,
+		Device: store.Device{ID: 7, UserID: 9},
+	})
+
+	if rec.Code != http.StatusBadRequest || !bytes.Contains(rec.Body.Bytes(), []byte("invalid_time_zone")) {
+		t.Fatalf("expected invalid_time_zone, got %d: %s", rec.Code, rec.Body.String())
+	}
+}
+
+type heartbeatFakeStore struct {
+	panicStore
+	timeZone string
+}
+
+func (f *heartbeatFakeStore) UpdateDeviceHeartbeat(_ context.Context, _ int64, _ string, _, _ json.RawMessage, timeZone string) error {
+	f.timeZone = timeZone
+	return nil
+}
+
+func TestHandleDeviceConfigCommandsPostQueuesScheduledTasks(t *testing.T) {
+	s := &Server{
+		store: deviceConfigFakeStore{
+			command: store.DeviceConfigCommand{
+				ID:             12,
+				BaseRevision:   4,
+				TargetRevision: 5,
+				Mutation:       json.RawMessage(`{"operations":[{"type":"replace_scheduled_tasks","tasks":[]}]}`),
+				Status:         store.DeviceConfigCommandStatusPending,
+				CreatedAt:      time.Unix(1_700_000_100, 0).UTC(),
+				UpdatedAt:      time.Unix(1_700_000_100, 0).UTC(),
+			},
+		},
+		hub: realtime.NewHub(),
+	}
+	requestBody := `{"baseRevision":4,"summary":"scheduled_tasks:update","mutation":{"operations":[{"type":"replace_scheduled_tasks","tasks":[]}]}}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/devices/7/config/commands", bytes.NewBufferString(requestBody))
+	req.Header.Set("X-CSRF-Token", "expected")
+	rec := httptest.NewRecorder()
+
+	s.handleDeviceConfigCommands(rec, req, authContext{
+		Kind:    authKindSession,
+		User:    store.User{ID: 9},
+		Session: store.Session{CSRFToken: "expected"},
+	}, 7)
+
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201 for scheduled task command, got %d: %s", rec.Code, rec.Body.String())
+	}
 }
 
 func (f deviceConfigFakeStore) GetDeviceConfigState(context.Context, int64, int64) (store.DeviceConfigState, error) {

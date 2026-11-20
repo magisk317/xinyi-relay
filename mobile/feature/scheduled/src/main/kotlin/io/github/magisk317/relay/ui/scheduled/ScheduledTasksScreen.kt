@@ -16,6 +16,7 @@ import io.github.magisk317.relay.mobile.core.R
 import io.github.magisk317.uikit.theme.UiKitStyle
 import io.github.magisk317.uikit.theme.currentUiKitStyle
 import io.github.magisk317.forward.engine.model.ScheduledTask
+import io.github.magisk317.relay.data.repository.ScheduledTaskConflictResolution
 import io.github.magisk317.uikit.surface.AppAlertDialog
 import io.github.magisk317.uikit.preference.AppSwitch
 import io.github.magisk317.uikit.text.AppText
@@ -35,6 +36,10 @@ fun ScheduledTasksScreen(
     val tasks by viewModel.tasks.collectAsStateWithLifecycle()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
+    val conflictGroups = remember(tasks) {
+        tasks.filter { it.conflictId != null }.groupBy { it.conflictId!! }.toList()
+    }
+    val visibleTasks = remember(tasks) { tasks.filter { it.conflictId == null && !it.syncDeleted } }
 
     var taskToDelete by remember { mutableStateOf<Long?>(null) }
     val promptPermissionsForTask = rememberScheduledTaskPermissionPrompter()
@@ -62,7 +67,85 @@ fun ScheduledTasksScreen(
             }
             else -> {
                 LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
-                    items(tasks, key = { it.id }) { task ->
+                    items(conflictGroups, key = { "conflict:${it.first}" }) { (conflictId, versions) ->
+                        AppCard(
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                        ) {
+                            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                                AppText(
+                                    text = stringResource(R.string.scheduled_task_conflict_title),
+                                    role = AppTextRole.Subtitle,
+                                )
+                                AppText(
+                                    text = stringResource(R.string.scheduled_task_conflict_summary),
+                                    role = AppTextRole.BodySmall,
+                                )
+                                versions.sortedBy { it.conflictSide }.forEach { task ->
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    AppText(
+                                        text = stringResource(
+                                            if (task.conflictSide == "local") {
+                                                R.string.scheduled_task_conflict_local
+                                            } else {
+                                                R.string.scheduled_task_conflict_remote
+                                            },
+                                        ),
+                                        role = AppTextRole.Body,
+                                    )
+                                    if (task.syncDeleted) {
+                                        AppText(
+                                            text = stringResource(R.string.scheduled_task_conflict_deleted),
+                                            role = AppTextRole.BodySmall,
+                                        )
+                                    } else {
+                                        AppText(text = task.name, role = AppTextRole.Body)
+                                        AppText(
+                                            text = stringResource(R.string.scheduled_task_line_cron, task.cronExpression),
+                                            role = AppTextRole.BodySmall,
+                                        )
+                                        AppText(
+                                            text = stringResource(
+                                                R.string.scheduled_task_conflict_details,
+                                                task.simSlot,
+                                                task.mobiles,
+                                                task.content,
+                                            ),
+                                            role = AppTextRole.BodySmall,
+                                        )
+                                    }
+                                    AppTextButton(
+                                        text = stringResource(
+                                            if (task.conflictSide == "local") {
+                                                R.string.scheduled_task_conflict_use_local
+                                            } else {
+                                                R.string.scheduled_task_conflict_use_remote
+                                            },
+                                        ),
+                                        onClick = {
+                                            viewModel.resolveConflict(
+                                                conflictId = conflictId,
+                                                resolution = if (task.conflictSide == "local") {
+                                                    ScheduledTaskConflictResolution.USE_LOCAL
+                                                } else {
+                                                    ScheduledTaskConflictResolution.USE_REMOTE
+                                                },
+                                            ) {}
+                                        },
+                                    )
+                                }
+                                AppTextButton(
+                                    text = stringResource(R.string.scheduled_task_conflict_keep_both),
+                                    onClick = {
+                                        viewModel.resolveConflict(
+                                            conflictId = conflictId,
+                                            resolution = ScheduledTaskConflictResolution.KEEP_BOTH,
+                                        ) {}
+                                    },
+                                )
+                            }
+                        }
+                    }
+                    items(visibleTasks, key = { "task:${it.id}" }) { task ->
                         AppCard(
                             modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                             onClick = { onNavigateToConfig(task.id) }

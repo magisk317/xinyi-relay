@@ -10,6 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const (
@@ -34,6 +35,51 @@ const deviceConfigLockNamespace int32 = 0x78696e79 // "xiny"
 func lockDeviceConfig(ctx context.Context, q deviceConfigQuerier, deviceID int64) error {
 	_, err := q.Exec(ctx, `SELECT pg_advisory_xact_lock($1, $2)`, deviceConfigLockNamespace, deviceID)
 	return err
+}
+
+func deviceHeartbeatIsRecent(lastSeen, now time.Time) bool {
+	return !lastSeen.Before(now.Add(-15 * time.Minute))
+}
+
+func mutationContainsScheduledTasks(mutation json.RawMessage) bool {
+	var payload struct {
+		Operations []struct {
+			Type string `json:"type"`
+		} `json:"operations"`
+	}
+	if json.Unmarshal(mutation, &payload) != nil {
+		return false
+	}
+	for _, operation := range payload.Operations {
+		if operation.Type == "replace_scheduled_tasks" {
+			return true
+		}
+	}
+	return false
+}
+
+func isIdempotentDeviceConfigAck(command DeviceConfigCommand, appliedRevision int64, status, failureReason string) bool {
+	switch status {
+	case DeviceConfigCommandStatusApplied:
+		if command.Status != DeviceConfigCommandStatusApplied {
+			return false
+		}
+		if appliedRevision == 0 {
+			appliedRevision = command.TargetRevision
+		}
+		return appliedRevision == command.TargetRevision
+	case DeviceConfigCommandStatusFailed:
+		if command.Status != DeviceConfigCommandStatusFailed {
+			return false
+		}
+		reason := strings.TrimSpace(failureReason)
+		if reason == "" {
+			reason = "command_failed"
+		}
+		return command.FailureReason != nil && *command.FailureReason == reason
+	default:
+		return false
+	}
 }
 
 type DeviceConfigMirror struct {
@@ -133,6 +179,29 @@ func (s *Store) CreateDeviceConfigCommand(
 	mirror, err := s.ensureDeviceConfigMirror(ctx, tx, userID, deviceID)
 	if err != nil {
 		return DeviceConfigCommand{}, err
+	}
+	if mutationContainsScheduledTasks(mutation) {
+		var lastSeen pgtype.Timestamptz
+		var databaseNow time.Time
+		var supportsScheduledTasks bool
+		if err := tx.QueryRow(
+			ctx,
+			`SELECT last_seen_at, NOW(), COALESCE(capabilities->>'scheduledTasks' = 'true', FALSE)
+			   FROM devices WHERE user_id = $1 AND id = $2 AND enabled = TRUE AND revoked_at IS NULL`,
+			userID,
+			deviceID,
+		).Scan(&lastSeen, &databaseNow, &supportsScheduledTasks); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return DeviceConfigCommand{}, ErrNotFound
+			}
+			return DeviceConfigCommand{}, err
+		}
+		if !lastSeen.Valid || !deviceHeartbeatIsRecent(lastSeen.Time, databaseNow) {
+			return DeviceConfigCommand{}, ErrDeviceOffline
+		}
+		if !supportsScheduledTasks {
+			return DeviceConfigCommand{}, ErrDeviceCapabilityMissing
+		}
 	}
 	var latestPendingTargetRevision int64
 	if err := tx.QueryRow(
@@ -396,6 +465,9 @@ func (s *Store) AckDeviceConfigCommand(
 		return DeviceConfigCommand{}, err
 	}
 	if command.Status != DeviceConfigCommandStatusPending {
+		if isIdempotentDeviceConfigAck(command, appliedRevision, status, failureReason) {
+			return command, nil
+		}
 		return DeviceConfigCommand{}, ErrConflict
 	}
 

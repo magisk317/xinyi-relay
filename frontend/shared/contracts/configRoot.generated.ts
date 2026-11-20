@@ -26,6 +26,23 @@ export interface RemoteConfigRoot extends Record<string, unknown> {
   deviceAppInfos?: Record<string, Array<SnapshotAppInfo>> | null
   notifyRoutes: Array<SnapshotNotifyRouteRule>
   forwardFilters: Array<SnapshotForwardFilterRule>
+  scheduledTasks?: Array<SnapshotScheduledTask> | null
+}
+
+export interface SnapshotScheduledTask {
+  syncId?: string
+  name?: string
+  taskType?: string
+  cronExpression?: string
+  simSlot?: number
+  mobiles?: string
+  content?: string
+  status?: number
+  createdAt?: number
+  conflictId?: string | null
+  conflictSide?: string
+  conflictPreviousStatus?: number | null
+  syncDeleted?: boolean
 }
 
 export interface SnapshotForwardFilterRule {

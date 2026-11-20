@@ -633,6 +633,7 @@ private fun buildScheduledTaskSaveDraft(
         nextRunTime = existingTask?.nextRunTime ?: 0L,
         lastRunTime = existingTask?.lastRunTime ?: 0L,
         createdAt = existingTask?.createdAt ?: System.currentTimeMillis(),
+        syncId = existingTask?.syncId.orEmpty(),
     )
     return ScheduledTaskSaveDraft(task = task)
 }

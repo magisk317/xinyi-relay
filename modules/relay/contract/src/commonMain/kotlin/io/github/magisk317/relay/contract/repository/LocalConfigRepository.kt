@@ -13,6 +13,11 @@ interface LocalConfigRepository {
     suspend fun noteLocalMutation(source: String): LocalDirtyState
     suspend fun markMirrorSynced(revision: Long): LocalDirtyState
     suspend fun applyMirror(mirrorContent: JsonObject, revision: Long, source: String = "remote_command"): LocalConfigMirror
+    suspend fun applyMergedMirror(
+        mirrorContent: JsonObject,
+        revision: Long,
+        source: String,
+    ): LocalConfigMirror = applyMirror(mirrorContent, revision, "merged_$source")
     fun observeMutationSources(): Flow<String>
 }
 

@@ -494,6 +494,16 @@
     <string name="scheduled_task_enable_label">啟用任務</string>
     <string name="scheduled_task_status_enabled">啟用</string>
     <string name="scheduled_task_status_disabled">停用</string>
+    <string name="scheduled_task_conflict_title">定時任務衝突</string>
+    <string name="scheduled_task_conflict_summary">選擇處理方式前，雙方版本都會暫停。</string>
+    <string name="scheduled_task_conflict_local">本機版本</string>
+    <string name="scheduled_task_conflict_remote">遠端版本</string>
+    <string name="scheduled_task_conflict_deleted">此版本已刪除。</string>
+    <string name="scheduled_task_conflict_details">SIM %1$d | %2$s | %3$s</string>
+    <string name="scheduled_task_conflict_use_local">採用本機版本</string>
+    <string name="scheduled_task_conflict_use_remote">採用遠端版本</string>
+    <string name="scheduled_task_conflict_keep_both">保留兩個版本</string>
+    <string name="scheduled_task_conflict_resolve_failed">無法解決任務衝突：%1$s</string>
     <string name="scheduled_task_line_cron">Cron：%1$s</string>
     <string name="scheduled_task_line_sim_status">SIM：%1$d | 狀態：%2$s</string>
     <string name="scheduled_task_delete_dialog_title">確認刪除</string>

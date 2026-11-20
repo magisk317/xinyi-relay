@@ -1,0 +1,2 @@
+ALTER TABLE devices
+    ADD COLUMN time_zone TEXT NOT NULL DEFAULT 'UTC';

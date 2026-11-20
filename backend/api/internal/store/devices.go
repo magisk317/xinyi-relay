@@ -20,6 +20,7 @@ type Device struct {
 	Enabled        bool            `json:"enabled"`
 	RevokedAt      *time.Time      `json:"revokedAt,omitempty"`
 	LastSeenAt     *time.Time      `json:"lastSeenAt,omitempty"`
+	TimeZone       string          `json:"timeZone"`
 	LocalAddresses json.RawMessage `json:"localAddresses"`
 	Capabilities   json.RawMessage `json:"capabilities"`
 	CreatedAt      time.Time       `json:"createdAt"`
@@ -42,7 +43,7 @@ func (s *Store) CreateDevice(
 			user_id, device_name, device_model, platform, app_version, display_name, token_hash
 		) VALUES ($1, $2, $3, $4, $5, $2, $6)
 		RETURNING id, user_id, device_name, device_model, platform, app_version, display_name, enabled,
-		          revoked_at, last_seen_at, local_addresses, capabilities, created_at, updated_at`,
+		          revoked_at, last_seen_at, time_zone, local_addresses, capabilities, created_at, updated_at`,
 		userID,
 		deviceName,
 		deviceModel,
@@ -60,6 +61,7 @@ func (s *Store) CreateDevice(
 		&device.Enabled,
 		&device.RevokedAt,
 		&device.LastSeenAt,
+		&device.TimeZone,
 		&device.LocalAddresses,
 		&device.Capabilities,
 		&device.CreatedAt,
@@ -73,7 +75,7 @@ func (s *Store) GetDeviceByTokenHash(ctx context.Context, tokenHash string) (Dev
 	err := s.db.Pool.QueryRow(
 		ctx,
 		`SELECT id, user_id, device_name, device_model, platform, app_version, display_name, enabled,
-		        revoked_at, last_seen_at, local_addresses, capabilities, created_at, updated_at
+		        revoked_at, last_seen_at, time_zone, local_addresses, capabilities, created_at, updated_at
 		   FROM devices
 		  WHERE token_hash = $1 AND revoked_at IS NULL AND enabled = TRUE`,
 		tokenHash,
@@ -88,6 +90,7 @@ func (s *Store) GetDeviceByTokenHash(ctx context.Context, tokenHash string) (Dev
 		&device.Enabled,
 		&device.RevokedAt,
 		&device.LastSeenAt,
+		&device.TimeZone,
 		&device.LocalAddresses,
 		&device.Capabilities,
 		&device.CreatedAt,
@@ -103,7 +106,7 @@ func (s *Store) ListDevicesByUser(ctx context.Context, userID int64) ([]Device, 
 	rows, err := s.db.Pool.Query(
 		ctx,
 		`SELECT id, user_id, device_name, device_model, platform, app_version, display_name, enabled,
-		        revoked_at, last_seen_at, local_addresses, capabilities, created_at, updated_at
+		        revoked_at, last_seen_at, time_zone, local_addresses, capabilities, created_at, updated_at
 		   FROM devices
 		  WHERE user_id = $1 AND revoked_at IS NULL
 		  ORDER BY created_at DESC`,
@@ -128,6 +131,7 @@ func (s *Store) ListDevicesByUser(ctx context.Context, userID int64) ([]Device, 
 			&device.Enabled,
 			&device.RevokedAt,
 			&device.LastSeenAt,
+			&device.TimeZone,
 			&device.LocalAddresses,
 			&device.Capabilities,
 			&device.CreatedAt,
@@ -146,6 +150,7 @@ func (s *Store) UpdateDeviceHeartbeat(
 	appVersion string,
 	localAddresses json.RawMessage,
 	capabilities json.RawMessage,
+	timeZone string,
 ) error {
 	_, err := s.db.Pool.Exec(
 		ctx,
@@ -153,6 +158,7 @@ func (s *Store) UpdateDeviceHeartbeat(
 		    SET app_version = $2,
 		        local_addresses = $3,
 		        capabilities = $4,
+		        time_zone = COALESCE(NULLIF($5, ''), time_zone),
 		        last_seen_at = NOW(),
 		        updated_at = NOW()
 		  WHERE id = $1`,
@@ -160,6 +166,7 @@ func (s *Store) UpdateDeviceHeartbeat(
 		appVersion,
 		localAddresses,
 		capabilities,
+		timeZone,
 	)
 	return err
 }
@@ -177,7 +184,7 @@ func (s *Store) PatchDevice(ctx context.Context, userID, deviceID int64, display
                         updated_at = NOW()
                   WHERE user_id = $1 AND id = $2
                   RETURNING id, user_id, device_name, device_model, platform, app_version, display_name, enabled,
-                            revoked_at, last_seen_at, local_addresses, capabilities, created_at, updated_at`,
+                            revoked_at, last_seen_at, time_zone, local_addresses, capabilities, created_at, updated_at`,
 		userID,
 		deviceID,
 		displayName,
@@ -193,6 +200,7 @@ func (s *Store) PatchDevice(ctx context.Context, userID, deviceID int64, display
 		&updated.Enabled,
 		&updated.RevokedAt,
 		&updated.LastSeenAt,
+		&updated.TimeZone,
 		&updated.LocalAddresses,
 		&updated.Capabilities,
 		&updated.CreatedAt,

@@ -67,6 +67,7 @@ type heartbeatRequest struct {
 	AppVersion     string          `json:"appVersion"`
 	LocalAddresses []string        `json:"localAddresses"`
 	Capabilities   json.RawMessage `json:"capabilities"`
+	TimeZone       string          `json:"timeZone,omitempty"`
 }
 
 type patchDeviceRequest struct {

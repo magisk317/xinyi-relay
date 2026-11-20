@@ -51,7 +51,7 @@ type deviceStore interface {
 	CreateDevice(ctx context.Context, userID int64, deviceName string, deviceModel string, platform string, appVersion string, tokenHash string) (store.Device, error)
 	GetDeviceByTokenHash(ctx context.Context, tokenHash string) (store.Device, error)
 	ListDevicesByUser(ctx context.Context, userID int64) ([]store.Device, error)
-	UpdateDeviceHeartbeat(ctx context.Context, deviceID int64, appVersion string, localAddresses json.RawMessage, capabilities json.RawMessage) error
+	UpdateDeviceHeartbeat(ctx context.Context, deviceID int64, appVersion string, localAddresses json.RawMessage, capabilities json.RawMessage, timeZone string) error
 	PatchDevice(ctx context.Context, userID, deviceID int64, displayName *string, enabled *bool) (store.Device, error)
 	RevokeDevice(ctx context.Context, userID, deviceID int64) error
 }

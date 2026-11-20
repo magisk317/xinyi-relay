@@ -93,7 +93,7 @@ class ScheduledTaskManager(
             }
             val task = appDatabase.forwardScheduledTaskDao().getById(taskId)
             if (task != null) {
-                if (task.status == 1) {
+                if (task.status == 1 && task.conflictId == null && !task.syncDeleted) {
                     runCatching {
                         scheduleTask(task)
                     }.onFailure { e ->

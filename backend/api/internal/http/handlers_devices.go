@@ -15,6 +15,7 @@ func (s *Server) handleCreateBindCode(w http.ResponseWriter, r *http.Request, au
 		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
 		return
 	}
+
 	if auth.Kind == authKindSession && !verifyCSRF(r, auth.Session) {
 		writeError(w, http.StatusForbidden, "invalid csrf token")
 		return
@@ -111,10 +112,15 @@ func (s *Server) handleAgentHeartbeat(w http.ResponseWriter, r *http.Request, au
 		writeDecodeError(w, err)
 		return
 	}
+	timeZone := strings.TrimSpace(payload.TimeZone)
+	if timeZone != "" && (timeZone == "Local" || !validIanaTimeZone(timeZone)) {
+		writeError(w, http.StatusBadRequest, "invalid_time_zone")
+		return
+	}
 
 	addresses, _ := json.Marshal(payload.LocalAddresses)
 	capabilities := parseJSONMap(payload.Capabilities)
-	if err := s.store.UpdateDeviceHeartbeat(r.Context(), auth.Device.ID, payload.AppVersion, addresses, capabilities); err != nil {
+	if err := s.store.UpdateDeviceHeartbeat(r.Context(), auth.Device.ID, payload.AppVersion, addresses, capabilities, timeZone); err != nil {
 		writeError(w, http.StatusInternalServerError, "update heartbeat failed")
 		return
 	}
@@ -123,9 +129,18 @@ func (s *Server) handleAgentHeartbeat(w http.ResponseWriter, r *http.Request, au
 		"deviceId":       auth.Device.ID,
 		"appVersion":     payload.AppVersion,
 		"localAddresses": payload.LocalAddresses,
+		"timeZone":       timeZone,
 	})
 
 	writeJSON(w, http.StatusOK, simpleOKResponse{OK: true})
+}
+
+func validIanaTimeZone(value string) bool {
+	if value == "" || strings.HasPrefix(value, "+") || strings.HasPrefix(value, "-") {
+		return false
+	}
+	_, err := time.LoadLocation(value)
+	return err == nil
 }
 
 func (s *Server) handleDevices(w http.ResponseWriter, r *http.Request, auth authContext) {

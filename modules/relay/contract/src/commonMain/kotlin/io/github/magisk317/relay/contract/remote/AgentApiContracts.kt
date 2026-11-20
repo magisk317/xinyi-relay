@@ -27,6 +27,7 @@ data class HeartbeatRequest(
     val appVersion: String,
     val localAddresses: List<String>,
     val capabilities: Map<String, Boolean>,
+    val timeZone: String = "",
 )
 
 @Serializable

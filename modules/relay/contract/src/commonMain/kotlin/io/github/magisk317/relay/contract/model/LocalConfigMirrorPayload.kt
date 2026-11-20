@@ -39,6 +39,24 @@ data class LocalConfigMirrorPayload(
     val deviceAppInfos: Map<String, List<SnapshotAppInfo>>? = null,
     val notifyRoutes: List<SnapshotNotifyRouteRule>,
     val forwardFilters: List<SnapshotForwardFilterRule>,
+    val scheduledTasks: List<SnapshotScheduledTask>? = null,
+)
+
+@Serializable
+data class SnapshotScheduledTask(
+    val syncId: String = "",
+    val name: String = "",
+    val taskType: String = "sms",
+    val cronExpression: String = "",
+    val simSlot: Int = 0,
+    val mobiles: String = "",
+    val content: String = "",
+    val status: Int = 1,
+    val createdAt: Long = 0L,
+    val conflictId: String? = null,
+    val conflictSide: String = "",
+    val conflictPreviousStatus: Int? = null,
+    val syncDeleted: Boolean = false,
 )
 
 @Serializable

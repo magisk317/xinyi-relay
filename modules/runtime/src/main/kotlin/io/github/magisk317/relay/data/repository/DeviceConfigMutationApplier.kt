@@ -34,7 +34,21 @@ private fun applyConfigMutationOperation(
     return when (operation["type"]?.jsonPrimitive?.contentOrNull) {
         "replace_senders" -> applyReplaceSendersMutation(base, operation)
         "replace_device_apps" -> applyReplaceDeviceAppsMutation(base, operation)
+        "replace_scheduled_tasks" -> applyReplaceScheduledTasksMutation(base, operation)
         else -> null
+    }
+}
+
+private fun applyReplaceScheduledTasksMutation(
+    base: JsonObject,
+    operation: JsonObject,
+): JsonObject? {
+    val tasks = operation["tasks"] as? JsonArray ?: return null
+    return buildJsonObject {
+        base.forEach { (key, value) ->
+            put(key, if (key == "scheduledTasks") tasks else value)
+        }
+        if (!base.containsKey("scheduledTasks")) put("scheduledTasks", tasks)
     }
 }
 

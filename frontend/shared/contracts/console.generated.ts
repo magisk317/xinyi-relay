@@ -181,6 +181,7 @@ export interface DeviceItem {
   localAddresses: JsonObject
   platform: string
   revokedAt?: string | null
+  timeZone?: string
   updatedAt: string
   userId: number
 }
@@ -202,6 +203,7 @@ export interface HeartbeatRequest {
   appVersion: string
   capabilities: Record<string, boolean>
   localAddresses: Array<string>
+  timeZone?: string
 }
 
 export type JsonObject = Record<string, unknown>

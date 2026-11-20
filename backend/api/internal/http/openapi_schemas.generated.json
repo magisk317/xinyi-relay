@@ -664,6 +664,9 @@
           "null"
         ]
       },
+      "timeZone": {
+        "type": "string"
+      },
       "updatedAt": {
         "type": "string"
       },
@@ -748,6 +751,9 @@
           "type": "string"
         },
         "type": "array"
+      },
+      "timeZone": {
+        "type": "string"
       }
     },
     "required": [

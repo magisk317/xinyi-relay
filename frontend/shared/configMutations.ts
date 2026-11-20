@@ -7,6 +7,7 @@ import type {
   ConfigMutationOperation,
   RemoteConfigRoot,
   SnapshotAppInfo,
+  SnapshotScheduledTask,
   SnapshotSender,
 } from './contracts/console'
 
@@ -20,6 +21,19 @@ export function buildReplaceSendersMutation(
         type: 'replace_senders',
         senders,
         removedSenderIds,
+      },
+    ],
+  }
+}
+
+export function buildReplaceScheduledTasksMutation(
+  tasks: SnapshotScheduledTask[],
+): ConfigMutationBatch {
+  return {
+    operations: [
+      {
+        type: 'replace_scheduled_tasks',
+        tasks,
       },
     ],
   }
@@ -64,6 +78,11 @@ function applyMutationOperation(
       nextRoot.notifyRoutes = nextRoot.notifyRoutes.filter((route) => !removedSenderIds.has(Math.trunc(route.senderId)))
       nextRoot.forwardFilters = nextRoot.forwardFilters.filter((rule) => !removedSenderIds.has(Math.trunc(rule.senderId)))
     }
+    return nextRoot
+  }
+
+  if (operation.type === 'replace_scheduled_tasks') {
+    nextRoot.scheduledTasks = operation.tasks
     return nextRoot
   }
 

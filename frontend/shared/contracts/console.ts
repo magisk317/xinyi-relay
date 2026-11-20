@@ -8,6 +8,7 @@ import type {
 } from './console.generated'
 import type {
   SnapshotAppInfo,
+  SnapshotScheduledTask,
   SnapshotSender,
 } from './configRoot.generated'
 
@@ -64,6 +65,7 @@ export type {
   SnapshotNotifyRouteRule,
   SnapshotOverviewSettings,
   SnapshotRule,
+  SnapshotScheduledTask,
   SnapshotSender,
   SnapshotSmsCodeRule,
 } from './configRoot.generated'
@@ -76,15 +78,23 @@ export interface ReplaceSendersConfigMutationOperation {
   removedSenderIds?: number[]
 }
 
+export type ScheduledTaskConfigItem = SnapshotScheduledTask
+
 export interface ReplaceDeviceAppsConfigMutationOperation {
   type: 'replace_device_apps'
   deviceId: number
   apps: SnapshotAppInfo[]
 }
 
+export interface ReplaceScheduledTasksConfigMutationOperation {
+  type: 'replace_scheduled_tasks'
+  tasks: SnapshotScheduledTask[]
+}
+
 export type ConfigMutationOperation =
   | ReplaceSendersConfigMutationOperation
   | ReplaceDeviceAppsConfigMutationOperation
+  | ReplaceScheduledTasksConfigMutationOperation
 
 export interface ConfigMutationBatch {
   operations: ConfigMutationOperation[]

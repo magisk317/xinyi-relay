@@ -499,6 +499,16 @@
     <string name="scheduled_task_enable_label">启用任务</string>
     <string name="scheduled_task_status_enabled">启用</string>
     <string name="scheduled_task_status_disabled">禁用</string>
+    <string name="scheduled_task_conflict_title">定时任务冲突</string>
+    <string name="scheduled_task_conflict_summary">选择处理方式前，双方版本都会暂停。</string>
+    <string name="scheduled_task_conflict_local">本地版本</string>
+    <string name="scheduled_task_conflict_remote">远端版本</string>
+    <string name="scheduled_task_conflict_deleted">此版本已删除。</string>
+    <string name="scheduled_task_conflict_details">SIM %1$d | %2$s | %3$s</string>
+    <string name="scheduled_task_conflict_use_local">采用本地版本</string>
+    <string name="scheduled_task_conflict_use_remote">采用远端版本</string>
+    <string name="scheduled_task_conflict_keep_both">保留两个版本</string>
+    <string name="scheduled_task_conflict_resolve_failed">无法解决任务冲突：%1$s</string>
     <string name="scheduled_task_line_cron">Cron：%1$s</string>
     <string name="scheduled_task_line_sim_status">SIM：%1$d | 状态：%2$s</string>
     <string name="scheduled_task_delete_dialog_title">确认删除</string>

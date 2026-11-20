@@ -497,6 +497,16 @@
     <string name="scheduled_task_enable_label">Enable task</string>
     <string name="scheduled_task_status_enabled">Enabled</string>
     <string name="scheduled_task_status_disabled">Disabled</string>
+    <string name="scheduled_task_conflict_title">Task conflict</string>
+    <string name="scheduled_task_conflict_summary">Both versions are paused until you choose.</string>
+    <string name="scheduled_task_conflict_local">Local version</string>
+    <string name="scheduled_task_conflict_remote">Remote version</string>
+    <string name="scheduled_task_conflict_deleted">This version was deleted.</string>
+    <string name="scheduled_task_conflict_details">SIM %1$d | %2$s | %3$s</string>
+    <string name="scheduled_task_conflict_use_local">Use local version</string>
+    <string name="scheduled_task_conflict_use_remote">Use remote version</string>
+    <string name="scheduled_task_conflict_keep_both">Keep both versions</string>
+    <string name="scheduled_task_conflict_resolve_failed">Could not resolve task conflict: %1$s</string>
     <string name="scheduled_task_line_cron">Cron: %1$s</string>
     <string name="scheduled_task_line_sim_status">SIM: %1$d | Status: %2$s</string>
     <string name="scheduled_task_delete_dialog_title">Delete task</string>

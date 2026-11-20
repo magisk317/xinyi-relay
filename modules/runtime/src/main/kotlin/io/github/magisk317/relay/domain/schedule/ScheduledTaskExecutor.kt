@@ -86,7 +86,7 @@ object ScheduledTaskExecutor {
                 return@withContext
             }
 
-            val task = dao.getById(taskId) ?: return@withContext
+            val task = dao.getRunnableById(taskId) ?: return@withContext
             XLog.i("Executing ScheduledTask $taskId from $source")
 
             try {

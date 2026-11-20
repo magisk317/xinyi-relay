@@ -11,6 +11,7 @@ import io.github.magisk317.relay.bootstrap.RuntimeDependencies
 import io.github.magisk317.relay.contract.constant.RelayPrefConst as PrefConst
 import io.github.magisk317.forward.contract.json.RelayJson
 import io.github.magisk317.relay.contract.model.LocalConfigMirror
+import io.github.magisk317.relay.contract.model.SnapshotScheduledTask
 import io.github.magisk317.relay.contract.repository.ConfigSyncCoordinator
 import io.github.magisk317.relay.contract.repository.LocalConfigRepository
 import io.github.magisk317.relay.contract.repository.LocalConfigMirrorRejectedException
@@ -21,6 +22,7 @@ import io.github.magisk317.relay.contract.remote.AgentRegisterRequest
 import io.github.magisk317.relay.contract.remote.DeviceActionAckRequest
 import io.github.magisk317.relay.contract.remote.DeviceActionCommandResponse
 import io.github.magisk317.relay.contract.remote.DeviceConfigCommandResponse
+import io.github.magisk317.relay.contract.remote.DeviceConfigStateResponse
 import io.github.magisk317.relay.contract.remote.HeartbeatRequest
 import io.github.magisk317.relay.contract.remote.MAX_RELAY_RECORDS_PER_SNAPSHOT
 import io.github.magisk317.relay.contract.remote.MAX_RELAY_RECORD_SNAPSHOT_BYTES
@@ -33,6 +35,7 @@ import io.github.magisk317.relay.android.common.utils.DeviceIdentityUtils
 import io.github.magisk317.relay.contract.constant.DeviceActionConst
 import io.github.magisk317.relay.domain.action.DeviceActionExecutor
 import io.github.magisk317.relay.domain.system.RuntimeSettingsCache
+import io.github.magisk317.relay.runtime.BuildConfig
 import io.github.magisk317.relay.data.remote.RemoteAgentApi
 import io.github.magisk317.relay.data.remote.RemoteApiClient
 import io.github.magisk317.xposed.logging.MagiskOtel
@@ -51,13 +54,16 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
 import java.security.MessageDigest
 import java.time.Instant
+import java.util.TimeZone
 import java.util.concurrent.atomic.AtomicBoolean
 import io.github.magisk317.xposed.logging.XLog
 
@@ -172,6 +178,9 @@ class RemoteAgentRepository(
         preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_HEARTBEAT_AT, "0")
         preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_PULL_AT, "0")
         preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_PUSH_AT, "0")
+        preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_SCHEDULED_TASK_BASELINE, "")
+        preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_PENDING_CONFIG_ACK, "")
+        preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_CONFIG_BASELINE, "")
         preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_PENDING_LOCAL_CHANGES, "0")
         preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_DEVICE_APP_INFOS, "")
         preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_APP_CATALOG_DIGEST, "")
@@ -253,7 +262,9 @@ class RemoteAgentRepository(
                 "embeddedWebUi" to false,
                 "remoteConfig" to true,
                 "recordUpload" to true,
+                "scheduledTasks" to BuildConfig.ENABLE_SMS_CHANNEL,
             ),
+            timeZone = TimeZone.getDefault().id,
         )
         executeSimpleAgentWrite(PrefConst.KEY_REMOTE_AGENT_LAST_HEARTBEAT_AT, "heartbeat") {
             remoteApiClient.sendHeartbeat(baseUrl, token, request)
@@ -292,6 +303,7 @@ class RemoteAgentRepository(
                 return@withContext runCatching {
                     val localRevision = localConfigRepository.getRevision().value
                     val localDirtyState = localConfigRepository.getDirtyState()
+                    flushPendingConfigAck(baseUrl, token)
                     val payload = withTokenRefresh {
                         remoteApiClient.pullConfigCommands(
                             baseUrl = baseUrl,
@@ -308,10 +320,21 @@ class RemoteAgentRepository(
                             source = "bootstrap_import",
                         )
                         RuntimeSettingsCache.clear()
+                        persistConfigBaseline(currentMirror.content)
                     }
                     val commandCount = payload.pendingCommands.size
+                    var remoteBaseTasks = payload.mirrorContent?.get("scheduledTasks") as? JsonArray
                     payload.pendingCommands.forEach { command ->
-                        currentMirror = applyPulledCommand(baseUrl, token, command, currentMirror)
+                        currentMirror = applyPulledCommand(
+                            baseUrl,
+                            token,
+                            command,
+                            currentMirror,
+                            remoteBaseTasks,
+                        )
+                        if (commandContainsScheduledTasks(command)) {
+                            remoteBaseTasks = currentMirror.content["scheduledTasks"] as? JsonArray
+                        }
                     }
                     payload.pendingActions.forEach { action ->
                         applyPulledAction(baseUrl, token, action)
@@ -352,21 +375,25 @@ class RemoteAgentRepository(
             val boundSnapshot = getSnapshot()
             require(boundSnapshot.bound) { "device not bound" }
             val token = InternalSecretStore.getString(appContext, PrefConst.KEY_REMOTE_AGENT_DEVICE_TOKEN, "")
+            val baseUrl = normalizedBackendBaseUrl()
+            flushPendingConfigAck(baseUrl, token)
             val localMirror = localConfigRepository.exportMirror()
-            val appCatalogDigest = computeDeviceAppCatalogDigest(
-                mirrorContent = localMirror.content,
-                deviceId = boundSnapshot.deviceId.toString(),
-            )
             val request = AgentConfigMirrorRequest(
                 localRevision = localMirror.revision.value,
                 mirrorContent = localMirror.content,
                 summary = "android_local_commit",
             )
-            val baseUrl = normalizedBackendBaseUrl()
             setSyncState("pushing")
+            var syncedRequest = request
             runCatching {
-                withTokenRefresh { remoteApiClient.pushConfigMirror(baseUrl, token, request) }
-                localConfigRepository.markMirrorSynced(localMirror.revision.value)
+                val result = pushMirrorWithOfflineMerge(baseUrl, token, request)
+                syncedRequest = result.first
+                persistConfigBaseline(result.second.mirrorContent ?: syncedRequest.mirrorContent)
+                localConfigRepository.markMirrorSynced(syncedRequest.localRevision)
+                val appCatalogDigest = computeDeviceAppCatalogDigest(
+                    mirrorContent = syncedRequest.mirrorContent,
+                    deviceId = boundSnapshot.deviceId.toString(),
+                )
                 preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_APP_CATALOG_DIGEST, appCatalogDigest)
                 preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_PUSH_AT, nowEpochMillis().toString())
                 preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_LAST_ERROR, "")
@@ -394,6 +421,54 @@ class RemoteAgentRepository(
                 statusOk = false,
             )
             throw error
+        }
+    }
+
+    private suspend fun pushMirrorWithOfflineMerge(
+        baseUrl: String,
+        deviceToken: String,
+        initialRequest: AgentConfigMirrorRequest,
+    ): Pair<AgentConfigMirrorRequest, DeviceConfigStateResponse> {
+        try {
+            val response = withTokenRefresh {
+                remoteApiClient.pushConfigMirror(baseUrl, deviceToken, initialRequest)
+            }
+            return initialRequest to response
+        } catch (error: IllegalStateException) {
+            if (error.message?.contains("outdated_mirror_revision") != true) throw error
+            val remoteState = withTokenRefresh {
+                remoteApiClient.pullConfigCommands(
+                    baseUrl = baseUrl,
+                    deviceToken = deviceToken,
+                    request = AgentConfigCommandsPullRequest(initialRequest.localRevision),
+                )
+            }
+            val remoteContent = remoteState.mirrorContent?.takeIf { it.isNotEmpty() }
+                ?: loadConfigBaseline()
+                ?: throw error
+            val base = loadConfigBaseline() ?: remoteContent.withEmptyScheduledTasks()
+            val mergedContent = mergeDeviceConfigContent(
+                base = base,
+                local = initialRequest.mirrorContent,
+                remote = remoteContent,
+                mergeKey = "mirror:${remoteState.revision}",
+            )
+            localConfigRepository.applyMergedMirror(
+                mirrorContent = mergedContent,
+                revision = remoteState.revision,
+                source = "offline_mirror_merge",
+            )
+            localConfigRepository.noteLocalMutation("offline_mirror_merge")
+            val mergedLocal = localConfigRepository.exportMirror()
+            val retryRequest = AgentConfigMirrorRequest(
+                localRevision = mergedLocal.revision.value,
+                mirrorContent = mergedLocal.content,
+                summary = "android_offline_merge",
+            )
+            val response = withTokenRefresh {
+                remoteApiClient.pushConfigMirror(baseUrl, deviceToken, retryRequest)
+            }
+            return retryRequest to response
         }
     }
 
@@ -535,45 +610,62 @@ class RemoteAgentRepository(
         deviceToken: String,
         command: DeviceConfigCommandResponse,
         currentMirror: LocalConfigMirror,
+        remoteBaseTasks: JsonArray?,
     ): LocalConfigMirror {
         val dirtyState = localConfigRepository.getDirtyState()
         when {
-            dirtyState.dirty -> {
+            dirtyState.dirty && !commandContainsScheduledTasks(command) -> {
                 return ackPulledCommandFailed(baseUrl, deviceToken, command, currentMirror, "local_dirty")
             }
-            command.targetRevision <= dirtyState.revision.value -> {
+            command.targetRevision <= dirtyState.revision.value &&
+                !(dirtyState.dirty && commandContainsScheduledTasks(command)) -> {
                 return ackPulledCommandFailed(baseUrl, deviceToken, command, currentMirror, "stale_local_revision")
             }
         }
 
-        val nextSnapshot = applyConfigMutationBatch(currentMirror.content, command.mutation)
+        val nextSnapshot = if (dirtyState.dirty && commandContainsScheduledTasks(command)) {
+            mergeScheduledTaskCommand(currentMirror.content, command, remoteBaseTasks)
+        } else {
+            applyConfigMutationBatch(currentMirror.content, command.mutation)
+        }
         if (nextSnapshot == null) {
             return ackPulledCommandFailed(baseUrl, deviceToken, command, currentMirror, "unsupported_mutation")
         }
 
+        val plannedAck = AgentConfigCommandsAckRequest(
+            commandId = command.id,
+            status = "applied",
+            appliedRevision = command.targetRevision,
+            failureReason = "",
+            mirrorContent = nextSnapshot,
+        )
+        persistConfigAck(plannedAck)
+
         val appliedMirror = try {
-            localConfigRepository.applyMirror(
-                mirrorContent = nextSnapshot,
-                revision = command.targetRevision,
-                source = "command_${command.id}",
-            )
+            if (dirtyState.dirty && commandContainsScheduledTasks(command)) {
+                localConfigRepository.applyMergedMirror(
+                    mirrorContent = nextSnapshot,
+                    revision = command.targetRevision,
+                    source = "command_${command.id}",
+                )
+            } else {
+                localConfigRepository.applyMirror(
+                    mirrorContent = nextSnapshot,
+                    revision = command.targetRevision,
+                    source = "command_${command.id}",
+                )
+            }
         } catch (e: LocalConfigMirrorRejectedException) {
             return ackPulledCommandFailed(baseUrl, deviceToken, command, currentMirror, e.reason)
         }
         RuntimeSettingsCache.clear()
-        withTokenRefresh {
-            remoteApiClient.ackConfigCommand(
-                baseUrl = baseUrl,
-                deviceToken = deviceToken,
-                request = AgentConfigCommandsAckRequest(
-                    commandId = command.id,
-                    status = "applied",
-                    appliedRevision = appliedMirror.revision.value,
-                    failureReason = "",
-                    mirrorContent = appliedMirror.content,
-                ),
-            )
-        }
+        persistConfigAck(
+            plannedAck.copy(
+                appliedRevision = appliedMirror.revision.value,
+                mirrorContent = appliedMirror.content,
+            ),
+        )
+        deliverPendingConfigAck(baseUrl, deviceToken)
         return appliedMirror
     }
 
@@ -610,21 +702,204 @@ class RemoteAgentRepository(
         currentMirror: LocalConfigMirror,
         reason: String,
     ): LocalConfigMirror {
-        withTokenRefresh {
-            remoteApiClient.ackConfigCommand(
-                baseUrl = baseUrl,
-                deviceToken = deviceToken,
-                request = AgentConfigCommandsAckRequest(
-                    commandId = command.id,
-                    status = "failed",
-                    appliedRevision = currentMirror.revision.value,
-                    failureReason = reason,
-                    mirrorContent = currentMirror.content,
+        persistConfigAck(
+            AgentConfigCommandsAckRequest(
+                commandId = command.id,
+                status = "failed",
+                appliedRevision = currentMirror.revision.value,
+                failureReason = reason,
+                mirrorContent = currentMirror.content,
+            ),
+        )
+        deliverPendingConfigAck(baseUrl, deviceToken)
+        return currentMirror
+    }
+
+    private fun commandContainsScheduledTasks(command: DeviceConfigCommandResponse): Boolean =
+        command.mutation["operations"]?.jsonArray?.any { operation ->
+            operation.jsonObject["type"]?.jsonPrimitive?.contentOrNull == "replace_scheduled_tasks"
+        } == true
+
+    private suspend fun mergeScheduledTaskCommand(
+        currentMirror: JsonObject,
+        command: DeviceConfigCommandResponse,
+        remoteBaseTasks: JsonArray?,
+    ): JsonObject? {
+        val remoteTasks = command.mutation["operations"]?.jsonArray
+            ?.firstOrNull { it.jsonObject["type"]?.jsonPrimitive?.contentOrNull == "replace_scheduled_tasks" }
+            ?.jsonObject?.get("tasks")?.jsonArray ?: return null
+        val localTasks = currentMirror["scheduledTasks"]?.jsonArray.orEmpty()
+        val baseTasks = preferenceDataSource.getString(PrefConst.KEY_REMOTE_AGENT_SCHEDULED_TASK_BASELINE, "")
+            .takeIf(String::isNotBlank)
+            ?.let { RelayJson.parseElement(it).jsonArray }
+            ?: remoteBaseTasks
+            ?: localTasks
+        val base = baseTasks.map(::scheduledTaskRecord).filterNotNull()
+        val local = localTasks.map(::scheduledTaskRecord).filterNotNull()
+        val remote = remoteTasks.map(::scheduledTaskRecord).filterNotNull()
+        val merged = ScheduledTaskSyncMerger.merge(
+            base = base,
+            local = local,
+            remote = remote,
+            mergeKey = "${command.deviceIdOrUnknown()}:${command.id}",
+        )
+        val tasks = merged.tasks.map { task ->
+            RelayJson.parseElement(
+                RelayJson.encode(SnapshotScheduledTask.serializer(), task.toSnapshot()),
+            )
+        }
+        return buildJsonObject {
+            currentMirror.forEach { (key, value) -> put(key, value) }
+            putJsonArray("scheduledTasks") { tasks.forEach(::add) }
+        }
+    }
+
+    private fun scheduledTaskRecord(element: JsonElement): ScheduledTaskSyncRecord? = runCatching {
+        val task = RelayJson.decode(SnapshotScheduledTask.serializer(), element.toString())
+        ScheduledTaskSyncRecord(
+            syncId = task.syncId,
+            name = task.name,
+            taskType = task.taskType,
+            cronExpression = task.cronExpression,
+            simSlot = task.simSlot,
+            mobiles = task.mobiles,
+            content = task.content,
+            status = task.status,
+            createdAt = task.createdAt,
+            conflictId = task.conflictId,
+            conflictSide = task.conflictSide,
+            conflictPreviousStatus = task.conflictPreviousStatus,
+            syncDeleted = task.syncDeleted,
+        )
+    }.getOrNull()
+
+    private fun ScheduledTaskSyncRecord.toSnapshot(): SnapshotScheduledTask = SnapshotScheduledTask(
+        syncId = syncId,
+        name = name,
+        taskType = taskType,
+        cronExpression = cronExpression,
+        simSlot = simSlot,
+        mobiles = mobiles,
+        content = content,
+        status = status,
+        createdAt = createdAt,
+        conflictId = conflictId,
+        conflictSide = conflictSide,
+        conflictPreviousStatus = conflictPreviousStatus,
+        syncDeleted = syncDeleted,
+    )
+
+    private suspend fun persistConfigAck(request: AgentConfigCommandsAckRequest) {
+        preferenceDataSource.setString(
+            PrefConst.KEY_REMOTE_AGENT_PENDING_CONFIG_ACK,
+            RelayJson.encode(AgentConfigCommandsAckRequest.serializer(), request),
+        )
+    }
+
+    private suspend fun deliverPendingConfigAck(baseUrl: String, deviceToken: String) {
+        val encoded = preferenceDataSource.getString(PrefConst.KEY_REMOTE_AGENT_PENDING_CONFIG_ACK, "")
+        if (encoded.isBlank()) return
+        val request = RelayJson.decode(AgentConfigCommandsAckRequest.serializer(), encoded)
+        withTokenRefresh { remoteApiClient.ackConfigCommand(baseUrl, deviceToken, request) }
+        preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_PENDING_CONFIG_ACK, "")
+        if (request.status == "applied") {
+            persistConfigBaseline(request.mirrorContent)
+            if (localConfigRepository.getRevision().value <= request.appliedRevision) {
+                localConfigRepository.markMirrorSynced(request.appliedRevision)
+            }
+        }
+    }
+
+    private suspend fun flushPendingConfigAck(baseUrl: String, deviceToken: String) {
+        val encoded = preferenceDataSource.getString(PrefConst.KEY_REMOTE_AGENT_PENDING_CONFIG_ACK, "")
+        if (encoded.isBlank()) return
+        val request = RelayJson.decode(AgentConfigCommandsAckRequest.serializer(), encoded)
+        if (request.status == "applied" && localConfigRepository.getRevision().value < request.appliedRevision) {
+            localConfigRepository.applyMergedMirror(
+                request.mirrorContent,
+                request.appliedRevision,
+                "config_ack_recovery",
+            )
+        }
+        deliverPendingConfigAck(baseUrl, deviceToken)
+    }
+
+    private suspend fun persistConfigBaseline(content: JsonObject) {
+        preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_CONFIG_BASELINE, content.toString())
+        content["scheduledTasks"]?.let { tasks ->
+            preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_SCHEDULED_TASK_BASELINE, tasks.toString())
+        }
+    }
+
+    private suspend fun loadConfigBaseline(): JsonObject? =
+        preferenceDataSource.getString(PrefConst.KEY_REMOTE_AGENT_CONFIG_BASELINE, "")
+            .takeIf(String::isNotBlank)
+            ?.let { runCatching { RelayJson.parseElement(it).jsonObject }.getOrNull() }
+
+    private fun JsonObject.withEmptyScheduledTasks(): JsonObject = buildJsonObject {
+        forEach { (key, value) -> put(key, value) }
+        if (!containsKey("scheduledTasks")) putJsonArray("scheduledTasks") {}
+    }
+
+    private fun mergeDeviceConfigContent(
+        base: JsonObject,
+        local: JsonObject,
+        remote: JsonObject,
+        mergeKey: String,
+    ): JsonObject = mergeDeviceConfigObject(base, local, remote, mergeKey)
+
+    private fun mergeDeviceConfigObject(
+        base: JsonObject,
+        local: JsonObject,
+        remote: JsonObject,
+        mergeKey: String,
+    ): JsonObject {
+        val keys = base.keys + local.keys + remote.keys
+        return buildJsonObject {
+            keys.forEach { key ->
+                val merged = mergeDeviceConfigValue(key, base[key], local[key], remote[key], mergeKey)
+                if (merged != null && merged !is JsonNull) put(key, merged)
+            }
+        }
+    }
+
+    private fun mergeDeviceConfigValue(
+        key: String,
+        base: JsonElement?,
+        local: JsonElement?,
+        remote: JsonElement?,
+        mergeKey: String,
+    ): JsonElement? {
+        if (key == "scheduledTasks" && local is JsonArray && remote is JsonArray) {
+            val baseTasks = (base as? JsonArray).orEmpty().map(::scheduledTaskRecord).filterNotNull()
+            val merged = ScheduledTaskSyncMerger.merge(
+                base = baseTasks,
+                local = local.map(::scheduledTaskRecord).filterNotNull(),
+                remote = remote.map(::scheduledTaskRecord).filterNotNull(),
+                mergeKey = mergeKey,
+            )
+            return RelayJson.parseElement(
+                RelayJson.encode(
+                    ListSerializer(SnapshotScheduledTask.serializer()),
+                    merged.tasks.map { it.toSnapshot() },
                 ),
             )
         }
-        return currentMirror
+        if (local == base) return remote
+        if (remote == base) return local
+        if (local == remote) return local
+
+        val baseObject = base as? JsonObject ?: JsonObject(emptyMap())
+        val localObject = local as? JsonObject
+        val remoteObject = remote as? JsonObject
+        if (localObject != null && remoteObject != null) {
+            return mergeDeviceConfigObject(baseObject, localObject, remoteObject, mergeKey)
+        }
+        return local ?: remote
     }
+
+    private fun DeviceConfigCommandResponse.deviceIdOrUnknown(): String =
+        actorId.takeIf { it > 0 }?.toString() ?: "device"
 
     private suspend fun recordAgentFailure(error: Throwable) {
         if (error is DeviceTokenExpiredException) {
@@ -681,14 +956,14 @@ class RemoteAgentRepository(
                 runCatching { sendHeartbeat() }.onFailure { error ->
                     XLog.w("scheduleBackgroundSync: sendHeartbeat failed: ${error.message}", error)
                 }
+                runCatching { pullPendingCommands() }.onFailure { error ->
+                    XLog.w("scheduleBackgroundSync: pullPendingCommands failed: ${error.message}", error)
+                }
                 val localState = runCatching { localConfigRepository.getDirtyState() }.getOrNull()
                 if (preferConfigPush && localState?.dirty == true) {
                     runCatching { pushLocalMirror() }.onFailure { error ->
                         XLog.w("scheduleBackgroundSync: pushLocalMirror failed: ${error.message}", error)
                     }
-                }
-                runCatching { pullPendingCommands() }.onFailure { error ->
-                    XLog.w("scheduleBackgroundSync: pullPendingCommands failed: ${error.message}", error)
                 }
                 runCatching { pushInstalledAppCatalogIfNeeded() }.onFailure { error ->
                     XLog.w("scheduleBackgroundSync: pushInstalledAppCatalogIfNeeded failed: ${error.message}", error)

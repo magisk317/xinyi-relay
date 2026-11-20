@@ -536,7 +536,7 @@ func TestAckCommandRejectsUnsupportedStatus(t *testing.T) {
 	}
 }
 
-func TestAckCommandRejectsSecondAckWithoutMutatingMirror(t *testing.T) {
+func TestAckAppliedCommandRetryIsIdempotent(t *testing.T) {
 	s := openTestStore(t)
 	ctx := context.Background()
 	userID, deviceID := createDeviceConfigFixture(t, s)
@@ -569,19 +569,23 @@ func TestAckCommandRejectsSecondAckWithoutMutatingMirror(t *testing.T) {
 		t.Fatalf("first ack command: %v", err)
 	}
 
-	if _, err := s.AckDeviceConfigCommand(
+	retried, err := s.AckDeviceConfigCommand(
 		ctx,
 		userID,
 		deviceID,
 		command.ID,
-		2,
+		1,
 		DeviceConfigCommandStatusApplied,
 		"",
-		json.RawMessage(`{"senders":[{"id":2}]}`),
+		json.RawMessage(`{"senders":[{"id":1}]}`),
 		"device",
 		deviceID,
-	); !errors.Is(err, ErrConflict) {
-		t.Fatalf("expected ErrConflict on second ack, got %v", err)
+	)
+	if err != nil {
+		t.Fatalf("retry applied ack after response loss: %v", err)
+	}
+	if retried.Status != DeviceConfigCommandStatusApplied {
+		t.Fatalf("expected repeated ack to return applied command, got %s", retried.Status)
 	}
 
 	state, err := s.GetDeviceConfigState(ctx, userID, deviceID)
@@ -592,6 +596,72 @@ func TestAckCommandRejectsSecondAckWithoutMutatingMirror(t *testing.T) {
 		t.Fatalf("expected revision to stay 1, got %d", state.Revision)
 	}
 	assertJSONEq(t, `{"senders":[{"id":1}]}`, state.Snapshot)
+}
+
+func TestScheduledTaskCommandRequiresRecentDeviceHeartbeat(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	userID, deviceID := createDeviceConfigFixture(t, s)
+	mutation := json.RawMessage(`{"operations":[{"type":"replace_scheduled_tasks","tasks":[]}]}`)
+	queue := func() error {
+		_, err := s.CreateDeviceConfigCommand(ctx, userID, deviceID, 0, mutation, "scheduled_tasks:update", "web_session", userID)
+		return err
+	}
+
+	if err := queue(); err == nil {
+		t.Fatal("expected scheduled task command to reject a device without a heartbeat")
+	} else if !errors.Is(err, ErrDeviceOffline) {
+		t.Fatalf("expected ErrDeviceOffline without a heartbeat, got %v", err)
+	}
+	if _, err := s.db.Pool.Exec(
+		ctx,
+		`UPDATE devices SET last_seen_at = NOW() - INTERVAL '15 minutes 1 second' WHERE id = $1`,
+		deviceID,
+	); err != nil {
+		t.Fatalf("set stale heartbeat: %v", err)
+	}
+	if err := queue(); err == nil {
+		t.Fatal("expected scheduled task command to reject a heartbeat older than 15 minutes")
+	} else if !errors.Is(err, ErrDeviceOffline) {
+		t.Fatalf("expected ErrDeviceOffline for stale heartbeat, got %v", err)
+	}
+	if _, err := s.db.Pool.Exec(
+		ctx,
+		`UPDATE devices SET last_seen_at = NOW() - INTERVAL '14 minutes 59 seconds', capabilities = '{}'::jsonb WHERE id = $1`,
+		deviceID,
+	); err != nil {
+		t.Fatalf("set recent heartbeat: %v", err)
+	}
+	if err := queue(); !errors.Is(err, ErrDeviceCapabilityMissing) {
+		t.Fatalf("expected missing scheduledTasks capability, got %v", err)
+	}
+	if _, err := s.db.Pool.Exec(
+		ctx,
+		`UPDATE devices SET capabilities = '{"scheduledTasks":true}'::jsonb WHERE id = $1`,
+		deviceID,
+	); err != nil {
+		t.Fatalf("set scheduled task capability: %v", err)
+	}
+	if err := queue(); err != nil {
+		t.Fatalf("expected a recent heartbeat to allow scheduled task command: %v", err)
+	}
+}
+
+func TestDeviceHeartbeatStoresIanaTimeZone(t *testing.T) {
+	s := openTestStore(t)
+	ctx := context.Background()
+	_, deviceID := createDeviceConfigFixture(t, s)
+	if err := s.UpdateDeviceHeartbeat(ctx, deviceID, "1.0", json.RawMessage(`[]`), json.RawMessage(`{"scheduledTasks":true}`), "Asia/Shanghai"); err != nil {
+		t.Fatalf("store device IANA timezone with heartbeat: %v", err)
+	}
+
+	var timeZone string
+	if err := s.db.Pool.QueryRow(ctx, `SELECT time_zone FROM devices WHERE id = $1`, deviceID).Scan(&timeZone); err != nil {
+		t.Fatalf("read device timezone: %v", err)
+	}
+	if timeZone != "Asia/Shanghai" {
+		t.Fatalf("expected Asia/Shanghai, got %q", timeZone)
+	}
 }
 
 func assertHasAuditEvent(t *testing.T, logs []DeviceConfigAuditLog, expected string) {

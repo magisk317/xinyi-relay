@@ -448,6 +448,16 @@
     <string name="scheduled_task_enable_label">Включить задачу</string>
     <string name="scheduled_task_status_enabled">Включена</string>
     <string name="scheduled_task_status_disabled">Отключена</string>
+    <string name="scheduled_task_conflict_title">Конфликт задачи</string>
+    <string name="scheduled_task_conflict_summary">Обе версии приостановлены до выбора.</string>
+    <string name="scheduled_task_conflict_local">Локальная версия</string>
+    <string name="scheduled_task_conflict_remote">Удаленная версия</string>
+    <string name="scheduled_task_conflict_deleted">Эта версия удалена.</string>
+    <string name="scheduled_task_conflict_details">SIM %1$d | %2$s | %3$s</string>
+    <string name="scheduled_task_conflict_use_local">Использовать локальную</string>
+    <string name="scheduled_task_conflict_use_remote">Использовать удаленную</string>
+    <string name="scheduled_task_conflict_keep_both">Сохранить обе версии</string>
+    <string name="scheduled_task_conflict_resolve_failed">Не удалось разрешить конфликт задачи: %1$s</string>
     <string name="scheduled_task_line_cron">Cron: %1$s</string>
     <string name="scheduled_task_line_sim_status">SIM: %1$d | Статус: %2$s</string>
     <string name="scheduled_task_delete_dialog_title">Удалить задачу</string>

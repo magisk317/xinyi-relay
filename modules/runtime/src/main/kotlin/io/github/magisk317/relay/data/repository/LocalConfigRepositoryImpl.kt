@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import io.github.magisk317.relay.android.data.datasource.PreferenceDataSource
 import io.github.magisk317.relay.android.data.db.AppDatabase
 import io.github.magisk317.forward.db.ForwardDatabase
+import io.github.magisk317.forward.db.ForwardScheduledTaskEntity
 import io.github.magisk317.relay.platform.ipc.ForwardDatabaseBootstrapper
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toDomain
 import io.github.magisk317.relay.android.data.mapper.ConfigMapper.toEntity
@@ -17,6 +18,7 @@ import io.github.magisk317.relay.contract.model.LocalConfigMirror
 import io.github.magisk317.relay.contract.model.LocalConfigRevision
 import io.github.magisk317.relay.contract.model.LocalDirtyState
 import io.github.magisk317.relay.contract.model.SnapshotAppInfo
+import io.github.magisk317.relay.contract.model.SnapshotScheduledTask
 import io.github.magisk317.relay.contract.repository.LocalConfigRepository
 import io.github.magisk317.relay.contract.repository.LocalConfigMirrorRejectedException
 import io.github.magisk317.relay.contract.repository.SettingsPreferencesRepository
@@ -35,6 +37,7 @@ import io.github.magisk317.relay.contract.settings.VerificationSettingsUpdate
 import io.github.magisk317.relay.data.remote.toSnapshotDomain
 import io.github.magisk317.relay.data.remote.toSnapshotEntity
 import io.github.magisk317.relay.data.remote.toSnapshot
+import io.github.magisk317.relay.domain.schedule.ScheduledTaskManager
 import io.github.magisk317.forward.engine.model.AppInfoData
 import io.github.magisk317.forward.engine.model.AppInfoImpl
 import io.github.magisk317.forward.engine.model.ForwardFilterRule
@@ -45,6 +48,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.buildJsonObject
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -124,9 +128,22 @@ class LocalConfigRepositoryImpl(
         mirrorContent: JsonObject,
         revision: Long,
         source: String,
+    ): LocalConfigMirror = applyMirrorInternal(mirrorContent, revision, source, allowDirty = false)
+
+    override suspend fun applyMergedMirror(
+        mirrorContent: JsonObject,
+        revision: Long,
+        source: String,
+    ): LocalConfigMirror = applyMirrorInternal(mirrorContent, revision, source, allowDirty = true)
+
+    private suspend fun applyMirrorInternal(
+        mirrorContent: JsonObject,
+        revision: Long,
+        source: String,
+        allowDirty: Boolean,
     ): LocalConfigMirror {
         val dirtyState = getDirtyState()
-        when {
+        if (!allowDirty) when {
             dirtyState.dirty -> throw LocalConfigMirrorRejectedException("local_dirty")
             revision < dirtyState.revision.value -> throw LocalConfigMirrorRejectedException("stale_local_revision")
         }
@@ -295,6 +312,7 @@ class LocalConfigRepositoryImpl(
             configRepository.insertNotifyRouteRules(payload.notifyRoutes.map { it.toSnapshotDomain() })
             configRepository.clearAllForwardFilterRules()
             payload.forwardFilters.forEach { configRepository.insertForwardFilterRule(it.toSnapshotDomain()) }
+            payload.scheduledTasks?.let { applyScheduledTasksSnapshot(it) }
             configRepository.checkpoint()
 
             preferenceDataSource.setString(PrefConst.KEY_LOCAL_CONFIG_REVISION, revision.toString())
@@ -346,7 +364,63 @@ class LocalConfigRepositoryImpl(
             },
             notifyRoutes = forwardDatabase.forwardRouteRuleDao().all().map { it.toDomain().toSnapshot() },
             forwardFilters = forwardDatabase.forwardFilterRuleDao().all().map { it.toDomain().toSnapshot() },
+            scheduledTasks = forwardDatabase.forwardScheduledTaskDao().all().map { task ->
+                SnapshotScheduledTask(
+                    syncId = task.syncId,
+                    name = task.name,
+                    taskType = task.taskType,
+                    cronExpression = task.cronExpression,
+                    simSlot = task.simSlot,
+                    mobiles = task.mobiles,
+                    content = task.content,
+                    status = task.status,
+                    createdAt = task.createdAt,
+                    conflictId = task.conflictId,
+                    conflictSide = task.conflictSide,
+                    conflictPreviousStatus = task.conflictPreviousStatus,
+                    syncDeleted = task.syncDeleted,
+                )
+            },
         )
+    }
+
+    private suspend fun applyScheduledTasksSnapshot(tasks: List<SnapshotScheduledTask>) {
+        val dao = forwardDatabase.forwardScheduledTaskDao()
+        val existing = dao.all()
+        val manager = ScheduledTaskManager(appContext, forwardDatabase)
+        existing.forEach { manager.cancelTask(it.id) }
+
+        val existingBySyncId = existing.associateBy(ForwardScheduledTaskEntity::syncId)
+        val incomingIds = tasks.mapTo(mutableSetOf(), SnapshotScheduledTask::syncId)
+        tasks.forEach { task ->
+            require(task.syncId.isNotBlank()) { "scheduled task syncId is required" }
+            val previous = existingBySyncId[task.syncId]
+            val entity = ForwardScheduledTaskEntity(
+                id = previous?.id ?: 0L,
+                name = task.name,
+                taskType = task.taskType,
+                cronExpression = task.cronExpression,
+                simSlot = task.simSlot,
+                mobiles = task.mobiles,
+                content = task.content,
+                status = task.status,
+                lastRunTime = previous?.lastRunTime ?: 0L,
+                nextRunTime = 0L,
+                createdAt = task.createdAt,
+                syncId = task.syncId,
+                conflictId = task.conflictId,
+                conflictSide = task.conflictSide,
+                conflictPreviousStatus = task.conflictPreviousStatus,
+                syncDeleted = task.syncDeleted,
+            )
+            if (previous == null) {
+                dao.insert(entity)
+            } else {
+                dao.update(entity)
+            }
+        }
+        existing.filterNot { it.syncId in incomingIds }.forEach { dao.deleteById(it.id) }
+        manager.scheduleAllActiveTasks()
     }
 
     private fun resolveInstalledAppCatalog(existingConfigs: List<AppInfoData>): List<AppInfoData> {

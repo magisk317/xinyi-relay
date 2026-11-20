@@ -87,7 +87,7 @@ func (panicStore) GetDeviceByTokenHash(context.Context, string) (store.Device, e
 func (panicStore) ListDevicesByUser(context.Context, int64) ([]store.Device, error) {
 	panic("unimplemented: ListDevicesByUser")
 }
-func (panicStore) UpdateDeviceHeartbeat(context.Context, int64, string, json.RawMessage, json.RawMessage) error {
+func (panicStore) UpdateDeviceHeartbeat(context.Context, int64, string, json.RawMessage, json.RawMessage, string) error {
 	panic("unimplemented: UpdateDeviceHeartbeat")
 }
 func (panicStore) PatchDevice(context.Context, int64, int64, *string, *bool) (store.Device, error) {

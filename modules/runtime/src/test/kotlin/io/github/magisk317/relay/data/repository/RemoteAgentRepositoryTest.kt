@@ -51,6 +51,7 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import java.util.TimeZone
 
 class RemoteAgentRepositoryTest {
 
@@ -61,6 +62,109 @@ class RemoteAgentRepositoryTest {
         every { InternalSecretStore.putString(any(), any(), any()) } returns Unit
         every { InternalSecretStore.getString(any(), any(), any()) } returns "device-token"
         coEvery { HookPreferenceMirror.publish(any()) } returns true
+    }
+
+    @Test
+    fun `pullPendingCommands merges dirty scheduled task command and keeps both conflict versions`() = runBlocking {
+        val baseTask = """{"syncId":"task-a","name":"Daily","taskType":"sms","cronExpression":"0 8 * * *","simSlot":1,"mobiles":"10086","content":"base","status":1,"createdAt":1}"""
+        val localTask = baseTask.replace("\"content\":\"base\"", "\"content\":\"local\"")
+        val localMirror = jsonObject("""{"scheduledTasks":[$localTask]}""")
+        val remoteTasks = """[{"syncId":"task-a","name":"Daily","taskType":"sms","cronExpression":"0 8 * * *","simSlot":1,"mobiles":"10086","content":"remote","status":1,"createdAt":1}]"""
+        val localConfigRepository = FakeLocalConfigRepository(4, 1, localMirror)
+        val api = FakeRemoteAgentApi(
+            pullResponse = AgentConfigCommandsPullResponse(
+                deviceId = 42,
+                revision = 4,
+                pendingCommands = listOf(
+                    DeviceConfigCommandResponse(
+                        id = 91,
+                        baseRevision = 4,
+                        targetRevision = 5,
+                        mutation = jsonObject("""{"operations":[{"type":"replace_scheduled_tasks","tasks":$remoteTasks}]}"""),
+                    ),
+                ),
+            ),
+        )
+        val preferences = remotePreferences()
+        preferences.setString(RelayPrefConst.KEY_REMOTE_AGENT_SCHEDULED_TASK_BASELINE, "[$baseTask]")
+        val repository = repository(preferences, localConfigRepository, api)
+
+        val merged = repository.pullPendingCommands()
+
+        val tasks = merged.content.getValue("scheduledTasks").jsonArray
+        assertEquals(2, tasks.size)
+        assertEquals(setOf("local", "remote"), tasks.map { it.jsonObject.getValue("content").jsonPrimitive.content }.toSet())
+        assertTrue(tasks.all { it.jsonObject.getValue("conflictId").jsonPrimitive.content.isNotBlank() })
+        assertEquals("applied", api.ackRequests.single().status)
+    }
+
+    @Test
+    fun `pending config ack survives lost response and is resent before next pull`() = runBlocking {
+        val local = FakeLocalConfigRepository(4, 0, baseMirror())
+        val command = DeviceConfigCommandResponse(
+            id = 92,
+            baseRevision = 4,
+            targetRevision = 5,
+            mutation = jsonObject("""{"operations":[{"type":"replace_senders","senders":[{"id":7}]}]}"""),
+        )
+        val api = FakeRemoteAgentApi(
+            pullResponse = AgentConfigCommandsPullResponse(
+                deviceId = 42,
+                revision = 4,
+                pendingCommands = listOf(command),
+            ),
+            ackErrorOnce = IllegalStateException("response lost after server commit"),
+        )
+        val preferences = remotePreferences()
+        val repository = repository(preferences, local, api)
+
+        val firstPull = runCatching { repository.pullPendingCommands() }
+        assertTrue(firstPull.isFailure)
+        val pendingAck = preferences.getString(RelayPrefConst.KEY_REMOTE_AGENT_PENDING_CONFIG_ACK, "")
+        assertTrue(pendingAck.isNotBlank())
+        val appliedMirrorCount = local.appliedMirrors.size
+
+        api.pullResponse = AgentConfigCommandsPullResponse(
+            deviceId = 42,
+            revision = 5,
+        )
+        val recovered = repository.pullPendingCommands()
+
+        assertEquals(5L, recovered.revision.value)
+        assertEquals("", preferences.getString(RelayPrefConst.KEY_REMOTE_AGENT_PENDING_CONFIG_ACK, ""))
+        assertEquals(2, api.ackRequests.size)
+        assertEquals(api.ackRequests[0], api.ackRequests[1])
+        assertEquals(appliedMirrorCount, local.appliedMirrors.size)
+    }
+
+    @Test
+    fun `pushLocalMirror merges offline tasks against remote mirror after stale revision`() = runBlocking {
+        val baseTask = """{"syncId":"task-a","name":"Daily","taskType":"sms","cronExpression":"0 8 * * *","simSlot":1,"mobiles":"10086","content":"base","status":1,"createdAt":1}"""
+        val localTask = baseTask.replace("\"content\":\"base\"", "\"content\":\"local\"")
+        val remoteTask = baseTask.replace("\"content\":\"base\"", "\"content\":\"remote\"")
+        val base = jsonObject("""{"senders":[{"id":1}],"scheduledTasks":[$baseTask]}""")
+        val local = jsonObject("""{"senders":[{"id":1}],"scheduledTasks":[$localTask]}""")
+        val remote = jsonObject("""{"senders":[{"id":2}],"scheduledTasks":[$remoteTask]}""")
+        val preferences = remotePreferences()
+        preferences.setString(RelayPrefConst.KEY_REMOTE_AGENT_CONFIG_BASELINE, base.toString())
+        preferences.setString(RelayPrefConst.KEY_REMOTE_AGENT_SCHEDULED_TASK_BASELINE, "[$baseTask]")
+        val localConfigRepository = FakeLocalConfigRepository(7, 1, local)
+        val api = FakeRemoteAgentApi(
+            pullResponse = AgentConfigCommandsPullResponse(deviceId = 42, revision = 8, mirrorContent = remote),
+            pushErrorOnce = IllegalStateException("outdated_mirror_revision"),
+        )
+        val repository = repository(preferences, localConfigRepository, api)
+
+        repository.pushLocalMirror()
+
+        assertEquals(2, api.pushRequests.size)
+        val merged = api.pushRequests.last().mirrorContent
+        val tasks = merged.getValue("scheduledTasks").jsonArray
+        assertEquals(2, tasks.size)
+        assertEquals(setOf("local", "remote"), tasks.map { it.jsonObject.getValue("content").jsonPrimitive.content }.toSet())
+        assertTrue(tasks.all { it.jsonObject.getValue("conflictId").jsonPrimitive.content.isNotBlank() })
+        assertEquals("2", merged.getValue("senders").jsonArray.single().jsonObject.getValue("id").jsonPrimitive.content)
+        assertFalse(localConfigRepository.getDirtyState().dirty)
     }
 
     @AfterEach
@@ -85,6 +189,18 @@ class RemoteAgentRepositoryTest {
         coVerify { preferences.setString(RelayPrefConst.KEY_REMOTE_AGENT_LAST_RECORD_SNAPSHOT_DIGEST, "") }
         coVerify { InternalSecretStore.putString(context, RelayPrefConst.KEY_REMOTE_AGENT_DEVICE_TOKEN, "") }
         coVerify { HookPreferenceMirror.publish(context) }
+    }
+
+    @Test
+    fun `sendHeartbeat reports the device timezone and scheduled task capability`() = runBlocking {
+        val api = FakeRemoteAgentApi()
+        val repository = repository(remotePreferences(), FakeLocalConfigRepository(0, 0, baseMirror()), api)
+
+        repository.sendHeartbeat()
+
+        val heartbeat = api.heartbeatRequests.single()
+        assertEquals(TimeZone.getDefault().id, heartbeat.timeZone)
+        assertTrue(heartbeat.capabilities.containsKey("scheduledTasks"))
     }
 
     @Test
@@ -713,13 +829,17 @@ private class FakeLocalConfigRepository(
 }
 
 private class FakeRemoteAgentApi(
-    private val pullResponse: AgentConfigCommandsPullResponse = AgentConfigCommandsPullResponse(),
+    var pullResponse: AgentConfigCommandsPullResponse = AgentConfigCommandsPullResponse(),
     private val pullError: RuntimeException? = null,
     private val pushError: RuntimeException? = null,
+    var ackErrorOnce: RuntimeException? = null,
+    var pushErrorOnce: RuntimeException? = null,
 ) : RemoteAgentApi {
     val pullRequests = mutableListOf<AgentConfigCommandsPullRequest>()
     val ackRequests = mutableListOf<AgentConfigCommandsAckRequest>()
     val actionAckRequests = mutableListOf<DeviceActionAckRequest>()
+    val pushRequests = mutableListOf<AgentConfigMirrorRequest>()
+    val heartbeatRequests = mutableListOf<HeartbeatRequest>()
 
     override fun registerDevice(baseUrl: String, request: AgentRegisterRequest): AgentRegisterResponse {
         throw UnsupportedOperationException("registerDevice is not used in this test")
@@ -730,7 +850,7 @@ private class FakeRemoteAgentApi(
         deviceToken: String,
         request: HeartbeatRequest,
     ) {
-        throw UnsupportedOperationException("sendHeartbeat is not used in this test")
+        heartbeatRequests += request
     }
 
     override fun pushConfigMirror(
@@ -738,7 +858,12 @@ private class FakeRemoteAgentApi(
         deviceToken: String,
         request: AgentConfigMirrorRequest,
     ): DeviceConfigStateResponse {
+        pushRequests += request
         pushError?.let { throw it }
+        pushErrorOnce?.let { error ->
+            pushErrorOnce = null
+            throw error
+        }
         return DeviceConfigStateResponse(
             deviceId = 42,
             revision = request.localRevision,
@@ -762,6 +887,10 @@ private class FakeRemoteAgentApi(
         request: AgentConfigCommandsAckRequest,
     ): DeviceConfigCommandResponse {
         ackRequests += request
+        ackErrorOnce?.let { error ->
+            ackErrorOnce = null
+            throw error
+        }
         return DeviceConfigCommandResponse(
             id = request.commandId,
             targetRevision = request.appliedRevision,

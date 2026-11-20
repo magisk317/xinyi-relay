@@ -3,15 +3,86 @@ package http
 import (
 	"encoding/json"
 	"net/http"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/magisk317/xinyi-relay/backend/api/internal/store"
 )
 
 var allowedDeviceConfigMutationOperations = map[string]struct{}{
-	"replace_senders":     {},
-	"replace_device_apps": {},
+	"replace_senders":         {},
+	"replace_device_apps":     {},
+	"replace_scheduled_tasks": {},
 }
+
+func isValidCronExpression(expression string) bool {
+	fields := strings.Fields(expression)
+	if len(fields) != 5 {
+		return false
+	}
+	limits := [][2]int{{0, 59}, {0, 23}, {1, 31}, {1, 12}, {0, 7}}
+	for index, field := range fields {
+		allowQuestion := index == 2 || index == 4
+		if !isValidCronField(field, limits[index][0], limits[index][1], allowQuestion) {
+			return false
+		}
+	}
+	return true
+}
+
+func isValidCronField(field string, min, max int, allowQuestion bool) bool {
+	if field == "*" || (allowQuestion && field == "?") {
+		return true
+	}
+	if strings.TrimSpace(field) != field || field == "" {
+		return false
+	}
+	for _, part := range strings.Split(field, ",") {
+		if part == "" {
+			return false
+		}
+		rangeAndStep := strings.SplitN(part, "/", 2)
+		rangePart := rangeAndStep[0]
+		if len(rangeAndStep) == 2 {
+			step, err := strconv.Atoi(rangeAndStep[1])
+			if err != nil || step <= 0 {
+				return false
+			}
+		}
+		start, end := min, max
+		switch {
+		case rangePart == "*":
+		case strings.Contains(rangePart, "-"):
+			bounds := strings.SplitN(rangePart, "-", 2)
+			if len(bounds) != 2 || bounds[0] == "" || bounds[1] == "" {
+				return false
+			}
+			var err error
+			start, err = strconv.Atoi(bounds[0])
+			if err != nil {
+				return false
+			}
+			end, err = strconv.Atoi(bounds[1])
+			if err != nil {
+				return false
+			}
+		default:
+			var err error
+			start, err = strconv.Atoi(rangePart)
+			if err != nil {
+				return false
+			}
+			end = start
+		}
+		if start < min || end > max || start > end {
+			return false
+		}
+	}
+	return true
+}
+
+var uuidPattern = regexp.MustCompile(`(?i)^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
 
 func (s *Server) handleDeviceConfig(w http.ResponseWriter, r *http.Request, auth authContext, deviceID int64) {
 	if r.Method != http.MethodGet {
@@ -68,6 +139,10 @@ func (s *Server) handleDeviceConfigCommands(w http.ResponseWriter, r *http.Reque
 			writeError(w, http.StatusNotFound, "device not found")
 		case store.ErrStaleBaseRevision:
 			writeError(w, http.StatusConflict, "stale_base_revision")
+		case store.ErrDeviceOffline:
+			writeError(w, http.StatusConflict, "device_offline")
+		case store.ErrDeviceCapabilityMissing:
+			writeError(w, http.StatusConflict, "device_capability_required")
 		default:
 			writeError(w, http.StatusInternalServerError, "queue device config command failed")
 		}
@@ -309,7 +384,8 @@ func normalizeAckStatus(status string) string {
 func isSupportedDeviceConfigMutation(mutation json.RawMessage) bool {
 	var payload struct {
 		Operations []struct {
-			Type string `json:"type"`
+			Type  string          `json:"type"`
+			Tasks json.RawMessage `json:"tasks"`
 		} `json:"operations"`
 	}
 	if err := json.Unmarshal(mutation, &payload); err != nil {
@@ -322,6 +398,46 @@ func isSupportedDeviceConfigMutation(mutation json.RawMessage) bool {
 		if _, ok := allowedDeviceConfigMutationOperations[operation.Type]; !ok {
 			return false
 		}
+		if operation.Type == "replace_scheduled_tasks" && !isValidScheduledTaskMutation(operation.Tasks) {
+			return false
+		}
 	}
 	return true
+}
+
+func isValidScheduledTaskMutation(tasksJSON json.RawMessage) bool {
+	var tasks []struct {
+		SyncID                 string  `json:"syncId"`
+		ConflictID             *string `json:"conflictId"`
+		ConflictSide           string  `json:"conflictSide"`
+		ConflictPreviousStatus *int    `json:"conflictPreviousStatus"`
+		TaskType               string  `json:"taskType"`
+		CronExpression         string  `json:"cronExpression"`
+		SimSlot                int     `json:"simSlot"`
+		Mobiles                string  `json:"mobiles"`
+		Content                string  `json:"content"`
+		Status                 int     `json:"status"`
+	}
+	if len(tasksJSON) == 0 || string(tasksJSON) == "null" || json.Unmarshal(tasksJSON, &tasks) != nil {
+		return false
+	}
+	for _, task := range tasks {
+		if !isUUID(task.SyncID) || task.TaskType != "sms" || task.SimSlot < 0 || task.SimSlot > 2 ||
+			(task.Status != 0 && task.Status != 1) || !isValidCronExpression(task.CronExpression) {
+			return false
+		}
+		if task.ConflictID == nil || *task.ConflictID == "" {
+			if task.ConflictSide != "" || task.ConflictPreviousStatus != nil {
+				return false
+			}
+		} else if !isUUID(*task.ConflictID) || (task.ConflictSide != "local" && task.ConflictSide != "remote") ||
+			(task.ConflictPreviousStatus == nil || (*task.ConflictPreviousStatus != 0 && *task.ConflictPreviousStatus != 1)) || task.Status != 0 {
+			return false
+		}
+	}
+	return true
+}
+
+func isUUID(value string) bool {
+	return uuidPattern.MatchString(value)
 }

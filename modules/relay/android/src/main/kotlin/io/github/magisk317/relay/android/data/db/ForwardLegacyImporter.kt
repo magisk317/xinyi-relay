@@ -4,6 +4,8 @@ import io.github.magisk317.forward.db.ForwardDatabase
 import io.github.magisk317.forward.db.ForwardFilterRuleEntity
 import io.github.magisk317.forward.db.ForwardRouteRuleEntity
 import io.github.magisk317.forward.db.ForwardScheduledTaskEntity
+import java.nio.charset.StandardCharsets
+import java.util.UUID
 import io.github.magisk317.forward.db.ForwardSenderEntity
 import io.github.magisk317.forward.db.ForwardEventEntity
 import io.github.magisk317.forward.db.ForwardAppInfoEntity
@@ -186,6 +188,9 @@ object ForwardLegacyImporter {
         simSlot = task.simSlot, mobiles = task.mobiles, content = task.content,
         status = task.status, lastRunTime = task.lastRunTime, nextRunTime = task.nextRunTime,
         createdAt = task.createdAt,
+        syncId = UUID.nameUUIDFromBytes(
+            "xinyi-relay:scheduled-task:${task.id}".toByteArray(StandardCharsets.UTF_8),
+        ).toString(),
     )
 
     fun projectAppInfo(info: io.github.magisk317.relay.android.data.db.legacy.entity.LegacyAppInfo): ForwardAppInfoEntity = ForwardAppInfoEntity(
