@@ -55,22 +55,60 @@ describe('scheduled task UI logic', () => {
     const local = resolveScheduledTaskConflict(tasks, 'conflict-1', 'local')
     const remote = resolveScheduledTaskConflict(tasks, 'conflict-1', 'remote')
 
-    expect(local.map((item) => item.syncId)).toEqual(['local', 'other'])
+    expect(local.map((item) => item.syncId)).toEqual(['local', 'other', 'remote'])
     expect(local[0]?.status).toBe(1)
     expect(local[0]?.conflictId).toBeNull()
-    expect(remote.map((item) => item.syncId)).toEqual(['other', 'remote'])
-    expect(remote[1]?.status).toBe(0)
+    expect(local[2]?.syncDeleted).toBe(true)
+    expect(remote.map((item) => item.syncId)).toEqual(['local', 'other', 'remote'])
+    expect(remote[0]?.syncDeleted).toBe(true)
+    expect(remote[2]?.status).toBe(0)
   })
 
-  it('keeps non-deleted variants and restores their prior statuses for keep-both', () => {
+  it('keeps both definitions under deterministic new ids and retains old-id tombstones', () => {
+    const tasks = [task('local', 'local', 1), task('remote', 'remote', 0)]
     const resolved = resolveScheduledTaskConflict(
-      [task('deleted-local', 'local', 1, true), task('remote', 'remote', 0)],
+      tasks,
       'conflict-1',
       'keep-both'
     )
-    expect(resolved.map((item) => item.syncId)).toEqual(['remote'])
-    expect(resolved[0]?.status).toBe(0)
-    expect(resolved[0]?.conflictId).toBeNull()
+    const retried = resolveScheduledTaskConflict(tasks, 'conflict-1', 'keep-both')
+    const live = resolved.filter((item) => !item.syncDeleted)
+    const tombstones = resolved.filter((item) => item.syncDeleted)
+
+    expect(resolved).toEqual(retried)
+    expect(live).toHaveLength(2)
+    expect(new Set(live.map((item) => item.syncId)).size).toBe(2)
+    expect(live.map((item) => item.status).sort()).toEqual([0, 1])
+    expect(live.map((item) => item.syncId)).not.toContain('local')
+    expect(live.map((item) => item.syncId)).not.toContain('remote')
+    expect(tombstones.map((item) => item.syncId).sort()).toEqual(['local', 'remote'])
+    expect(resolved.every((item) => item.conflictId === null)).toBe(true)
+  })
+
+  it('preserves deleted-side base content for keep-both in delete-versus-edit conflicts', () => {
+    const local = { ...task('local-tombstone', 'local', 1, true), content: 'base definition' }
+    const remote = { ...task('remote-edit', 'remote', 1), content: 'remote edit' }
+    const resolved = resolveScheduledTaskConflict([local, remote], 'conflict-1', 'keep-both')
+    const live = resolved.filter((item) => !item.syncDeleted)
+
+    expect(live.map((item) => item.content).sort()).toEqual(['base definition', 'remote edit'])
+    expect(live.map((item) => item.syncId)).not.toContain('local-tombstone')
+    expect(live.map((item) => item.syncId)).not.toContain('remote-edit')
+    expect(resolved.filter((item) => item.syncDeleted).map((item) => item.syncId).sort())
+      .toEqual(['local-tombstone', 'remote-edit'])
+  })
+
+  it('preserves deleted remote base content for keep-both in remote-delete conflicts', () => {
+    const local = { ...task('local-edit', 'local', 1), content: 'local edit' }
+    const remote = { ...task('remote-tombstone', 'remote', 0, true), content: 'base definition' }
+    const resolved = resolveScheduledTaskConflict([local, remote], 'conflict-1', 'keep-both')
+    const live = resolved.filter((item) => !item.syncDeleted)
+
+    expect(live.map((item) => item.content).sort()).toEqual(['base definition', 'local edit'])
+    expect(live.map((item) => item.syncId)).not.toContain('local-edit')
+    expect(live.map((item) => item.syncId)).not.toContain('remote-tombstone')
+    expect(resolved.filter((item) => item.syncDeleted).map((item) => item.syncId).sort())
+      .toEqual(['local-edit', 'remote-tombstone'])
   })
 
   it('allows writes at fifteen minutes and rejects an older or missing heartbeat', () => {
