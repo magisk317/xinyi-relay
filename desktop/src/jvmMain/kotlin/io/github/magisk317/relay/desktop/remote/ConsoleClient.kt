@@ -23,6 +23,7 @@ import io.github.magisk317.forward.net.RelayHttpClients
 import java.net.URLEncoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -35,6 +36,31 @@ class ConsoleApiException(
     val status: Int,
     body: String,
 ) : RuntimeException("console api failed ($status): $body")
+
+@Serializable
+data class DeviceActionCommandItem(
+    val action: String? = null,
+    val actorId: Long? = null,
+    val actorType: String? = null,
+    val createdAt: String? = null,
+    val failureReason: String? = null,
+    val id: Long? = null,
+    val params: JsonObject = JsonObject(emptyMap()),
+    val status: String? = null,
+)
+
+@Serializable
+data class DeviceActionsResponse(
+    val actions: List<DeviceActionCommandItem>,
+    val limit: Int? = null,
+    val offset: Int? = null,
+)
+
+@Serializable
+private data class DeviceActionRequest(
+    val action: String,
+    val params: Map<String, String>,
+)
 
 /**
  * HTTP client for the management console backend, mirroring the Rust
@@ -114,6 +140,22 @@ class ConsoleClient(
     )
 
     override suspend fun devices(): DevicesResponse = send("/api/v1/devices")
+
+    suspend fun listDeviceActions(
+        deviceId: Long,
+        limit: Int = 50,
+        offset: Int = 0,
+    ): DeviceActionsResponse = send("/api/v1/devices/$deviceId/actions?limit=$limit&offset=$offset")
+
+    suspend fun queueDeviceAction(
+        deviceId: Long,
+        action: String,
+        params: Map<String, String>,
+    ): DeviceActionCommandItem = send(
+        "/api/v1/devices/$deviceId/actions",
+        method = "POST",
+        body = json.encodeToString(DeviceActionRequest(action, params)),
+    )
 
     override suspend fun patchDevice(deviceId: Long, request: PatchDeviceRequest): JsonObject = send(
         "/api/v1/devices/$deviceId",

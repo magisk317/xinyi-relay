@@ -91,6 +91,35 @@ class ConsoleClientTest {
     }
 
     @Test
+    fun `queues a device action using the web console request shape`() = runBlocking {
+        responses["/api/v1/devices/7/actions"] = 200 to
+            """{"action":"SET_RINGER_MODE","actorId":3,"actorType":"user","createdAt":"2026-11-20T10:00:00Z","failureReason":null,"id":42,"params":{"mode":"normal"},"status":"pending"}"""
+        val client = ConsoleClient(baseUrl()).also { it.accessToken = "tok-1" }
+
+        val action = client.queueDeviceAction(7, "SET_RINGER_MODE", mapOf("mode" to "normal"))
+
+        assertEquals(42L, action.id)
+        assertEquals("pending", action.status)
+        assertEquals("POST", lastMethod)
+        assertEquals("/api/v1/devices/7/actions", lastPathWithQuery)
+        assertEquals("Bearer tok-1", lastAuth)
+        assertTrue(lastBody.contains("\"action\":\"SET_RINGER_MODE\""), lastBody)
+        assertTrue(lastBody.contains("\"params\":{\"mode\":\"normal\"}"), lastBody)
+    }
+
+    @Test
+    fun `lists device actions with bounded history query`() = runBlocking {
+        responses["/api/v1/devices/7/actions"] = 200 to
+            """{"actions":[{"action":"SET_INTERRUPTION_FILTER","id":51,"params":{"filter":"priority"},"status":"done"}],"limit":20,"offset":5}"""
+
+        val response = ConsoleClient(baseUrl()).listDeviceActions(7, limit = 20, offset = 5)
+
+        assertEquals(1, response.actions.size)
+        assertEquals("done", response.actions.single().status)
+        assertEquals("/api/v1/devices/7/actions?limit=20&offset=5", lastPathWithQuery)
+    }
+
+    @Test
     fun `server error surfaces as api exception`() {
         responses["/api/v1/devices"] = 500 to """{"error":"boom"}"""
         val client = ConsoleClient(baseUrl())

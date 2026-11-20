@@ -66,6 +66,10 @@ class DesktopSessionState(private val store: ProfileStore = ProfileStore()) {
     var runMode by mutableStateOf(DesktopRunMode.Default)
         private set
 
+    /** Local appearance override, persisted with profile and run-mode state. */
+    var appearance by mutableStateOf(DesktopAppearance.SYSTEM)
+        private set
+
     /** Language tag reported by the backend session; drives "system" locale. */
     var serverLanguageTag by mutableStateOf("")
         private set
@@ -117,6 +121,7 @@ class DesktopSessionState(private val store: ProfileStore = ProfileStore()) {
             // even when no session is stored, so the mirror assembly gate
             // observes it on the login screen too.
             runMode = state.runMode
+            appearance = state.appearance
             loadedProfiles = state.profiles
             val profile = state.activeProfileId?.let { id -> state.profiles.firstOrNull { it.id == id } }
             // Local mode can bootstrap from the on-disk mirror without a
@@ -166,6 +171,12 @@ class DesktopSessionState(private val store: ProfileStore = ProfileStore()) {
         if (runMode == mode) return
         runMode = mode
         store.updateState { it.copy(runMode = mode) }
+    }
+
+    fun updateAppearance(value: DesktopAppearance) {
+        if (appearance == value) return
+        appearance = value
+        store.updateState { it.copy(appearance = value) }
     }
 
     /**

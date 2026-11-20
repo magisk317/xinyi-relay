@@ -35,6 +35,9 @@ enum class DesktopRunMode {
      */
     val usesLocalMirror: Boolean get() = this != Remote
 
+    /** One-shot device actions always target the remote console, never the local mirror. */
+    val allowsRemoteDeviceActions: Boolean get() = this == Remote || this == Hybrid
+
     /** Message key of this mode's display label (settings selector row). */
     val labelKey: String
         get() = when (this) {

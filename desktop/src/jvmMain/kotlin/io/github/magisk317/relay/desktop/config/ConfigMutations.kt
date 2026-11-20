@@ -4,6 +4,7 @@ import io.github.magisk317.relay.contract.model.SnapshotAppInfo
 import io.github.magisk317.relay.contract.model.SnapshotForwardFilterRule
 import io.github.magisk317.relay.contract.model.SnapshotNotifyRouteRule
 import io.github.magisk317.relay.contract.model.SnapshotRule
+import io.github.magisk317.relay.contract.model.SnapshotScheduledTask
 import io.github.magisk317.relay.contract.model.SnapshotSender
 import io.github.magisk317.relay.contract.model.SnapshotSmsCodeRule
 import io.github.magisk317.relay.contract.remote.DeviceConfigCommandResponse
@@ -36,11 +37,25 @@ data class DesktopConfigRoot(
     val notifyRoutes: List<SnapshotNotifyRouteRule> = emptyList(),
     val forwardFilters: List<SnapshotForwardFilterRule> = emptyList(),
     val deviceAppInfos: Map<String, List<SnapshotAppInfo>> = emptyMap(),
+    val scheduledTasks: List<SnapshotScheduledTask> = emptyList(),
 )
 
 private val configJson = Json {
     ignoreUnknownKeys = true
     encodeDefaults = true
+}
+
+fun buildReplaceScheduledTasksMutation(
+    tasks: List<SnapshotScheduledTask>,
+): JsonObject = buildJsonObject {
+    put("operations", buildJsonArray {
+        add(
+            buildJsonObject {
+                put("type", "replace_scheduled_tasks")
+                put("tasks", configJson.encodeToJsonElement(ListSerializer(SnapshotScheduledTask.serializer()), tasks))
+            },
+        )
+    })
 }
 
 private inline fun <reified T> decodeList(element: JsonElement?): List<T> {
@@ -58,6 +73,7 @@ fun normalizeConfigRoot(mirrorContent: JsonObject?): DesktopConfigRoot {
         notifyRoutes = decodeList(mirrorContent["notifyRoutes"]),
         forwardFilters = decodeList(mirrorContent["forwardFilters"]),
         deviceAppInfos = decodeAppInfos(mirrorContent["deviceAppInfos"]),
+        scheduledTasks = decodeList(mirrorContent["scheduledTasks"]),
     )
 }
 
@@ -88,6 +104,10 @@ fun applyMutationBatchToConfigRoot(
                     forwardFilters = pruneBySender(next.forwardFilters, removed) { it.senderId },
                 )
             }
+
+            "replace_scheduled_tasks" -> next.copy(
+                scheduledTasks = decodeList(op["tasks"]),
+            )
 
             "replace_device_apps" -> {
                 val deviceId = op["deviceId"]?.jsonPrimitive?.longOrNull ?: continue

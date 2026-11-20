@@ -5,10 +5,12 @@ import { useDeviceConfig } from '../deviceConfig'
 import { useRealtimeFeed } from '../realtime'
 import { trackEvent } from '../analytics'
 import { useI18n } from '../i18n'
+import { useAppearance } from '../appearance'
 import { ActionButton, ErrorBanner, LoadingCard, PageShell, RelayBadge, SurfaceCard } from '../template'
 
 export function SettingsPage() {
   const { t } = useI18n()
+  const { appearance, setAppearance } = useAppearance()
   const { username } = useAuth()
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -59,6 +61,22 @@ export function SettingsPage() {
           <div>{config ? `pending commands: ${config.pendingCommands.length}` : t('common.none')}</div>
           <div>{config ? `updated: ${new Date(config.updatedAt).toLocaleString()}` : t('common.none')}</div>
           <div>{t('settings.remoteDescription')}</div>
+        </div>
+      </SurfaceCard>
+
+      <SurfaceCard title={t('appearance.title')} subtitle={t('appearance.description')}>
+        <div className="relay-segmented" role="group" aria-label={t('appearance.title')}>
+          {(['system', 'light', 'dark'] as const).map((choice) => (
+            <button
+              key={choice}
+              type="button"
+              aria-pressed={appearance === choice}
+              className={appearance === choice ? 'relay-segment relay-segment-active' : 'relay-segment'}
+              onClick={() => setAppearance(choice)}
+            >
+              {t(`appearance.${choice}`)}
+            </button>
+          ))}
         </div>
       </SurfaceCard>
 

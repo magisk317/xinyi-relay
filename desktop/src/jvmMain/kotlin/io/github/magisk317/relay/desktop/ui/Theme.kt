@@ -13,24 +13,25 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import io.github.magisk317.relay.desktop.session.DesktopAppearance
 
-/** WebUI brand palette (frontend/webui index.css) mirrored for the desktop shell. */
-private val XinyiGreen = Color(0xFF87AD1E)
-private val XinyiGreenDark = Color(0xFF6F8E18)
-private val XinyiInk = Color(0xFF243115)
-private val XinyiInkSoft = Color(0xFF596743)
-private val XinyiPaper = Color(0xFFFBFEF2)
-private val XinyiPaperDim = Color(0xFFF0F8D9)
-private val XinyiLeaf = Color(0xFFD8E9A6)
-private val XinyiError = Color(0xFFB24A24)
+/** Muted Xinyi green on quiet neutral surfaces, shared with the Web console. */
+private val XinyiGreen = Color(0xFF718A34)
+private val XinyiGreenDark = Color(0xFF5E7627)
+private val XinyiInk = Color(0xFF252C22)
+private val XinyiInkSoft = Color(0xFF5D6658)
+private val XinyiPaper = Color(0xFFF3F5F0)
+private val XinyiPaperDim = Color(0xFFE9EDE6)
+private val XinyiLeaf = Color(0xFFE0E9D0)
+private val XinyiError = Color(0xFF9F3D35)
 
 private val XinyiLightColors = lightColorScheme(
     primary = XinyiGreenDark,
-    onPrimary = Color(0xFFF8FFE6),
+    onPrimary = Color(0xFFFFFFFF),
     primaryContainer = XinyiLeaf,
     onPrimaryContainer = XinyiInk,
     secondary = XinyiGreen,
-    onSecondary = Color(0xFF1F2A10),
+    onSecondary = Color(0xFFFFFFFF),
     secondaryContainer = XinyiPaperDim,
     onSecondaryContainer = XinyiInk,
     background = XinyiPaper,
@@ -39,45 +40,47 @@ private val XinyiLightColors = lightColorScheme(
     onSurface = XinyiInk,
     surfaceVariant = XinyiPaperDim,
     onSurfaceVariant = XinyiInkSoft,
-    outline = XinyiLeaf,
-    outlineVariant = Color(0xFFE7F1CB),
+    outline = Color(0xFFBBC5B4),
+    outlineVariant = Color(0xFFD7DED1),
     error = XinyiError,
     onError = Color(0xFFFFF8F3),
 )
 
 private val XinyiDarkColors = darkColorScheme(
-    primary = XinyiGreen,
-    onPrimary = Color(0xFF1F2A10),
-    primaryContainer = Color(0xFF44591A),
-    onPrimaryContainer = Color(0xFFF4FBE0),
-    secondary = Color(0xFFA8CB4E),
-    onSecondary = Color(0xFF1F2A10),
-    secondaryContainer = Color(0xFF37451C),
-    onSecondaryContainer = Color(0xFFF4FBE0),
-    background = Color(0xFF161B0E),
-    onBackground = Color(0xFFF4FBE0),
-    surface = Color(0xFF1E2413),
-    onSurface = Color(0xFFF4FBE0),
-    surfaceVariant = Color(0xFF2C351B),
-    onSurfaceVariant = Color(0xFFCBD9B4),
-    outline = Color(0xFF5A6B3A),
-    outlineVariant = Color(0xFF3D4A26),
-    error = Color(0xFFE8907A),
-    onError = Color(0xFF3B1305),
+    primary = Color(0xFFB5CA82),
+    onPrimary = Color(0xFF273019),
+    primaryContainer = Color(0xFF394629),
+    onPrimaryContainer = Color(0xFFE3EDCF),
+    secondary = Color(0xFFBBC8A1),
+    onSecondary = Color(0xFF293126),
+    secondaryContainer = Color(0xFF343C30),
+    onSecondaryContainer = Color(0xFFE0E6D8),
+    background = Color(0xFF171B16),
+    onBackground = Color(0xFFE7EBE3),
+    surface = Color(0xFF20251F),
+    onSurface = Color(0xFFE7EBE3),
+    surfaceVariant = Color(0xFF2A3029),
+    onSurfaceVariant = Color(0xFFC2C9BC),
+    outline = Color(0xFF687363),
+    outlineVariant = Color(0xFF414940),
+    error = Color(0xFFFFB4A9),
+    onError = Color(0xFF571D17),
+    errorContainer = Color(0xFF73332D),
+    onErrorContainer = Color(0xFFFFDAD4),
 )
 
 private val XinyiShapes = Shapes(
-    extraSmall = RoundedCornerShape(12.dp),
-    small = RoundedCornerShape(16.dp),
-    medium = RoundedCornerShape(22.dp),
-    large = RoundedCornerShape(28.dp),
-    extraLarge = RoundedCornerShape(36.dp),
+    extraSmall = RoundedCornerShape(4.dp),
+    small = RoundedCornerShape(6.dp),
+    medium = RoundedCornerShape(8.dp),
+    large = RoundedCornerShape(10.dp),
+    extraLarge = RoundedCornerShape(12.dp),
 )
 
 private val XinyiTypography = Typography(
-    headlineLarge = TextStyle(fontSize = 30.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-1).sp),
-    headlineSmall = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.4).sp),
-    titleLarge = TextStyle(fontSize = 19.sp, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.3).sp),
+    headlineLarge = TextStyle(fontSize = 30.sp, fontWeight = FontWeight.SemiBold),
+    headlineSmall = TextStyle(fontSize = 22.sp, fontWeight = FontWeight.SemiBold),
+    titleLarge = TextStyle(fontSize = 19.sp, fontWeight = FontWeight.SemiBold),
     titleMedium = TextStyle(fontSize = 15.sp, fontWeight = FontWeight.Medium),
     bodyLarge = TextStyle(fontSize = 15.sp),
     bodyMedium = TextStyle(fontSize = 13.5.sp),
@@ -86,9 +89,10 @@ private val XinyiTypography = Typography(
 
 @Composable
 fun XinyiDesktopTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    appearance: DesktopAppearance = DesktopAppearance.SYSTEM,
     content: @Composable () -> Unit,
 ) {
+    val darkTheme = appearance.isDark(isSystemInDarkTheme())
     MaterialTheme(
         colorScheme = if (darkTheme) XinyiDarkColors else XinyiLightColors,
         shapes = XinyiShapes,

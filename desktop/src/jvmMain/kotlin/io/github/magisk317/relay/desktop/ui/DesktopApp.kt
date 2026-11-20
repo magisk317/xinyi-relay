@@ -199,9 +199,7 @@ fun DesktopApp(window: java.awt.Window, windowState: WindowState, onQuit: () -> 
                     when (action) {
                         TrayAction.SHOW -> Unit
                         TrayAction.OVERVIEW -> route = DesktopRoute.OVERVIEW
-                        // The KMP shell folds the webUI's device page into
-                        // Advanced (pairing code + device list live there).
-                        TrayAction.DEVICES -> route = DesktopRoute.ADVANCED
+                        TrayAction.DEVICES -> route = DesktopRoute.DEVICES
                         TrayAction.RECORDS -> route = DesktopRoute.RECORDS
                         TrayAction.RESTART_MONITOR -> {
                             feed.stop()
@@ -218,7 +216,7 @@ fun DesktopApp(window: java.awt.Window, windowState: WindowState, onQuit: () -> 
         }
     }
 
-    XinyiDesktopTheme {
+    XinyiDesktopTheme(appearance = session.appearance) {
         // The tray's quit row lands here: [onQuit] stops the application
         // scope during composition, which runs the disposals above (tray icon
         // removal, feed stop) on the way out.

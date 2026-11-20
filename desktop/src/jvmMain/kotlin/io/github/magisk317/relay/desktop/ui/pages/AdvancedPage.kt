@@ -58,6 +58,14 @@ import kotlinx.coroutines.launch
 /** How long the export/import success hint stays before it self-clears. */
 private const val TRANSFER_HINT_MS = 6_000L
 
+enum class AdvancedPageSection { DEVICES, DIAGNOSTICS }
+
+private fun sectionTitle(section: AdvancedPageSection, locale: DesktopLocale): String =
+    DesktopMessages.t(locale, if (section == AdvancedPageSection.DEVICES) "devices.title" else "diagnostics.title")
+
+private fun sectionDescription(section: AdvancedPageSection, locale: DesktopLocale): String =
+    DesktopMessages.t(locale, if (section == AdvancedPageSection.DEVICES) "devices.description" else "diagnostics.description")
+
 /** Realtime event types that re-fetch the device list, mirroring the webUI list. */
 private val ADVANCED_DEVICE_EVENTS = setOf(
     "device.registered",
@@ -67,10 +75,8 @@ private val ADVANCED_DEVICE_EVENTS = setOf(
 )
 
 /**
- * Desktop port of the webUI advanced page: the scheduled-tasks shortcut, the
- * one-shot bind code with its QR payload and the remote agent cards. The
- * browser prompt/confirm calls become dialogs and the scheduled-tasks link
- * navigates through [onOpenScheduledTasks] instead of window.location.
+ * The existing device and maintenance features, split into their own console
+ * destinations while sharing the same device and local mirror controllers.
  */
 @Composable
 fun AdvancedPage(
@@ -82,7 +88,7 @@ fun AdvancedPage(
     localSyncController: DesktopLocalSyncController? = null,
     localServerUrl: String? = null,
     locale: DesktopLocale,
-    onOpenScheduledTasks: () -> Unit = {},
+    section: AdvancedPageSection = AdvancedPageSection.DEVICES,
 ) {
     val scope = rememberCoroutineScope()
     var bindCode by remember { mutableStateOf<BindCodeResponse?>(null) }
@@ -199,31 +205,35 @@ fun AdvancedPage(
         }
     }
 
-    LaunchedEffect(Unit) { load() }
-    LaunchedEffect(feed.lastEvent) {
-        if (feed.lastEvent?.type in ADVANCED_DEVICE_EVENTS) reload()
+    LaunchedEffect(section) {
+        if (section == AdvancedPageSection.DEVICES) load() else loading = false
+    }
+    LaunchedEffect(feed.lastEvent, section) {
+        if (section == AdvancedPageSection.DEVICES && feed.lastEvent?.type in ADVANCED_DEVICE_EVENTS) reload()
     }
 
     val actions: @Composable () -> Unit = {
         LiveBadge(connected = feed.connected, locale = locale)
-        ActionButton(
-            text = DesktopMessages.t(locale, "advanced.refresh"),
-            onClick = { reload() },
-            tone = ActionTone.NEUTRAL,
-        )
+        if (section == AdvancedPageSection.DEVICES) {
+            ActionButton(
+                text = DesktopMessages.t(locale, "advanced.refresh"),
+                onClick = { reload() },
+                tone = ActionTone.NEUTRAL,
+            )
+        }
     }
 
-    if (loading && console.devices.isEmpty() && error.isBlank() && bindCode == null) {
+    if (section == AdvancedPageSection.DEVICES && loading && console.devices.isEmpty() && error.isBlank() && bindCode == null) {
         PageShell(
-            title = DesktopMessages.t(locale, "advanced.title"),
-            description = DesktopMessages.t(locale, "advanced.description"),
-            badge = DesktopMessages.t(locale, "advanced.title"),
+            title = sectionTitle(section, locale),
+            description = sectionDescription(section, locale),
+            badge = sectionTitle(section, locale),
             locale = locale,
             actions = actions,
         ) {
             LoadingCard(
-                title = DesktopMessages.t(locale, "advanced.loadingTitle"),
-                message = DesktopMessages.t(locale, "advanced.loadingMessage"),
+                title = DesktopMessages.t(locale, if (section == AdvancedPageSection.DEVICES) "devices.loadingTitle" else "common.loading"),
+                message = DesktopMessages.t(locale, if (section == AdvancedPageSection.DEVICES) "devices.loadingMessage" else "common.loadingMessage"),
                 locale = locale,
             )
         }
@@ -231,24 +241,15 @@ fun AdvancedPage(
     }
 
     PageShell(
-        title = DesktopMessages.t(locale, "advanced.title"),
-        description = DesktopMessages.t(locale, "advanced.remoteDescription"),
-        badge = DesktopMessages.t(locale, "advanced.title"),
+        title = sectionTitle(section, locale),
+        description = sectionDescription(section, locale),
+        badge = sectionTitle(section, locale),
         locale = locale,
         actions = actions,
     ) {
         ErrorBanner(message = error, locale = locale)
 
-        SurfaceCard(
-            title = DesktopMessages.t(locale, "advanced.scheduledTasksTitle"),
-            subtitle = DesktopMessages.t(locale, "advanced.scheduledTasksSubtitle"),
-        ) {
-            ActionButton(
-                text = DesktopMessages.t(locale, "advanced.scheduledTasksOpen"),
-                onClick = onOpenScheduledTasks,
-                tone = ActionTone.PRIMARY,
-            )
-        }
+        if (section == AdvancedPageSection.DIAGNOSTICS) {
 
         // Remote sync: the "pull from remote" / "push to remote" pair,
         // driving the mirror's own engine. The push direction is
@@ -375,6 +376,7 @@ fun AdvancedPage(
                 )
             }
         }
+        } else {
 
         SurfaceCard(
             title = DesktopMessages.t(locale, "advanced.bindTitle"),
@@ -470,6 +472,7 @@ fun AdvancedPage(
                     )
                 }
             }
+        }
         }
     }
 

@@ -46,6 +46,21 @@ class ProfileStoreTest {
     }
 
     @Test
+    fun `state file predating appearance defaults to system`() {
+        Files.writeString(dir.resolve("profiles.json"), """{"profiles":[],"activeProfileId":null,"runMode":"Remote"}""")
+        assertEquals(DesktopAppearance.SYSTEM, store().loadState().appearance)
+    }
+
+    @Test
+    fun `appearance preference round trips through the store`() {
+        val store = store()
+        store.saveState(PersistedDesktopState(appearance = DesktopAppearance.DARK))
+        assertEquals(DesktopAppearance.DARK, store.loadState().appearance)
+        store.saveState(store.loadState().copy(appearance = DesktopAppearance.LIGHT))
+        assertEquals(DesktopAppearance.LIGHT, store.loadState().appearance)
+    }
+
+    @Test
     fun `run mode round trips through the store`() {
         val store = store()
         store.saveState(PersistedDesktopState(runMode = DesktopRunMode.Hybrid))

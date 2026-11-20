@@ -22,6 +22,13 @@ class DesktopRunModeTest {
     }
 
     @Test
+    fun `remote device actions are unavailable in local mode`() {
+        assertFalse(DesktopRunMode.Local.allowsRemoteDeviceActions)
+        assertTrue(DesktopRunMode.Remote.allowsRemoteDeviceActions)
+        assertTrue(DesktopRunMode.Hybrid.allowsRemoteDeviceActions)
+    }
+
+    @Test
     fun `every mode maps to distinct label and description keys`() {
         val labels = DesktopRunMode.entries.map { it.labelKey }
         val descriptions = DesktopRunMode.entries.map { it.descriptionKey }

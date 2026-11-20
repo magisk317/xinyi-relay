@@ -42,6 +42,7 @@ data class PersistedDesktopState(
     val profiles: List<DesktopProfile> = emptyList(),
     val activeProfileId: String? = null,
     val runMode: DesktopRunMode = DesktopRunMode.Default,
+    val appearance: DesktopAppearance = DesktopAppearance.SYSTEM,
 )
 
 /**

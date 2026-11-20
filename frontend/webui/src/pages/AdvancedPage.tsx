@@ -78,13 +78,6 @@ export function AdvancedPage() {
     <PageShell title={t('advanced.title')} description={t('advanced.remoteDescription')} badge={t('advanced.title')} actions={actions}>
       <ErrorBanner message={error} />
 
-      <SurfaceCard title={t('advanced.scheduledTasksTitle')} subtitle={t('advanced.scheduledTasksSubtitle')}>
-        <div className="flex flex-col sm:flex-row gap-4 mt-2">
-          <ActionButton onClick={() => window.location.href='/scheduled-tasks'}>
-            {t('advanced.scheduledTasksOpen')}
-          </ActionButton>
-        </div>
-      </SurfaceCard>
       <SurfaceCard title={t('advanced.bindTitle')} subtitle={t('advanced.bindSubtitle')}>
         <div className="flex flex-wrap items-center gap-3">
           <ActionButton
@@ -106,7 +99,7 @@ export function AdvancedPage() {
         </div>
         {bindCode ? (
           <div className="mt-4 flex flex-col items-start gap-3">
-            <div className="rounded-[24px] border border-[#d9e6b1] bg-white p-4 shadow-[0_12px_30px_-24px_rgba(98,122,28,0.2)]">
+            <div className="rounded-md border border-[var(--relay-border)] bg-[var(--relay-surface)] p-3">
               <QRCodeSVG value={bindQrValue} size={180} includeMargin />
             </div>
             <div className="text-sm text-[#6c785d]">{t('advanced.bindQrHint')}</div>

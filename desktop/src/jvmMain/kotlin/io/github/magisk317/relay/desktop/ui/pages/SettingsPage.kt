@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import io.github.magisk317.relay.desktop.i18n.DesktopLocale
 import io.github.magisk317.relay.desktop.i18n.DesktopMessages
 import io.github.magisk317.relay.desktop.remote.DesktopRealtimeFeed
+import io.github.magisk317.relay.desktop.session.DesktopAppearance
 import io.github.magisk317.relay.desktop.session.DesktopConsoleState
 import io.github.magisk317.relay.desktop.session.DesktopRunMode
 import io.github.magisk317.relay.desktop.session.DesktopSessionState
@@ -103,6 +104,23 @@ fun SettingsPage(
         ErrorBanner(message = console.error, locale = locale)
         if (notice.isNotBlank()) {
             NoticeCard(text = notice)
+        }
+        SurfaceCard(
+            title = DesktopMessages.t(locale, "appearance.title"),
+            subtitle = DesktopMessages.t(locale, "appearance.description"),
+        ) {
+            RelaySelect(
+                value = session.appearance.name,
+                options = DesktopAppearance.entries.map { value ->
+                    RelayOption(
+                        value = value.name,
+                        label = DesktopMessages.t(locale, "appearance.${value.name.lowercase()}"),
+                    )
+                },
+                onValueChange = { value ->
+                    DesktopAppearance.entries.firstOrNull { it.name == value }?.let(session::updateAppearance)
+                },
+            )
         }
         SurfaceCard(
             title = DesktopMessages.t(locale, "settings.cloudTitle"),

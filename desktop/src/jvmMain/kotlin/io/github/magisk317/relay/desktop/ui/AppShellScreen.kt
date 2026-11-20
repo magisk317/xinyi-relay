@@ -1,6 +1,7 @@
 package io.github.magisk317.relay.desktop.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -48,8 +50,10 @@ import io.github.magisk317.relay.desktop.remote.DesktopRealtimeFeed
 import io.github.magisk317.relay.desktop.session.DesktopConsoleState
 import io.github.magisk317.relay.desktop.ui.PageOutlet
 import io.github.magisk317.relay.desktop.ui.pages.AdvancedPage
+import io.github.magisk317.relay.desktop.ui.pages.AdvancedPageSection
 import io.github.magisk317.relay.desktop.ui.pages.AnalyticsPage
 import io.github.magisk317.relay.desktop.ui.pages.AppsPage
+import io.github.magisk317.relay.desktop.ui.pages.DeviceControlPage
 import io.github.magisk317.relay.desktop.ui.pages.OverviewPage
 import io.github.magisk317.relay.desktop.ui.pages.RecordsPage
 import io.github.magisk317.relay.desktop.ui.pages.ScheduledTasksPage
@@ -64,17 +68,30 @@ import io.github.magisk317.relay.desktop.platform.DesktopLinkOpener
 import io.github.magisk317.relay.desktop.session.DesktopSessionState
 import kotlinx.coroutines.delay
 
-/** Routes mirroring the webUI router, in sidebar order. */
+/** Routes presented in the shared Web/Desktop console information architecture. */
 enum class DesktopRoute(val labelKey: String, val icon: ImageVector) {
     OVERVIEW("layout.nav.overview", Icons.Filled.Home),
     ANALYTICS("layout.nav.analytics", Icons.Filled.Star),
     APPS("layout.nav.apps", Icons.Filled.Apps),
-    RECORDS("layout.nav.records", Icons.Filled.Inbox),
     SENDERS("layout.nav.senders", Icons.AutoMirrored.Filled.Send),
-    SETTINGS("layout.nav.settings", Icons.Filled.Settings),
-    ADVANCED("layout.nav.advanced", Icons.Filled.Build),
     SCHEDULED_TASKS("layout.nav.scheduled_tasks", Icons.Filled.Schedule),
+    RECORDS("layout.nav.records", Icons.Filled.Inbox),
+    DEVICES("layout.nav.devices", Icons.Filled.Apps),
+    DEVICE_CONTROL("layout.nav.deviceControl", Icons.Filled.Build),
+    DIAGNOSTICS("layout.nav.diagnostics", Icons.Filled.Build),
+    SETTINGS("layout.nav.settings", Icons.Filled.Settings),
 }
+
+internal data class DesktopNavGroup(val labelKey: String, val routes: List<DesktopRoute>)
+
+internal val DESKTOP_NAV_GROUPS = listOf(
+    DesktopNavGroup("layout.nav.group.overview", listOf(DesktopRoute.OVERVIEW, DesktopRoute.ANALYTICS)),
+    DesktopNavGroup("layout.nav.group.automation", listOf(DesktopRoute.APPS, DesktopRoute.SENDERS, DesktopRoute.SCHEDULED_TASKS)),
+    DesktopNavGroup("layout.nav.group.records", listOf(DesktopRoute.RECORDS)),
+    DesktopNavGroup("layout.nav.group.devices", listOf(DesktopRoute.DEVICES, DesktopRoute.DEVICE_CONTROL)),
+    DesktopNavGroup("layout.nav.group.diagnostics", listOf(DesktopRoute.DIAGNOSTICS)),
+    DesktopNavGroup("layout.nav.group.settings", listOf(DesktopRoute.SETTINGS)),
+)
 
 /**
  * Desktop port of the webUI AppLayout: header with account menu, sidebar
@@ -150,28 +167,31 @@ private fun Header(
     selectedLocale: LocaleSetting,
     onLocaleChange: (LocaleSetting) -> Unit,
 ) {
-    Surface(color = MaterialTheme.colorScheme.primary) {
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             androidx.compose.foundation.Image(
                 painter = androidx.compose.ui.res.painterResource("icon.png"),
                 contentDescription = "Xinyi Relay Logo",
-                modifier = Modifier.size(44.dp),
+                modifier = Modifier.size(36.dp),
             )
             Column(modifier = Modifier.padding(start = 12.dp)) {
                 Text(
                     text = DesktopMessages.t(locale, "login.title"),
                     style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
                     text = "Desktop",
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Spacer(modifier = Modifier.weight(1f))
@@ -197,46 +217,46 @@ private fun Sidebar(
     onSelect: (DesktopRoute) -> Unit,
 ) {
     Surface(
-        modifier = Modifier.widthIn(min = 220.dp).fillMaxHeight(),
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+        modifier = Modifier.widthIn(min = 220.dp, max = 260.dp).fillMaxHeight(),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.padding(vertical = 8.dp, horizontal = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            DesktopRoute.entries.forEach { item ->
-                val active = item == route
-                val background = if (active) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.surface.copy(alpha = 0.7f)
-                }
-                val content = if (active) {
-                    MaterialTheme.colorScheme.onPrimary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                }
-                Surface(
-                    modifier = Modifier.fillMaxWidth().clickable { onSelect(item) },
-                    shape = MaterialTheme.shapes.medium,
-                    color = background,
-                ) {
+            DESKTOP_NAV_GROUPS.forEach { group ->
+                Text(
+                    text = DesktopMessages.t(locale, group.labelKey).uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 10.dp, top = 5.dp, bottom = 2.dp),
+                )
+                group.routes.forEach { item ->
+                    val active = item == route
                     Row(
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(item) }
+                            .background(
+                                if (active) MaterialTheme.colorScheme.primaryContainer else Color.Transparent,
+                                MaterialTheme.shapes.extraSmall,
+                            )
+                            .padding(horizontal = 10.dp, vertical = 9.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Icon(
                             imageVector = item.icon,
                             contentDescription = null,
-                            tint = content,
-                            modifier = Modifier.size(18.dp),
+                            tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(17.dp),
                         )
                         Text(
                             text = DesktopMessages.t(locale, item.labelKey),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = content,
-                            modifier = Modifier.padding(start = 12.dp),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (active) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(start = 9.dp),
                         )
                     }
                 }
@@ -256,8 +276,9 @@ private fun AccountMenu(
     Box {
         Surface(
             modifier = Modifier.clickable { expanded = true },
-            shape = RoundedCornerShape(50),
-            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.14f),
+            shape = MaterialTheme.shapes.small,
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
@@ -266,13 +287,13 @@ private fun AccountMenu(
                 Text(
                     text = session.username.ifBlank { "—" },
                     style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                 )
                 Text(
                     text = if (expanded) "▴" else "▾",
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onPrimary,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(start = 8.dp),
                 )
             }
@@ -322,12 +343,8 @@ private fun AccountMenu(
 
 @Composable
 private fun Footer(locale: DesktopLocale, localSync: LocalSyncStatus? = null) {
-    Surface(
-        shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-    ) {
-        Row(modifier = Modifier.padding(horizontal = 20.dp, vertical = 14.dp)) {
+    Surface(color = Color.Transparent) {
+        Row(modifier = Modifier.padding(horizontal = 4.dp, vertical = 8.dp)) {
             Text(
                 text = "Xinyi Relay Desktop",
                 style = MaterialTheme.typography.titleMedium,
@@ -365,7 +382,7 @@ private fun RouteContent(
             DesktopRoute.RECORDS -> RecordsPage(session, console, feed, locale)
             DesktopRoute.SENDERS -> SendersPage(session, console, feed, locale)
             DesktopRoute.SETTINGS -> SettingsPage(session, console, feed, locale)
-            DesktopRoute.ADVANCED -> AdvancedPage(
+            DesktopRoute.DEVICES -> AdvancedPage(
                 session = session,
                 console = console,
                 feed = feed,
@@ -374,7 +391,19 @@ private fun RouteContent(
                 localSyncController = localSyncController,
                 localServerUrl = localServerUrl,
                 locale = locale,
-                onOpenScheduledTasks = { onNavigate(DesktopRoute.SCHEDULED_TASKS) },
+                section = AdvancedPageSection.DEVICES,
+            )
+            DesktopRoute.DEVICE_CONTROL -> DeviceControlPage(session, console, feed, locale)
+            DesktopRoute.DIAGNOSTICS -> AdvancedPage(
+                session = session,
+                console = console,
+                feed = feed,
+                transfer = transfer,
+                diagnostics = diagnostics,
+                localSyncController = localSyncController,
+                localServerUrl = localServerUrl,
+                locale = locale,
+                section = AdvancedPageSection.DIAGNOSTICS,
             )
             DesktopRoute.SCHEDULED_TASKS -> ScheduledTasksPage(session, console, feed, locale)
         }
@@ -413,7 +442,7 @@ private fun ConsoleLinkButton(
             },
             enabled = consoleUrl.isNotEmpty(),
             colors = ButtonDefaults.textButtonColors(
-                contentColor = MaterialTheme.colorScheme.onPrimary,
+                contentColor = MaterialTheme.colorScheme.primary,
             ),
         ) {
             Text(text = DesktopMessages.t(locale, "platform.openConsole"))
@@ -422,7 +451,7 @@ private fun ConsoleLinkButton(
             Text(
                 text = message,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(start = 4.dp),
             )
         }

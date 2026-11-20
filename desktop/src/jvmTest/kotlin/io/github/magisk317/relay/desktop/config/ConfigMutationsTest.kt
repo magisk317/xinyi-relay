@@ -3,6 +3,7 @@ package io.github.magisk317.relay.desktop.config
 import io.github.magisk317.relay.contract.model.SnapshotAppInfo
 import io.github.magisk317.relay.contract.model.SnapshotForwardFilterRule
 import io.github.magisk317.relay.contract.model.SnapshotSender
+import io.github.magisk317.relay.contract.model.SnapshotScheduledTask
 import io.github.magisk317.relay.contract.remote.DeviceConfigCommandResponse
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -44,6 +45,64 @@ class ConfigMutationsTest {
         val root = normalizeConfigRoot(null)
         assertTrue(root.senders.isEmpty())
         assertTrue(root.deviceAppInfos.isEmpty())
+        assertTrue(root.scheduledTasks.isEmpty())
+    }
+
+    @Test
+    fun `scheduled task mirror keeps tombstones and conflict variants`() {
+        val root = normalizeConfigRoot(
+            buildJsonObject {
+                put(
+                    "scheduledTasks",
+                    kotlinx.serialization.json.Json.parseToJsonElement(
+                        """[{"syncId":"task-local","name":"Local","taskType":"sms","cronExpression":"0 9 * * *","simSlot":1,"mobiles":"10086","content":"code","status":0,"createdAt":7,"conflictId":"c1","conflictSide":"local","conflictPreviousStatus":1,"syncDeleted":false}]""",
+                    ),
+                )
+            },
+        )
+
+        val task = root.scheduledTasks.single()
+        assertEquals("task-local", task.syncId)
+        assertEquals("c1", task.conflictId)
+        assertEquals("local", task.conflictSide)
+        assertEquals(1, task.conflictPreviousStatus)
+        assertEquals(7L, task.createdAt)
+    }
+
+    @Test
+    fun `replace_scheduled_tasks previews the full list from a pending command`() {
+        val original = SnapshotScheduledTask(syncId = "task-1", name = "Original")
+        val updated = SnapshotScheduledTask(
+            syncId = "task-2",
+            name = "Remote choice",
+            conflictPreviousStatus = 1,
+        )
+        val mirror = buildJsonObject {
+            put(
+                "scheduledTasks",
+                kotlinx.serialization.json.Json.parseToJsonElement("""[{"syncId":"task-1","name":"Original"}]"""),
+            )
+        }
+        val mutation = buildReplaceScheduledTasksMutation(listOf(updated))
+        val pending = command(3, targetRevision = 8, mutation = mutation)
+
+        val root = deriveEffectiveConfigRoot(mirror, listOf(pending))
+
+        assertEquals(listOf("task-2"), root.scheduledTasks.map { it.syncId })
+        assertEquals(1, root.scheduledTasks.single().conflictPreviousStatus)
+        assertEquals(listOf("task-1"), normalizeConfigRoot(mirror).scheduledTasks.map { it.syncId })
+    }
+
+    @Test
+    fun `scheduled task mutation serializes the exact replacement operation`() {
+        val task = SnapshotScheduledTask(syncId = "task-a", name = "Daily report", createdAt = 123L)
+
+        val operation = (buildReplaceScheduledTasksMutation(listOf(task))["operations"] as kotlinx.serialization.json.JsonArray)
+            .single()
+            .jsonObject
+
+        assertEquals("replace_scheduled_tasks", operation["type"]?.toString()?.trim('"'))
+        assertEquals("task-a", (operation["tasks"] as kotlinx.serialization.json.JsonArray).single().jsonObject["syncId"]?.toString()?.trim('"'))
     }
 
     @Test

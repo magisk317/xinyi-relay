@@ -159,6 +159,7 @@ export function DeviceControlPage() {
             </ActionButton>
           ))}
         </div>
+        <p className="mt-3 text-sm text-[var(--relay-muted)]">{t('deviceControl.restoreRingingHint')}</p>
       </SurfaceCard>
 
       <SurfaceCard title={t('deviceControl.historyTitle')} subtitle={t('deviceControl.historySubtitle')}>
@@ -171,7 +172,7 @@ export function DeviceControlPage() {
             {actions.map((item) => (
               <div
                 key={item.id ?? `${item.action}-${item.createdAt}`}
-                className="rounded-[24px] border border-[#d9e6b1] bg-[linear-gradient(180deg,#ffffff_0%,#f7fbe9_100%)] px-4 py-3.5 shadow-[0_12px_30px_-24px_rgba(98,122,28,0.2)]"
+                className="relay-history-row rounded-md border px-4 py-3"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="text-sm font-medium text-[#243115]">{summarizeDeviceAction(item)}</div>
