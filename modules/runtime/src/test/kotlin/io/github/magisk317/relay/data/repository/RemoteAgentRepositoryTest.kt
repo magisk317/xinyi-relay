@@ -66,10 +66,12 @@ class RemoteAgentRepositoryTest {
 
     @Test
     fun `pullPendingCommands merges dirty scheduled task command and keeps both conflict versions`() = runBlocking {
-        val baseTask = """{"syncId":"task-a","name":"Daily","taskType":"sms","cronExpression":"0 8 * * *","simSlot":1,"mobiles":"10086","content":"base","status":1,"createdAt":1}"""
+        val baseTask =
+            """{"syncId":"task-a","name":"Daily","taskType":"sms","cronExpression":"0 8 * * *","simSlot":1,"mobiles":"10086","content":"base","status":1,"createdAt":1}"""
         val localTask = baseTask.replace("\"content\":\"base\"", "\"content\":\"local\"")
         val localMirror = jsonObject("""{"scheduledTasks":[$localTask]}""")
-        val remoteTasks = """[{"syncId":"task-a","name":"Daily","taskType":"sms","cronExpression":"0 8 * * *","simSlot":1,"mobiles":"10086","content":"remote","status":1,"createdAt":1}]"""
+        val remoteTasks =
+            """[{"syncId":"task-a","name":"Daily","taskType":"sms","cronExpression":"0 8 * * *","simSlot":1,"mobiles":"10086","content":"remote","status":1,"createdAt":1}]"""
         val localConfigRepository = FakeLocalConfigRepository(4, 1, localMirror)
         val api = FakeRemoteAgentApi(
             pullResponse = AgentConfigCommandsPullResponse(
@@ -140,7 +142,8 @@ class RemoteAgentRepositoryTest {
 
     @Test
     fun `pushLocalMirror merges offline tasks against remote mirror after stale revision`() = runBlocking {
-        val baseTask = """{"syncId":"task-a","name":"Daily","taskType":"sms","cronExpression":"0 8 * * *","simSlot":1,"mobiles":"10086","content":"base","status":1,"createdAt":1}"""
+        val baseTask =
+            """{"syncId":"task-a","name":"Daily","taskType":"sms","cronExpression":"0 8 * * *","simSlot":1,"mobiles":"10086","content":"base","status":1,"createdAt":1}"""
         val localTask = baseTask.replace("\"content\":\"base\"", "\"content\":\"local\"")
         val remoteTask = baseTask.replace("\"content\":\"base\"", "\"content\":\"remote\"")
         val base = jsonObject("""{"senders":[{"id":1}],"scheduledTasks":[$baseTask]}""")
