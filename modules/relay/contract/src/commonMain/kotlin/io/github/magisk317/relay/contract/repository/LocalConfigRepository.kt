@@ -18,6 +18,7 @@ interface LocalConfigRepository {
         revision: Long,
         source: String,
     ): LocalConfigMirror = applyMirror(mirrorContent, revision, "merged_$source")
+    suspend fun pruneSyncedScheduledTaskTombstones() {}
     fun observeMutationSources(): Flow<String>
 }
 

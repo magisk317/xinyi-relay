@@ -135,6 +135,7 @@ class RemoteAgentRepositoryTest {
         assertEquals(2, api.ackRequests.size)
         assertEquals(api.ackRequests[0], api.ackRequests[1])
         assertEquals(appliedMirrorCount, local.appliedMirrors.size)
+        assertEquals(1, local.prunedTombstoneCount)
     }
 
     @Test
@@ -777,6 +778,7 @@ private class FakeLocalConfigRepository(
 ) : LocalConfigRepository {
     private var revision = revision
     val appliedMirrors = mutableListOf<AppliedMirror>()
+    var prunedTombstoneCount = 0
 
     override suspend fun exportMirror(): LocalConfigMirror = mirror()
 
@@ -806,6 +808,10 @@ private class FakeLocalConfigRepository(
         pendingLocalChanges = 0
         appliedMirrors += AppliedMirror(mirrorContent, revision, source)
         return mirror()
+    }
+
+    override suspend fun pruneSyncedScheduledTaskTombstones() {
+        prunedTombstoneCount += 1
     }
 
     override fun observeMutationSources(): Flow<String> = emptyFlow()

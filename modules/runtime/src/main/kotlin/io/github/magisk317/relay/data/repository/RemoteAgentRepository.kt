@@ -389,6 +389,7 @@ class RemoteAgentRepository(
                 val result = pushMirrorWithOfflineMerge(baseUrl, token, request)
                 syncedRequest = result.first
                 persistConfigBaseline(result.second.mirrorContent ?: syncedRequest.mirrorContent)
+                localConfigRepository.pruneSyncedScheduledTaskTombstones()
                 localConfigRepository.markMirrorSynced(syncedRequest.localRevision)
                 val appCatalogDigest = computeDeviceAppCatalogDigest(
                     mirrorContent = syncedRequest.mirrorContent,
@@ -804,6 +805,7 @@ class RemoteAgentRepository(
         preferenceDataSource.setString(PrefConst.KEY_REMOTE_AGENT_PENDING_CONFIG_ACK, "")
         if (request.status == "applied") {
             persistConfigBaseline(request.mirrorContent)
+            localConfigRepository.pruneSyncedScheduledTaskTombstones()
             if (localConfigRepository.getRevision().value <= request.appliedRevision) {
                 localConfigRepository.markMirrorSynced(request.appliedRevision)
             }

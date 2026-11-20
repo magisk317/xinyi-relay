@@ -85,6 +85,8 @@ class ScheduledTaskSyncMergerTest {
         assertEquals(listOf("remote"), keepEditedRemote.map { it.content })
         assertEquals(setOf("base", "remote"), keepBoth.map { it.content }.toSet())
         assertTrue(keepBoth.none { it.syncDeleted || it.conflictId != null })
+        assertEquals(2, keepBoth.map { it.syncId }.toSet().size)
+        assertTrue(keepBoth.none { it.syncId == merged.tasks[0].syncId || it.syncId == merged.tasks[1].syncId })
     }
 
     @Test

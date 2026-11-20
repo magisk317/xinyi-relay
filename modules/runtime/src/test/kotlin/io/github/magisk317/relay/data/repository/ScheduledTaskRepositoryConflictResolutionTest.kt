@@ -49,7 +49,8 @@ class ScheduledTaskRepositoryConflictResolutionTest {
         coVerify(exactly = 1) { dao.deleteByConflictId("conflict-a") }
         coVerify(exactly = 1) {
             dao.upsertAll(match { rows ->
-                rows.size == 2 && rows.count { it.syncDeleted } == 1 && rows.count { it.conflictId == null } == 2
+                rows.size == 2 && rows.count { it.syncDeleted && it.status == 0 && it.conflictId == null } == 1 &&
+                    rows.count { !it.syncDeleted && it.conflictId == null } == 1
             })
         }
     }

@@ -136,6 +136,11 @@ class LocalConfigRepositoryImpl(
         source: String,
     ): LocalConfigMirror = applyMirrorInternal(mirrorContent, revision, source, allowDirty = true)
 
+    override suspend fun pruneSyncedScheduledTaskTombstones() {
+        val dao = forwardDatabase.forwardScheduledTaskDao()
+        dao.all().filter { it.syncDeleted && it.conflictId == null }.forEach { dao.deleteById(it.id) }
+    }
+
     private suspend fun applyMirrorInternal(
         mirrorContent: JsonObject,
         revision: Long,

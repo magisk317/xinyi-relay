@@ -127,9 +127,9 @@ object ScheduledTaskSyncMerger {
         }
         val resolvedRetained = retained.map { task ->
             val status = task.conflictPreviousStatus ?: ScheduledTaskStatus.ENABLED
-            if (resolution == ScheduledTaskConflictResolution.KEEP_BOTH && task.syncDeleted) {
+            if (resolution == ScheduledTaskConflictResolution.KEEP_BOTH) {
                 task.copy(
-                    syncId = stableId(mergeKey, conflictId, "keep-both-delete-${task.conflictSide}"),
+                    syncId = stableId(mergeKey, conflictId, "keep-both-${task.conflictSide}"),
                     status = status,
                     syncDeleted = false,
                     conflictId = null,

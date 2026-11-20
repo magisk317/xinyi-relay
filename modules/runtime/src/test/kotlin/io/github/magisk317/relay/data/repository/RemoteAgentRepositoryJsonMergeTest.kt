@@ -24,30 +24,6 @@ class RemoteAgentRepositoryJsonMergeTest {
               "verification": {
                 "verificationFeaturesEnabled": true
               }
-
-    @Test
-    fun unrelatedSenderMutationPreservesScheduledTasks() {
-        val base = RelayJson.parseElement(
-            """
-            {
-              "senders":[{"id":1}],
-              "scheduledTasks":[{"syncId":"task-a","content":"keep"}]
-            }
-            """.trimIndent(),
-        ).jsonObject
-        val mutation = RelayJson.parseElement(
-            """
-            {"operations":[{"type":"replace_senders","senders":[{"id":2}]}]}
-            """.trimIndent(),
-        ).jsonObject
-
-        val applied = requireNotNull(applyConfigMutationBatch(base, mutation))
-
-        assertEquals(
-            base.getValue("scheduledTasks"),
-            applied.getValue("scheduledTasks"),
-        )
-    }
             }
             """.trimIndent(),
         ).jsonObject
@@ -235,5 +211,26 @@ class RemoteAgentRepositoryJsonMergeTest {
             """[["a.app","Alpha",false,true,false,"A"],["z.app","Zulu",true,false,true,"Z"]]""",
             digest,
         )
+    }
+
+    @Test
+    fun unrelatedSenderMutationPreservesScheduledTasks() {
+        val base = RelayJson.parseElement(
+            """
+            {
+              "senders":[{"id":1}],
+              "scheduledTasks":[{"syncId":"task-a","content":"keep"}]
+            }
+            """.trimIndent(),
+        ).jsonObject
+        val mutation = RelayJson.parseElement(
+            """
+            {"operations":[{"type":"replace_senders","senders":[{"id":2}]}]}
+            """.trimIndent(),
+        ).jsonObject
+
+        val applied = requireNotNull(applyConfigMutationBatch(base, mutation))
+
+        assertEquals(base.getValue("scheduledTasks"), applied.getValue("scheduledTasks"))
     }
 }
